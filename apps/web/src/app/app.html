@@ -1,0 +1,96 @@
+<nav class="navbar">
+
+  <!-- Brand -->
+  <a routerLink="/" class="brand">
+    <img class="brand-icon" src="/assets/logo.svg" width="28" height="28" alt="RobosGig logo" />
+    <span class="brand-name">Robos<span class="brand-gig">Gig</span></span>
+  </a>
+
+  <!-- Center navigation -->
+  <div class="nav-center">
+    @if (auth.isLoggedIn()) {
+      @if (auth.isWorker()) {
+        <a routerLink="/worker/jobs" routerLinkActive="active">Browse jobs</a>
+        <a routerLink="/dashboard/worker" routerLinkActive="active">Applications</a>
+        <a routerLink="/worker/profile" routerLinkActive="active">Profile</a>
+      } @else {
+        <a routerLink="/post" routerLinkActive="active">Post a job</a>
+        <a routerLink="/dashboard/client" routerLinkActive="active">My jobs</a>
+      }
+      <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
+      @if (auth.user()?.role === 'ADMIN') {
+        <a routerLink="/admin/verifications" routerLinkActive="active">Verifications</a>
+      }
+    } @else {
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">How it works</a>
+      <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
+      <a routerLink="/terms" routerLinkActive="active">Terms</a>
+    }
+  </div>
+
+  <!-- Right side -->
+  <div class="nav-end">
+    @if (auth.isLoggedIn()) {
+      <div class="user-pill">
+        <div class="user-avatar" [class.worker]="auth.isWorker()">
+          {{ auth.isWorker() ? 'W' : 'C' }}
+        </div>
+        <span class="user-role">{{ auth.isWorker() ? 'Worker' : 'Client' }}</span>
+        <button class="signout-btn" (click)="auth.logout()" title="Sign out">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    } @else {
+      <a routerLink="/login" class="signin-link">Sign in</a>
+      <a routerLink="/register" class="join-btn">Get started</a>
+    }
+  </div>
+
+</nav>
+
+<router-outlet></router-outlet>
+
+@if (auth.isLoggedIn()) {
+  <app-chat-widget />
+}
+
+<!-- Page loader -->
+@if (loading()) {
+  <div class="page-loader">
+    <div class="robot">
+      <!-- Antenna -->
+      <div class="antenna">
+        <div class="antenna-ball"></div>
+        <div class="antenna-stem"></div>
+      </div>
+      <!-- Head -->
+      <div class="robot-head">
+        <div class="robot-eyes">
+          <div class="eye left"></div>
+          <div class="eye right"></div>
+        </div>
+        <div class="robot-mouth"></div>
+      </div>
+      <!-- Body -->
+      <div class="robot-body">
+        <div class="robot-chest">
+          <div class="chest-light"></div>
+        </div>
+        <div class="robot-arms">
+          <div class="arm left"></div>
+          <div class="arm right"></div>
+        </div>
+      </div>
+      <!-- Legs -->
+      <div class="robot-legs">
+        <div class="leg left"></div>
+        <div class="leg right"></div>
+      </div>
+    </div>
+    <p class="loader-text">Loading<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
+  </div>
+}

@@ -1,0 +1,312 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  CLIENT
+  WORKER
+  ADMIN
+}
+
+enum JobStatus {
+  DRAFT
+  POSTED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Urgency {
+  LOW
+  NORMAL
+  HIGH
+  EMERGENCY
+}
+
+enum ApplicationStatus {
+  SUGGESTED
+  NOTIFIED
+  APPLIED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  COMPLETED
+}
+
+enum PlanType {
+  FREE
+  WORKER_PRO
+  CLIENT_BUSINESS
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(CLIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workerProfile WorkerProfile?
+  clientProfile ClientProfile?
+  jobsPosted    Job[]          @relation("ClientJobs")
+  subscription  Subscription?
+  messages      Message[]
+  verification  IdentityVerification?
+
+  idVerified Boolean @default(false)
+}
+
+// ─── Worker Profile ───────────────────────────────────────────────────────────
+
+model WorkerProfile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  firstName String
+  lastName  String
+  bio       String?
+  avatarUrl String?
+  phone     String?
+
+  // Location
+  latitude   Float
+  longitude  Float
+  address    String
+  city       String
+  postalCode String?
+
+  // Personal
+  dateOfBirth DateTime?
+
+  // Pricing & work
+  hourlyRate  Float?
+  isAvailable Boolean @default(true)
+
+  // Stats (denormalized for performance)
+  rating       Float @default(0)
+  totalJobs    Int   @default(0)
+  totalReviews Int   @default(0)
+
+  // Verification
+  idVerified        Boolean @default(false)
+  backgroundChecked Boolean @default(false)
+
+  skills       WorkerSkill[]
+  applications JobApplication[]
+  reviews      Review[]        @relation("WorkerReviews")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Client Profile ───────────────────────────────────────────────────────────
+
+model ClientProfile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  firstName String
+  lastName  String
+  phone     String?
+  avatarUrl String?
+
+  // Default location
+  latitude   Float?
+  longitude  Float?
+  address    String?
+  city       String?
+  postalCode String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Categories & Skills ──────────────────────────────────────────────────────
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  icon        String?
+  description String?
+
+  skills Skill[]
+  jobs   Job[]
+}
+
+model Skill {
+  id         String   @id @default(cuid())
+  name       String
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  workers WorkerSkill[]
+}
+
+model WorkerSkill {
+  workerId String
+  skillId  String
+  worker   WorkerProfile @relation(fields: [workerId], references: [id])
+  skill    Skill         @relation(fields: [skillId], references: [id])
+
+  @@id([workerId, skillId])
+}
+
+// ─── Jobs ─────────────────────────────────────────────────────────────────────
+
+model Job {
+  id       String @id @default(cuid())
+  clientId String
+  client   User   @relation("ClientJobs", fields: [clientId], references: [id])
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  // AI-generated fields
+  title          String
+  description    String
+  rawInput       String   // original sentence from client
+  priceMin       Float?
+  priceMax       Float?
+  urgency        Urgency  @default(NORMAL)
+  estimatedHours Float?
+  toolsNeeded    String[]
+  aiCategorySlug String?  // AI-detected category
+
+  // Location
+  latitude  Float?
+  longitude Float?
+  address   String?
+  city      String?
+
+  status JobStatus @default(DRAFT)
+
+  applications JobApplication[]
+  reviews      Review[]
+  payment      Payment?
+  messages     Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Job Applications ─────────────────────────────────────────────────────────
+
+model JobApplication {
+  id       String @id @default(cuid())
+  jobId    String
+  workerId String
+  job      Job           @relation(fields: [jobId], references: [id])
+  worker   WorkerProfile @relation(fields: [workerId], references: [id])
+
+  status        ApplicationStatus @default(SUGGESTED)
+  matchScore    Float?  // AI matching score 0-100
+  proposedPrice Float?
+  message       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([jobId, workerId])
+}
+
+// ─── Reviews ─────────────────────────────────────────────────────────────────
+
+
+model Review {
+  id       String @id @default(cuid())
+  jobId    String
+  workerId String
+  clientId String
+  job      Job           @relation(fields: [jobId], references: [id])
+  worker   WorkerProfile @relation("WorkerReviews", fields: [workerId], references: [id])
+
+  rating  Int     // 1-5
+  comment String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([jobId, workerId])
+}
+
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id])
+  planType             PlanType  @default(FREE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+  isActive             Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+
+model Message {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id])
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  content   String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([jobId, createdAt])
+}
+
+// ─── Identity Verification ───────────────────────────────────────────────────
+
+model IdentityVerification {
+  id            String             @id @default(cuid())
+  userId        String             @unique
+  user          User               @relation(fields: [userId], references: [id])
+  documentUrl   String
+  selfieUrl     String?
+  status        VerificationStatus @default(PENDING)
+  rejectionNote String?
+  submittedAt   DateTime           @default(now())
+  reviewedAt    DateTime?
+}
+
+// ─── Payments ────────────────────────────────────────────────────────────────
+
+model Payment {
+  id                 String        @id @default(cuid())
+  jobId              String        @unique
+  job                Job           @relation(fields: [jobId], references: [id])
+  totalAmount        Float
+  platformFeePercent Float
+  platformFeeAmount  Float
+  workerPayout       Float
+  status             PaymentStatus @default(PENDING)
+  stripeSessionId    String?
+  createdAt          DateTime      @default(now())
+}

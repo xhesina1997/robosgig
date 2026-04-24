@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RobosGig — AI-powered task marketplace</title>
+  <meta name="description" content="Describe any task in plain language — our AI instantly finds verified, nearby workers who are ready to help. Fast, safe, and hassle-free." />
+  <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+      background: #060d1a; color: #e2e8f0; overflow-x: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ── NAVBAR ─────────────────────────────────── */
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 56px;
+      background: rgba(6,13,26,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(56,189,248,0.08);
+    }
+    .brand { display: flex; align-items: center; gap: 0.5rem; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.1rem; color: #f0f9ff; letter-spacing: -0.02em; }
+    .brand svg { flex-shrink: 0; }
+    .nav-links { display: flex; align-items: center; gap: 1.75rem; }
+    .nav-links a { font-size: 0.85rem; color: #94a3b8; transition: color 0.15s; }
+    .nav-links a:hover { color: #f0f9ff; }
+    .nav-end { display: flex; align-items: center; gap: 0.75rem; }
+    .nav-signin {
+      font-size: 0.85rem; font-weight: 600; color: #94a3b8;
+      transition: color 0.15s;
+    }
+    .nav-signin:hover { color: #f0f9ff; }
+    .nav-cta {
+      display: inline-flex; align-items: center;
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: #fff; font-size: 0.85rem; font-weight: 600;
+      padding: 0.5rem 1.25rem; border-radius: 99px;
+      transition: filter 0.2s, transform 0.2s;
+      box-shadow: 0 4px 14px rgba(14,165,233,0.35);
+    }
+    .nav-cta:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+    /* ── LANG TOGGLE ─────────────────────────────── */
+    .lang-toggle {
+      display: flex; align-items: center; gap: 0.25rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(56,189,248,0.15);
+      border-radius: 99px; padding: 0.2rem 0.35rem;
+    }
+    .lang-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
+      color: #475569; padding: 0.2rem 0.45rem; border-radius: 99px;
+      transition: color 0.15s, background 0.15s; font-family: inherit;
+    }
+    .lang-btn:hover { color: #94a3b8; }
+    .lang-btn.active {
+      background: rgba(14,165,233,0.18); color: #38bdf8;
+    }
+    .lang-sep { color: #1e3a5f; font-size: 0.7rem; user-select: none; }
+
+    /* ── HERO ───────────────────────────────────── */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center;
+      position: relative; overflow: hidden; padding: 5rem 1.5rem 4rem;
+    }
+    .grid-overlay {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(14,165,233,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14,165,233,0.06) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 100%);
+    }
+    .glow { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; }
+    .glow-1 { width: 700px; height: 500px; background: rgba(14,165,233,0.18); top: -150px; right: -100px; }
+    .glow-2 { width: 500px; height: 400px; background: rgba(56,189,248,0.1); bottom: -80px; left: -100px; }
+
+    .hero-inner {
+      max-width: 1160px; margin: 0 auto; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center;
+      position: relative; z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-size: 0.78rem; font-weight: 600; color: #38bdf8;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 1.5rem; opacity: 0;
+    }
+    .eyebrow-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { transform: scale(1); box-shadow: 0 0 8px #38bdf8; }
+      50%      { transform: scale(1.5); box-shadow: 0 0 16px #38bdf8; }
+    }
+
+    .hero-headline {
+      font-size: clamp(2.6rem, 5vw, 4.2rem); font-weight: 800;
+      line-height: 1.06; letter-spacing: -0.03em; color: #f0f9ff;
+      margin: 0 0 1.5rem; display: flex; flex-direction: column;
+    }
+    .line { display: block; overflow: hidden; }
+    .line-accent {
+      background: linear-gradient(90deg, #38bdf8, #0ea5e9, #818cf8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1.05rem; color: #7dd3fc; line-height: 1.75;
+      max-width: 480px; margin: 0 0 2.5rem; opacity: 0;
+    }
+
+    .hero-ctas { display: flex; gap: 0.875rem; flex-wrap: wrap; opacity: 0; }
+
+    .cta-primary {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: #fff; font-size: 0.9rem; font-weight: 600;
+      padding: 0.75rem 1.5rem; border-radius: 99px;
+      transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+      box-shadow: 0 4px 20px rgba(14,165,233,0.4);
+    }
+    .cta-primary:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 8px 32px rgba(14,165,233,0.55); }
+    .cta-secondary {
+      display: inline-flex; align-items: center;
+      color: #bae6fd; font-size: 0.9rem; font-weight: 600;
+      padding: 0.75rem 1.5rem; border-radius: 99px;
+      border: 1.5px solid rgba(56,189,248,0.3);
+      transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    }
+    .cta-secondary:hover { border-color: #38bdf8; background: rgba(56,189,248,0.08); transform: translateY(-2px); }
+
+    .trust-row { display: flex; align-items: center; gap: 1.5rem; margin-top: 2.5rem; opacity: 0; }
+    .trust-item { display: flex; flex-direction: column; gap: 0.2rem; }
+    .trust-num { font-size: 1.5rem; font-weight: 800; color: #f0f9ff; letter-spacing: -0.03em; }
+    .trust-num::after { content: '+'; font-size: 1rem; color: #38bdf8; }
+    .trust-rating::after { content: '★'; font-size: 0.9rem; color: #fbbf24; }
+    .trust-label { font-size: 0.72rem; color: #64748b; font-weight: 500; }
+    .trust-div { width: 1px; height: 36px; background: rgba(56,189,248,0.15); }
+
+    /* Hero visual */
+    .hero-visual { position: relative; opacity: 0; }
+    .card-stack { position: relative; height: 380px; }
+    .job-card-demo {
+      position: absolute;
+      background: rgba(11,25,50,0.85);
+      border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 16px; padding: 1.1rem 1.25rem; width: 280px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(56,189,248,0.1);
+      backdrop-filter: blur(12px);
+    }
+    .jc-1 { top: 0; left: 40px; z-index: 3; border-color: rgba(56,189,248,0.35); }
+    .jc-2 { top: 110px; left: 0; z-index: 2; }
+    .jc-3 { top: 220px; left: 60px; z-index: 1; }
+    .jc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; }
+    .jc-cat { font-size: 0.75rem; font-weight: 600; color: #94a3b8; }
+    .jc-urgent { font-size: 0.68rem; font-weight: 700; background: rgba(239,68,68,0.15); color: #f87171; padding: 0.15rem 0.5rem; border-radius: 99px; border: 1px solid rgba(239,68,68,0.25); }
+    .jc-badge  { font-size: 0.68rem; font-weight: 700; background: rgba(14,165,233,0.15); color: #38bdf8; padding: 0.15rem 0.5rem; border-radius: 99px; border: 1px solid rgba(14,165,233,0.25); }
+    .jc-title  { font-size: 0.875rem; font-weight: 600; color: #e2e8f0; margin: 0 0 0.75rem; line-height: 1.4; }
+    .jc-footer { display: flex; justify-content: space-between; align-items: center; }
+    .jc-price  { font-size: 0.82rem; font-weight: 700; color: #38bdf8; }
+    .jc-dist   { font-size: 0.72rem; color: #475569; }
+    .ai-badge {
+      position: absolute; bottom: 20px; right: -10px;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: linear-gradient(135deg, #0c2340, #0f3460);
+      border: 1px solid rgba(56,189,248,0.4); color: #bae6fd;
+      font-size: 0.75rem; font-weight: 600;
+      padding: 0.5rem 0.875rem; border-radius: 99px;
+      box-shadow: 0 4px 20px rgba(14,165,233,0.3); z-index: 10;
+    }
+    .ai-pulse {
+      width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
+      box-shadow: 0 0 8px #4ade80; animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+
+    /* ── SECTIONS ───────────────────────────────── */
+    .section { padding: 6rem 1.5rem; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-label-row { margin-bottom: 0.75rem; }
+    .section-eyebrow { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #38bdf8; }
+    .section-title { font-size: clamp(1.8rem, 3vw, 2.75rem); font-weight: 800; letter-spacing: -0.03em; color: #f0f9ff; margin: 0 0 3rem; }
+
+    /* ── HOW IT WORKS ───────────────────────────── */
+    .how { background: #080f1e; border-top: 1px solid rgba(56,189,248,0.08); border-bottom: 1px solid rgba(56,189,248,0.08); }
+    .steps { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .step { flex: 1; min-width: 220px; max-width: 300px; display: flex; flex-direction: column; gap: 1rem; }
+    .step-num { font-size: 0.7rem; font-weight: 800; color: #1e3a5f; letter-spacing: 0.1em; }
+    .step-icon {
+      width: 52px; height: 52px;
+      background: rgba(14,165,233,0.1); border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #38bdf8;
+    }
+    .step-title { font-size: 1.05rem; font-weight: 700; color: #f0f9ff; margin: 0; }
+    .step-desc  { font-size: 0.875rem; color: #64748b; line-height: 1.65; margin: 0; }
+    .step-arrow { display: flex; align-items: center; padding-top: 1.5rem; flex-shrink: 0; }
+
+    /* ── CATEGORIES ─────────────────────────────── */
+    .cats { background: #060d1a; }
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.875rem; }
+    .cat-card {
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      background: rgba(11,25,50,0.7); border: 1px solid rgba(56,189,248,0.1);
+      border-radius: 14px; padding: 1.25rem 1rem;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    }
+    .cat-card:hover { border-color: rgba(56,189,248,0.4); transform: translateY(-4px); box-shadow: 0 8px 24px rgba(14,165,233,0.15); }
+    .cat-emoji { font-size: 1.75rem; }
+    .cat-name  { font-size: 0.78rem; font-weight: 600; color: #94a3b8; text-align: center; }
+
+    /* ── EARN EXTRA ─────────────────────────────── */
+    .earn { background: #080f1e; border-top: 1px solid rgba(56,189,248,0.08); }
+    .earn-sub {
+      font-size: 1rem; color: #64748b; line-height: 1.75;
+      max-width: 580px; margin: -1.5rem 0 3rem;
+    }
+    .profile-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem; margin-bottom: 3rem;
+    }
+    .profile-card {
+      background: rgba(11,25,50,0.7);
+      border: 1px solid rgba(56,189,248,0.1);
+      border-radius: 18px; padding: 1.5rem;
+      display: flex; flex-direction: column; gap: 1.1rem;
+      transition: border-color 0.25s, box-shadow 0.25s;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+    .profile-card:hover {
+      border-color: rgba(56,189,248,0.3);
+      box-shadow: 0 16px 40px rgba(14,165,233,0.12);
+    }
+    .profile-top { display: flex; align-items: center; gap: 0.875rem; }
+    .profile-avatar {
+      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.05rem; font-weight: 700; color: #fff;
+    }
+    .profile-name { font-size: 0.9rem; font-weight: 700; color: #f0f9ff; }
+    .profile-role { font-size: 0.74rem; color: #475569; margin-top: 0.15rem; }
+    .profile-quote {
+      font-size: 0.84rem; color: #64748b; line-height: 1.7; font-style: italic;
+      border-left: 2px solid rgba(56,189,248,0.2); padding-left: 0.875rem;
+      flex: 1;
+    }
+    .profile-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .profile-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .profile-tag {
+      font-size: 0.68rem; font-weight: 600; color: #475569;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(56,189,248,0.1);
+      padding: 0.15rem 0.55rem; border-radius: 99px;
+    }
+    .profile-earn { font-size: 0.82rem; font-weight: 700; color: #4ade80; white-space: nowrap; }
+
+    .earn-stats {
+      display: flex;
+      border: 1px solid rgba(56,189,248,0.1);
+      border-radius: 18px;
+      background: rgba(11,25,50,0.5);
+      overflow: hidden;
+    }
+    .earn-stat {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; gap: 0.4rem; padding: 1.75rem 1rem;
+      border-right: 1px solid rgba(56,189,248,0.08);
+    }
+    .earn-stat:last-child { border-right: none; }
+    .earn-stat-num {
+      font-size: 2.2rem; font-weight: 800; color: #f0f9ff;
+      letter-spacing: -0.04em; line-height: 1;
+    }
+    .earn-stat-num em { font-style: normal; font-size: 1.3rem; color: #38bdf8; }
+    .earn-stat-label { font-size: 0.76rem; color: #475569; text-align: center; line-height: 1.45; }
+
+    @media (max-width: 768px) {
+      .profile-grid { grid-template-columns: 1fr; }
+      .earn-stats { flex-direction: column; }
+      .earn-stat { border-right: none; border-bottom: 1px solid rgba(56,189,248,0.08); }
+      .earn-stat:last-child { border-bottom: none; }
+    }
+
+    /* ── WORKER CTA ─────────────────────────────── */
+    .worker-cta { background: #080f1e; border-top: 1px solid rgba(56,189,248,0.08); position: relative; overflow: hidden; }
+    .worker-cta-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; position: relative; z-index: 1; }
+    .eyebrow-blue { color: #38bdf8; }
+    .worker-title { font-size: clamp(1.8rem, 3vw, 2.5rem); font-weight: 800; color: #f0f9ff; margin: 0.5rem 0 1rem; letter-spacing: -0.03em; }
+    .worker-sub { font-size: 0.95rem; color: #64748b; line-height: 1.7; margin: 0 0 1.5rem; }
+    .worker-perks { list-style: none; padding: 0; margin: 0 0 2rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .worker-perks li { display: flex; align-items: center; gap: 0.625rem; font-size: 0.875rem; color: #94a3b8; }
+    .worker-perks li svg { color: #4ade80; flex-shrink: 0; }
+    .worker-graphic { display: flex; justify-content: center; }
+    .earning-card {
+      background: rgba(11,25,50,0.9); border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 20px; padding: 1.75rem; width: 260px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5); backdrop-filter: blur(12px);
+    }
+    .ec-label  { font-size: 0.75rem; font-weight: 600; color: #475569; margin: 0 0 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .ec-amount { font-size: 2.25rem; font-weight: 800; color: #f0f9ff; margin: 0 0 1.5rem; letter-spacing: -0.04em; }
+    .ec-bars   { display: flex; align-items: flex-end; gap: 0.4rem; height: 80px; margin-bottom: 1rem; }
+    .ec-bar    { flex: 1; background: rgba(56,189,248,0.12); border-radius: 4px; }
+    .ec-bar-active { background: linear-gradient(to top, #0284c7, #38bdf8); box-shadow: 0 0 12px rgba(56,189,248,0.4); }
+    .ec-jobs   { display: flex; justify-content: space-between; font-size: 0.78rem; color: #475569; }
+    .ec-up     { color: #4ade80; font-weight: 600; }
+
+    /* ── FINAL CTA ──────────────────────────────── */
+    .final-cta {
+      background: #060d1a; text-align: center;
+      position: relative; overflow: hidden; border-top: 1px solid rgba(56,189,248,0.08);
+    }
+    .final-glow {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(14,165,233,0.18) 0%, transparent 70%);
+    }
+    .final-inner { max-width: 600px; position: relative; z-index: 1; }
+    .final-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; color: #f0f9ff; margin: 0 0 1rem; letter-spacing: -0.03em; }
+    .final-sub   { font-size: 1rem; color: #64748b; margin: 0 0 2.5rem; }
+    .final-btns  { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+    .cta-ghost {
+      display: inline-flex; align-items: center;
+      color: rgba(186,230,253,0.7); font-size: 0.9rem; font-weight: 500;
+      padding: 0.75rem 1.5rem; border-radius: 99px;
+      border: 1.5px solid rgba(56,189,248,0.2);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .cta-ghost:hover { border-color: rgba(56,189,248,0.5); color: #bae6fd; }
+    .cta-large { font-size: 1rem; padding: 0.9rem 2rem; }
+
+    /* ── FOOTER ─────────────────────────────────── */
+    .footer { background: #040a14; padding: 2rem 1.5rem; border-top: 1px solid rgba(56,189,248,0.08); }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .footer-brand { display: flex; align-items: center; gap: 0.5rem; color: #f0f9ff; font-weight: 700; font-size: 0.9rem; }
+    .footer-copy  { font-size: 0.78rem; color: #1e3a5f; }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { font-size: 0.78rem; color: #334155; transition: color 0.15s; }
+    .footer-links a:hover { color: #38bdf8; }
+
+    /* ── Responsive ─────────────────────────────── */
+    @media (max-width: 768px) {
+      .hero-inner       { grid-template-columns: 1fr; gap: 3rem; }
+      .hero-visual      { display: none; }
+      .worker-cta-inner { grid-template-columns: 1fr; gap: 2rem; }
+      .worker-graphic   { display: none; }
+      .steps            { flex-direction: column; }
+      .step-arrow       { display: none; }
+      .step             { max-width: 100%; }
+      .nav-links        { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAVBAR ─────────────────────────────────── -->
+  <nav class="navbar">
+    <a class="brand" href="#">
+      <img src="/logo.svg" width="28" height="28" alt="RobosGig logo" style="display:block;flex-shrink:0" />
+      Robos<span style="color:#38bdf8">Gig</span>
+    </a>
+    <div class="nav-links">
+      <a href="#how" data-i18n="nav_how">How it works</a>
+      <a href="#categories" data-i18n="nav_categories">Categories</a>
+      <a data-href="/pricing" href="#" data-i18n="nav_pricing">Pricing</a>
+    </div>
+    <div class="nav-end">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+        <span class="lang-sep">·</span>
+        <button class="lang-btn" data-lang="sq" onclick="setLang('sq')">SQ</button>
+      </div>
+      <a class="nav-signin" data-href="/login" href="#" data-i18n="nav_signin">Sign in</a>
+      <a class="nav-cta" data-href="/register" href="#" data-i18n="nav_cta">Get started</a>
+    </div>
+  </nav>
+
+  <!-- ── HERO ───────────────────────────────────── -->
+  <section class="hero">
+    <div class="grid-overlay"></div>
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <div class="hero-inner">
+      <div class="hero-text">
+        <div class="eyebrow" id="eyebrow">
+          <span class="eyebrow-dot"></span>
+          <span data-i18n="hero_eyebrow">AI-powered task marketplace</span>
+        </div>
+
+        <h1 class="hero-headline">
+          <span class="line" id="line1" data-i18n="hero_line1">Find trusted help.</span>
+          <span class="line line-accent" id="line2" data-i18n="hero_line2">Get it done.</span>
+        </h1>
+
+        <p class="hero-sub" id="hero-sub" data-i18n="hero_sub">
+          Describe any task in plain language — our AI instantly finds verified,
+          nearby workers who are ready to help. Fast, safe, and hassle-free.
+        </p>
+
+        <div class="hero-ctas" id="hero-ctas">
+          <a class="cta-primary" data-href="/register" href="#">
+            <span data-i18n="cta_post_job">Post a job</span>
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="cta-secondary" data-href="/register" href="#" data-i18n="cta_find_work">Find work</a>
+        </div>
+
+        <div class="trust-row" id="trust-row">
+          <div class="trust-item">
+            <span class="trust-num" data-target="1200">0</span>
+            <span class="trust-label" data-i18n="trust_jobs">Jobs completed</span>
+          </div>
+          <div class="trust-div"></div>
+          <div class="trust-item">
+            <span class="trust-num" data-target="480">0</span>
+            <span class="trust-label" data-i18n="trust_workers">Verified workers</span>
+          </div>
+          <div class="trust-div"></div>
+          <div class="trust-item">
+            <span class="trust-num trust-rating">4.9</span>
+            <span class="trust-label" data-i18n="trust_rating">Avg. rating</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual" id="hero-visual">
+        <div class="card-stack">
+          <div class="job-card-demo jc-1">
+            <div class="jc-head"><span class="jc-cat">🔧 <span data-i18n="cat_plumbing">Plumbing</span></span><span class="jc-urgent" data-i18n="badge_urgent">Urgent</span></div>
+            <p class="jc-title" data-i18n="demo_job1">Fix leaking pipe under kitchen sink</p>
+            <div class="jc-footer"><span class="jc-price">€40–€80</span><span class="jc-dist" data-i18n="demo_dist1">1.2 km away</span></div>
+          </div>
+          <div class="job-card-demo jc-2">
+            <div class="jc-head"><span class="jc-cat">🌿 <span data-i18n="cat_gardening">Gardening</span></span><span class="jc-badge" data-i18n="badge_matches">3 matches</span></div>
+            <p class="jc-title" data-i18n="demo_job2">Weekly lawn mowing & hedge trimming</p>
+            <div class="jc-footer"><span class="jc-price">€30–€60</span><span class="jc-dist" data-i18n="demo_dist2">0.8 km away</span></div>
+          </div>
+          <div class="job-card-demo jc-3">
+            <div class="jc-head"><span class="jc-cat">🐾 <span data-i18n="cat_petcare">Pet Care</span></span></div>
+            <p class="jc-title" data-i18n="demo_job3">Daily dog walking, 2× per day</p>
+            <div class="jc-footer"><span class="jc-price">€20–€35</span><span class="jc-dist" data-i18n="demo_dist3">0.3 km away</span></div>
+          </div>
+          <div class="ai-badge" id="ai-badge">
+            <span class="ai-pulse"></span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <span data-i18n="ai_matched">AI matched in 0.4s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ───────────────────────────── -->
+  <section class="section how" id="how">
+    <div class="section-inner">
+      <div class="section-label-row"><span class="section-eyebrow" data-i18n="nav_how">How it works</span></div>
+      <h2 class="section-title" data-i18n="how_title">Three steps to done</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <h3 class="step-title" data-i18n="step1_title">Describe your task</h3>
+          <p class="step-desc" data-i18n="step1_desc">Type one sentence about what you need — our AI handles the rest: category, pricing, urgency.</p>
+        </div>
+        <div class="step-arrow">
+          <svg width="32" height="32" fill="none" stroke="#1e3a5f" stroke-width="1.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </div>
+          <h3 class="step-title" data-i18n="step2_title">AI finds your match</h3>
+          <p class="step-desc" data-i18n="step2_desc">We scan nearby verified workers and rank them by skill, distance, rating, and availability.</p>
+        </div>
+        <div class="step-arrow">
+          <svg width="32" height="32" fill="none" stroke="#1e3a5f" stroke-width="1.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <h3 class="step-title" data-i18n="step3_title">Hire, chat, pay</h3>
+          <p class="step-desc" data-i18n="step3_desc">Pick your worker, coordinate via chat, and pay securely only when the job is done.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CATEGORIES ────────────────────────────── -->
+  <section class="section cats" id="categories">
+    <div class="section-inner">
+      <div class="section-label-row"><span class="section-eyebrow" data-i18n="cats_eyebrow">What we cover</span></div>
+      <h2 class="section-title" data-i18n="cats_title">Any task, any time</h2>
+      <div class="cat-grid">
+        <div class="cat-card"><span class="cat-emoji">🔧</span><span class="cat-name" data-i18n="cat_plumbing">Plumbing</span></div>
+        <div class="cat-card"><span class="cat-emoji">⚡</span><span class="cat-name" data-i18n="cat_electrical">Electrical</span></div>
+        <div class="cat-card"><span class="cat-emoji">🌿</span><span class="cat-name" data-i18n="cat_gardening">Gardening</span></div>
+        <div class="cat-card"><span class="cat-emoji">🧹</span><span class="cat-name" data-i18n="cat_cleaning">Cleaning</span></div>
+        <div class="cat-card"><span class="cat-emoji">🐾</span><span class="cat-name" data-i18n="cat_petcare">Pet Care</span></div>
+        <div class="cat-card"><span class="cat-emoji">🚚</span><span class="cat-name" data-i18n="cat_moving">Moving</span></div>
+        <div class="cat-card"><span class="cat-emoji">🎨</span><span class="cat-name" data-i18n="cat_painting">Painting</span></div>
+        <div class="cat-card"><span class="cat-emoji">🪵</span><span class="cat-name" data-i18n="cat_carpentry">Carpentry</span></div>
+        <div class="cat-card"><span class="cat-emoji">❄️</span><span class="cat-name">HVAC</span></div>
+        <div class="cat-card"><span class="cat-emoji">📦</span><span class="cat-name" data-i18n="cat_assembly">Assembly</span></div>
+        <div class="cat-card"><span class="cat-emoji">🏗️</span><span class="cat-name" data-i18n="cat_renovation">Renovation</span></div>
+        <div class="cat-card"><span class="cat-emoji">🔒</span><span class="cat-name" data-i18n="cat_locksmith">Locksmith</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── EARN EXTRA ───────────────────────────── -->
+  <section class="section earn" id="earn">
+    <div class="section-inner">
+      <div class="section-label-row"><span class="section-eyebrow" data-i18n="earn_eyebrow">For everyone</span></div>
+      <h2 class="section-title" data-i18n="earn_title">Spare hours, real money</h2>
+      <p class="earn-sub" data-i18n="earn_sub">You don't need a degree or a van. If you can clean, garden, assemble furniture, or walk a dog — there are people nearby willing to pay.</p>
+
+      <div class="profile-grid">
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="profile-avatar" style="background:linear-gradient(135deg,#0ea5e9,#0369a1)">S</div>
+            <div>
+              <p class="profile-name" data-i18n="p1_name">Sara, 22</p>
+              <p class="profile-role" data-i18n="p1_role">Law student</p>
+            </div>
+          </div>
+          <p class="profile-quote" data-i18n="p1_quote">"I fit gigs between lectures. €250 extra a month makes a real difference as a student."</p>
+          <div class="profile-footer">
+            <div class="profile-tags">
+              <span class="profile-tag" data-i18n="cat_cleaning">Cleaning</span>
+              <span class="profile-tag" data-i18n="cat_petcare">Pet Care</span>
+            </div>
+            <span class="profile-earn">€180–€350/mo</span>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="profile-avatar" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">M</div>
+            <div>
+              <p class="profile-name" data-i18n="p2_name">Marco, 35</p>
+              <p class="profile-role" data-i18n="p2_role">Stay-at-home parent</p>
+            </div>
+          </div>
+          <p class="profile-quote" data-i18n="p2_quote">"I work while the kids are at school. No boss, no fixed hours — I decide when I'm available."</p>
+          <div class="profile-footer">
+            <div class="profile-tags">
+              <span class="profile-tag" data-i18n="cat_assembly">Assembly</span>
+              <span class="profile-tag" data-i18n="cat_moving">Moving</span>
+            </div>
+            <span class="profile-earn">€300–€500/mo</span>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="profile-avatar" style="background:linear-gradient(135deg,#0f766e,#059669)">D</div>
+            <div>
+              <p class="profile-name" data-i18n="p3_name">Dina, 41</p>
+              <p class="profile-role" data-i18n="p3_role">Office administrator</p>
+            </div>
+          </div>
+          <p class="profile-quote" data-i18n="p3_quote">"Weekends used to go by doing nothing. Now I earn an extra €350 a month just helping neighbours."</p>
+          <div class="profile-footer">
+            <div class="profile-tags">
+              <span class="profile-tag" data-i18n="cat_cleaning">Cleaning</span>
+              <span class="profile-tag" data-i18n="cat_painting">Painting</span>
+            </div>
+            <span class="profile-earn">€250–€420/mo</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="earn-stats">
+        <div class="earn-stat">
+          <span class="earn-stat-num">3<em>d</em></span>
+          <span class="earn-stat-label" data-i18n="stat1_label">avg. days to your first gig</span>
+        </div>
+        <div class="earn-stat">
+          <span class="earn-stat-num">€320<em>+</em></span>
+          <span class="earn-stat-label" data-i18n="stat2_label">avg. extra income per month</span>
+        </div>
+        <div class="earn-stat">
+          <span class="earn-stat-num">60<em>%</em></span>
+          <span class="earn-stat-label" data-i18n="stat3_label">of jobs need no prior experience</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── WORKER CTA ────────────────────────────── -->
+  <section class="section worker-cta">
+    <div class="section-inner worker-cta-inner">
+      <div class="worker-text">
+        <span class="section-eyebrow eyebrow-blue" data-i18n="worker_eyebrow">For workers</span>
+        <h2 class="worker-title" data-i18n="worker_title">Turn your skills into income</h2>
+        <p class="worker-sub" data-i18n="worker_sub">Join hundreds of verified workers already earning on RobosGig. Set your own hours, pick your jobs, and get paid fast.</p>
+        <ul class="worker-perks">
+          <li>
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="perk1">Free to join — no subscription required</span>
+          </li>
+          <li>
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="perk2">AI matches you with nearby jobs automatically</span>
+          </li>
+          <li>
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="perk3">Build your reputation with verified reviews</span>
+          </li>
+          <li>
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-i18n="perk4">Upgrade to Pro for lower fees & priority placement</span>
+          </li>
+        </ul>
+        <a class="cta-primary" data-href="/register" href="#">
+          <span data-i18n="worker_cta">Start earning today</span>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+      <div class="worker-graphic">
+        <div class="earning-card">
+          <p class="ec-label" data-i18n="ec_label">This week</p>
+          <p class="ec-amount">€ 347</p>
+          <div class="ec-bars">
+            <div class="ec-bar" style="height:40%"></div>
+            <div class="ec-bar" style="height:65%"></div>
+            <div class="ec-bar" style="height:50%"></div>
+            <div class="ec-bar" style="height:80%"></div>
+            <div class="ec-bar" style="height:60%"></div>
+            <div class="ec-bar ec-bar-active" style="height:90%"></div>
+            <div class="ec-bar" style="height:55%"></div>
+          </div>
+          <div class="ec-jobs">
+            <span data-i18n="ec_jobs">6 jobs</span>
+            <span class="ec-up" data-i18n="ec_up">↑ 24% vs last week</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FINAL CTA ─────────────────────────────── -->
+  <section class="section final-cta">
+    <div class="final-glow"></div>
+    <div class="section-inner final-inner">
+      <h2 class="final-title" data-i18n="final_title">Ready to get started?</h2>
+      <p class="final-sub" data-i18n="final_sub">Join thousands of people already using RobosGig every day.</p>
+      <div class="final-btns">
+        <a class="cta-primary cta-large" data-href="/register" href="#" data-i18n="final_cta">Post your first job — it's free</a>
+        <a class="cta-ghost" data-href="/login" href="#" data-i18n="nav_signin">Sign in</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="/logo.svg" width="22" height="22" alt="RobosGig logo" style="display:block;flex-shrink:0" />
+        RobosGig
+      </div>
+      <p class="footer-copy" data-i18n="footer_copy">© 2026 RobosGig. All rights reserved.</p>
+      <div class="footer-links">
+        <a data-href="/pricing" href="#" data-i18n="nav_pricing">Pricing</a>
+        <a data-href="/login" href="#" data-i18n="nav_signin">Sign in</a>
+        <a data-href="/register" href="#" data-i18n="nav_cta">Get started</a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/main.js"></script>
+
+  <script>
+    const translations = {
+      en: {
+        nav_how:        'How it works',
+        nav_categories: 'Categories',
+        nav_pricing:    'Pricing',
+        nav_signin:     'Sign in',
+        nav_cta:        'Get started',
+
+        hero_eyebrow: 'AI-powered task marketplace',
+        hero_line1:   'Find trusted help.',
+        hero_line2:   'Get it done.',
+        hero_sub:     'Describe any task in plain language — our AI instantly finds verified, nearby workers who are ready to help. Fast, safe, and hassle-free.',
+
+        cta_post_job:  'Post a job',
+        cta_find_work: 'Find work',
+
+        trust_jobs:    'Jobs completed',
+        trust_workers: 'Verified workers',
+        trust_rating:  'Avg. rating',
+
+        badge_urgent:  'Urgent',
+        badge_matches: '3 matches',
+        demo_job1:   'Fix leaking pipe under kitchen sink',
+        demo_job2:   'Weekly lawn mowing & hedge trimming',
+        demo_job3:   'Daily dog walking, 2× per day',
+        demo_dist1:  '1.2 km away',
+        demo_dist2:  '0.8 km away',
+        demo_dist3:  '0.3 km away',
+        ai_matched:  'AI matched in 0.4s',
+
+        how_title:   'Three steps to done',
+        step1_title: 'Describe your task',
+        step1_desc:  'Type one sentence about what you need — our AI handles the rest: category, pricing, urgency.',
+        step2_title: 'AI finds your match',
+        step2_desc:  'We scan nearby verified workers and rank them by skill, distance, rating, and availability.',
+        step3_title: 'Hire, chat, pay',
+        step3_desc:  'Pick your worker, coordinate via chat, and pay securely only when the job is done.',
+
+        cats_eyebrow: 'What we cover',
+        cats_title:   'Any task, any time',
+        cat_plumbing:   'Plumbing',
+        cat_electrical: 'Electrical',
+        cat_gardening:  'Gardening',
+        cat_cleaning:   'Cleaning',
+        cat_petcare:    'Pet Care',
+        cat_moving:     'Moving',
+        cat_painting:   'Painting',
+        cat_carpentry:  'Carpentry',
+        cat_assembly:   'Assembly',
+        cat_renovation: 'Renovation',
+        cat_locksmith:  'Locksmith',
+
+        worker_eyebrow: 'For workers',
+        worker_title:   'Turn your skills into income',
+        worker_sub:     'Join hundreds of verified workers already earning on RobosGig. Set your own hours, pick your jobs, and get paid fast.',
+        perk1: 'Free to join — no subscription required',
+        perk2: 'AI matches you with nearby jobs automatically',
+        perk3: 'Build your reputation with verified reviews',
+        perk4: 'Upgrade to Pro for lower fees & priority placement',
+        worker_cta: 'Start earning today',
+        ec_label:   'This week',
+        ec_jobs:    '6 jobs',
+        ec_up:      '↑ 24% vs last week',
+
+        final_title: 'Ready to get started?',
+        final_sub:   'Join thousands of people already using RobosGig every day.',
+        final_cta:   "Post your first job — it's free",
+
+        footer_copy: '© 2026 RobosGig. All rights reserved.',
+
+        earn_eyebrow: 'For everyone',
+        earn_title:   'Spare hours, real money',
+        earn_sub:     "You don't need a degree or a van. If you can clean, garden, assemble furniture, or walk a dog — there are people nearby willing to pay.",
+        p1_name: 'Sara, 22', p1_role: 'Law student',
+        p1_quote: '"I fit gigs between lectures. €250 extra a month makes a real difference as a student."',
+        p2_name: 'Marco, 35', p2_role: 'Stay-at-home parent',
+        p2_quote: '"I work while the kids are at school. No boss, no fixed hours — I decide when I\'m available."',
+        p3_name: 'Dina, 41', p3_role: 'Office administrator',
+        p3_quote: '"Weekends used to go by doing nothing. Now I earn an extra €350 a month just helping neighbours."',
+        stat1_label: 'avg. days to your first gig',
+        stat2_label: 'avg. extra income per month',
+        stat3_label: 'of jobs need no prior experience',
+      },
+      sq: {
+        nav_how:        'Si funksionon',
+        nav_categories: 'Kategoritë',
+        nav_pricing:    'Çmimet',
+        nav_signin:     'Hyr',
+        nav_cta:        'Fillo tani',
+
+        hero_eyebrow: 'Treg i detyrave me teknologji AI',
+        hero_line1:   'Gjej ndihmë të besuar.',
+        hero_line2:   'Bëje të ndodhë.',
+        hero_sub:     'Përshkruaj çdo detyrë me gjuhë të thjeshtë — AI-ja jonë gjen menjëherë punëtorë të verifikuar afër teje. Shpejtë, të sigurt dhe pa stres.',
+
+        cta_post_job:  'Posto një punë',
+        cta_find_work: 'Gjej punë',
+
+        trust_jobs:    'Punë të kryera',
+        trust_workers: 'Punëtorë të verifikuar',
+        trust_rating:  'Vlerësim mesatar',
+
+        badge_urgent:  'Urgjent',
+        badge_matches: '3 përputhje',
+        demo_job1:   'Riparoje tubacionin që rrjedh nën lavaman',
+        demo_job2:   'Kositje e barit dhe rregullim i plotës javore',
+        demo_job3:   'Shëtitje ditore e qenit, 2× në ditë',
+        demo_dist1:  '1.2 km larg',
+        demo_dist2:  '0.8 km larg',
+        demo_dist3:  '0.3 km larg',
+        ai_matched:  'AI përputhur në 0.4s',
+
+        how_title:   'Tre hapa deri në fund',
+        step1_title: 'Përshkruaj detyrën',
+        step1_desc:  'Shkruaj një fjali për çfarë ke nevojë — AI-ja jonë merret me të tjerat: kategoria, çmimi, urgjenca.',
+        step2_title: 'AI gjen ndeshjen tënde',
+        step2_desc:  'Skanojmë punëtorët e verifikuar afër dhe i renditim sipas aftësisë, distancës, vlerësimit dhe disponueshmërisë.',
+        step3_title: 'Punëso, bisedo, paguaj',
+        step3_desc:  'Zgjidh punëtorin tënd, koordinohuni nëpërmjet bisedës dhe paguaj me siguri vetëm kur puna është kryer.',
+
+        cats_eyebrow: 'Çfarë mbulojmë',
+        cats_title:   'Çdo detyrë, çdo kohë',
+        cat_plumbing:   'Hidraulikë',
+        cat_electrical: 'Elektrik',
+        cat_gardening:  'Kopshtari',
+        cat_cleaning:   'Pastrim',
+        cat_petcare:    'Kujdes kafshësh',
+        cat_moving:     'Zhvendosje',
+        cat_painting:   'Pikturim',
+        cat_carpentry:  'Marangozëri',
+        cat_assembly:   'Montim',
+        cat_renovation: 'Rinovim',
+        cat_locksmith:  'Çelëstar',
+
+        worker_eyebrow: 'Për punëtorët',
+        worker_title:   'Kthe aftësitë tuaja në të ardhura',
+        worker_sub:     'Bashkohu me qindra punëtorë të verifikuar që tashmë fitojnë në RobosGig. Vendos oraret e tua, zgjidh punët dhe paguhu shpejt.',
+        perk1: "Falas për t'u bashkuar — nuk kërkohet abonament",
+        perk2: 'AI të përputhet automatikisht me punët afër teje',
+        perk3: 'Ndërto reputacionin tënd me vlerësime të verifikuara',
+        perk4: 'Kalo në Pro për tarifa më të ulëta dhe vendosje prioritare',
+        worker_cta: 'Fillo të fitosh sot',
+        ec_label:   'Këtë javë',
+        ec_jobs:    '6 punë',
+        ec_up:      '↑ 24% ndaj javës së kaluar',
+
+        final_title: 'Gati për të filluar?',
+        final_sub:   'Bashkohu me mijëra njerëz që tashmë përdorin RobosGig çdo ditë.',
+        final_cta:   'Posto punën tënde të parë — është falas',
+
+        footer_copy: '© 2026 RobosGig. Të gjitha të drejtat e rezervuara.',
+
+        earn_eyebrow: 'Për të gjithë',
+        earn_title:   'Orë të lira, para të vërteta',
+        earn_sub:     'Nuk ke nevojë për diplomë apo kamion. Nëse mund të pastrosh, kujdesesh për kopshtin, montosh mobilje ose shëtisësh qenin — ka njerëz afër teje të gatshëm të paguajnë.',
+        p1_name: 'Sara, 22', p1_role: 'Studente e drejtësisë',
+        p1_quote: '"Bëj punë mes leksioneve. €250 shtesë në muaj bëjnë ndryshimin real si studente."',
+        p2_name: 'Marco, 35', p2_role: 'Prind në shtëpi',
+        p2_quote: '"Punoj ndërkohë fëmijët janë në shkollë. Pa shef, pa orare fikse — vendos vetë kur jam i disponueshëm."',
+        p3_name: 'Dina, 41', p3_role: 'Administratore zyre',
+        p3_quote: '"Fundjavët kalonin pa bërë asgjë. Tani fitoj €350 shtesë në muaj duke ndihmuar fqinjët."',
+        stat1_label: 'ditë mesatarisht deri te gig-u i parë',
+        stat2_label: 'të ardhura shtesë mesatare në muaj',
+        stat3_label: 'e punëve nuk kërkojnë përvojë paraprake',
+      }
+    };
+
+    let currentLang = localStorage.getItem('lang') || 'en';
+
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('lang', lang);
+      document.documentElement.lang = lang;
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang][key] !== undefined) {
+          el.textContent = translations[lang][key];
+        }
+      });
+
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+      });
+    }
+
+    setLang(currentLang);
+  </script>
+</body>
+</html>
