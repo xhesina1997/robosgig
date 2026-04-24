@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 3 48 48">
+  <defs>
+    <linearGradient id="head" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ear nubs -->
+  <rect x="1"  y="21" width="5" height="9" rx="2.5" fill="#0284c7"/>
+  <rect x="42" y="21" width="5" height="9" rx="2.5" fill="#0284c7"/>
+
+  <!-- Robot head -->
+  <rect x="6" y="15" width="36" height="30" rx="9" fill="url(#head)"/>
+  <!-- Shine on top half -->
+  <rect x="6" y="15" width="36" height="14" rx="9" fill="url(#shine)"/>
+
+  <!-- Antenna stem -->
+  <rect x="22" y="8" width="4" height="9" rx="2" fill="#7dd3fc"/>
+
+  <!-- Lightning bolt (Gig symbol) -->
+  <path d="M26 1 L22 8 L25 8 L21 14 L27 7 L24 7 Z" fill="#bae6fd"/>
+
+  <!-- Eye sockets -->
+  <circle cx="18" cy="28" r="6.5" fill="#040e1e"/>
+  <circle cx="30" cy="28" r="6.5" fill="#040e1e"/>
+
+  <!-- Eye glow -->
+  <circle cx="18" cy="28" r="3.5" fill="#38bdf8"/>
+  <circle cx="30" cy="28" r="3.5" fill="#38bdf8"/>
+
+  <!-- Eye specular highlight -->
+  <circle cx="19.5" cy="26.5" r="1.1" fill="white" fill-opacity="0.5"/>
+  <circle cx="31.5" cy="26.5" r="1.1" fill="white" fill-opacity="0.5"/>
+
+  <!-- Mouth (circuit line) -->
+  <rect x="16" y="38" width="16" height="2.5" rx="1.25" fill="white" fill-opacity="0.18"/>
+  <rect x="20" y="36" width="2"  height="7"   rx="1"    fill="white" fill-opacity="0.1"/>
+  <rect x="26" y="36" width="2"  height="7"   rx="1"    fill="white" fill-opacity="0.1"/>
+</svg>

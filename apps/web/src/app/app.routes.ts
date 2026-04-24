@@ -4,12 +4,11 @@ import { authGuard } from './core/guards/auth.guard';
 export const appRoutes: Route[] = [
   {
     path: '',
-    redirectTo: 'login',
+    redirectTo: 'post',
     pathMatch: 'full',
   },
   {
     path: 'post',
-    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/job-wizard/job-wizard.component').then((m) => m.JobWizardComponent),
   },
