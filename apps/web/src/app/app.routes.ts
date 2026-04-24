@@ -4,8 +4,8 @@ import { authGuard } from './core/guards/auth.guard';
 export const appRoutes: Route[] = [
   {
     path: '',
-    loadComponent: () =>
-      import('./features/landing/landing.component').then((m) => m.LandingComponent),
+    redirectTo: 'login',
+    pathMatch: 'full',
   },
   {
     path: 'post',
