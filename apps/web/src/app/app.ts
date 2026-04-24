@@ -17,6 +17,7 @@ export class App {
   private router = inject(Router);
 
   loading = signal(false);
+  menuOpen = signal(false);
 
   constructor() {
     effect(() => {
@@ -28,7 +29,10 @@ export class App {
     });
 
     this.router.events.subscribe(e => {
-      if (e instanceof NavigationStart) this.loading.set(true);
+      if (e instanceof NavigationStart) {
+        this.loading.set(true);
+        this.menuOpen.set(false);
+      }
       if (e instanceof NavigationEnd || e instanceof NavigationCancel || e instanceof NavigationError) {
         setTimeout(() => this.loading.set(false), 200);
       }

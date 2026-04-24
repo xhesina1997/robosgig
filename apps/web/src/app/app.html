@@ -50,7 +50,47 @@
     }
   </div>
 
+  <!-- Hamburger (mobile only) -->
+  <button class="hamburger" (click)="menuOpen.set(!menuOpen())" [class.open]="menuOpen()" aria-label="Toggle menu">
+    @if (menuOpen()) {
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    } @else {
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    }
+  </button>
+
 </nav>
+
+<!-- Mobile menu -->
+@if (menuOpen()) {
+  <div class="mobile-menu">
+    @if (auth.isLoggedIn()) {
+      @if (auth.isWorker()) {
+        <a routerLink="/worker/jobs" routerLinkActive="active">Browse jobs</a>
+        <a routerLink="/dashboard/worker" routerLinkActive="active">Applications</a>
+        <a routerLink="/worker/profile" routerLinkActive="active">Profile</a>
+      } @else {
+        <a routerLink="/post" routerLinkActive="active">Post a job</a>
+        <a routerLink="/dashboard/client" routerLinkActive="active">My jobs</a>
+      }
+      <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
+      @if (auth.user()?.role === 'ADMIN') {
+        <a routerLink="/admin/verifications" routerLinkActive="active">Verifications</a>
+      }
+      <button class="mobile-signout" (click)="auth.logout()">Sign out</button>
+    } @else {
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">How it works</a>
+      <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
+      <a routerLink="/terms" routerLinkActive="active">Terms</a>
+      <a routerLink="/login" routerLinkActive="active">Sign in</a>
+      <a routerLink="/register" class="join-btn">Get started</a>
+    }
+  </div>
+}
 
 <router-outlet></router-outlet>
 
