@@ -33,6 +33,26 @@ export class AiService {
     });
   }
 
+  async supportChat(history: Array<{ role: 'user' | 'assistant'; content: string }>): Promise<string> {
+    const response = await this.anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      system: `You are a friendly support assistant for RobosGig, an AI-powered local task marketplace.
+Help visitors understand how the platform works, answer questions about pricing, safety, and how to get started.
+Keep answers short and friendly. If asked about something unrelated to RobosGig, politely redirect.
+
+Key facts:
+- Clients post any task in plain language — AI categorises and prices it automatically
+- Workers apply for jobs and get paid after completion
+- 15% platform fee (10% with Client Business plan, 12% with Worker Pro plan)
+- Workers go through identity verification
+- Available in Vienna and expanding to other cities
+- Sign up at app.robosgig.com`,
+      messages: history,
+    });
+    return (response.content[0] as { type: string; text: string }).text;
+  }
+
   async analyzeJob(rawInput: string, city = 'Vienna', country = 'Austria'): Promise<JobAnalysis> {
     this.logger.log(`Analyzing job: "${rawInput}"`);
 

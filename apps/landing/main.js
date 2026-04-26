@@ -5,6 +5,90 @@ gsap.registerPlugin(ScrollTrigger);
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const APP_URL = 'https://app.robosgig.com';
+const API_URL = 'https://api.robosgig.com';
+
+// ── Support chat ──────────────────────────────────────────────────────────────
+const chatToggle = document.getElementById('chat-toggle');
+const chatPanel  = document.getElementById('chat-panel');
+const chatInput  = document.getElementById('chat-input');
+const chatSend   = document.getElementById('chat-send');
+const chatMsgs   = document.getElementById('chat-messages');
+const iconOpen   = document.getElementById('chat-icon-open');
+const iconClose  = document.getElementById('chat-icon-close');
+
+let chatHistory = [];
+let chatBusy = false;
+
+chatToggle.addEventListener('click', () => {
+  const open = chatPanel.classList.toggle('hidden') === false;
+  iconOpen.style.display  = open ? 'none' : '';
+  iconClose.style.display = open ? '' : 'none';
+  if (open) chatInput.focus();
+});
+
+function appendMsg(text, role) {
+  const el = document.createElement('div');
+  el.className = `msg msg-${role === 'user' ? 'user' : 'bot'}`;
+  el.textContent = text;
+  chatMsgs.appendChild(el);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  return el;
+}
+
+function showTyping() {
+  const el = document.createElement('div');
+  el.className = 'msg msg-bot msg-typing';
+  el.innerHTML = '<span></span><span></span><span></span>';
+  el.id = 'typing-indicator';
+  chatMsgs.appendChild(el);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+}
+
+function hideTyping() {
+  document.getElementById('typing-indicator')?.remove();
+}
+
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text || chatBusy) return;
+
+  chatBusy = true;
+  chatSend.disabled = true;
+  chatInput.value = '';
+  chatInput.style.height = '';
+
+  appendMsg(text, 'user');
+  chatHistory.push({ role: 'user', content: text });
+  showTyping();
+
+  try {
+    const res = await fetch(`${API_URL}/api/support/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history: chatHistory }),
+    });
+    const data = await res.json();
+    hideTyping();
+    appendMsg(data.reply, 'bot');
+    chatHistory.push({ role: 'assistant', content: data.reply });
+  } catch {
+    hideTyping();
+    appendMsg('Sorry, something went wrong. Please try again.', 'bot');
+  }
+
+  chatBusy = false;
+  chatSend.disabled = false;
+  chatInput.focus();
+}
+
+chatSend.addEventListener('click', sendMessage);
+chatInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+});
 
 // Wire all links that use data-href
 document.querySelectorAll('[data-href]').forEach(el => {
