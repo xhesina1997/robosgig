@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { signal, computed } from '@angular/core';
 import { AuthService } from './auth.service';
 import { ApiService } from './api.service';
+import { environment } from '../../../environments/environment';
 
 export interface ChatMessage {
   id: string;
@@ -51,7 +52,7 @@ export class ChatService {
   connect() {
     if (this.socket?.connected) return;
 
-    this.socket = io('http://localhost:3000/chat', {
+    this.socket = io(`${environment.wsUrl}/chat`, {
       auth: { token: this.auth.getToken() },
       transports: ['websocket'],
     });

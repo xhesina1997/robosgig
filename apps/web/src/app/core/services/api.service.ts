@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface AnalyzeJobRequest {
   rawInput: string;
@@ -48,7 +49,7 @@ export interface AnalyzeJobResponse {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
-  private baseUrl = 'http://localhost:3000/api';
+  private baseUrl = environment.apiUrl;
 
   // ── Auth ──────────────────────────────────────────────────────────
   login(email: string, password: string): Observable<{ accessToken: string; role: string }> {
