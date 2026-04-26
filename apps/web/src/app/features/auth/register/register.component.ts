@@ -195,13 +195,7 @@ type Role = 'CLIENT' | 'WORKER';
               </div>
             }
 
-            <!-- Fee notice -->
-            <div class="fee-notice">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-              A <strong>{{ role() === 'WORKER' ? '15% platform fee (12% with Worker Pro)' : '15% platform fee (10% with Client Business)' }}</strong> applies to every completed job. Workers receive the remainder.
-            </div>
-
-            <!-- ToS checkbox -->
+<!-- ToS checkbox -->
             <label class="tos-label">
               <input type="checkbox" class="tos-check" [(ngModel)]="termsAccepted" name="termsAccepted"/>
               <span>
