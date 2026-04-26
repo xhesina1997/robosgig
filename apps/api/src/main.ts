@@ -33,6 +33,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
+  Logger.log(`DB: ${(process.env.DATABASE_URL || '').replace(/:\/\/.*@/, '://***@')}`);
   Logger.log(`Application running on: http://localhost:${port}/api`);
   Logger.log(`Swagger docs at:        http://localhost:${port}/api/docs`);
 }
