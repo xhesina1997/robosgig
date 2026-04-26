@@ -12,7 +12,8 @@ interface WorkerProfile {
   address: string; latitude: number | null; longitude: number | null;
   isAvailable: boolean; rating: number; totalJobs: number;
   idVerified: boolean; skills: WorkerSkill[];
-  dateOfBirth: string | null;
+  dateOfBirth: string | null; profession: string | null;
+  customSkills: string[];
 }
 interface NominatimResult { display_name: string; lat: string; lon: string; address: Record<string, string>; }
 
@@ -110,6 +111,31 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                 </div>
 
                 <div class="section-label" style="margin-top:1.25rem">Work Details</div>
+
+                <div class="field">
+                  <label>Area of expertise <span class="field-hint">Shown prominently on your profile</span></label>
+                  <select class="field-input" [(ngModel)]="edit.profession">
+                    <option value="">— Select your main profession —</option>
+                    <option value="Plumbing">Plumbing</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="Carpentry">Carpentry</option>
+                    <option value="Painting">Painting</option>
+                    <option value="Cleaning">Cleaning</option>
+                    <option value="Moving">Moving</option>
+                    <option value="Mechanical">Mechanical</option>
+                    <option value="Handyman">Handyman</option>
+                    <option value="Delivery">Delivery</option>
+                    <option value="Caregiving">Caregiving</option>
+                    <option value="General Tasks">General Tasks</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                @if (edit.profession === 'Other') {
+                  <div class="field">
+                    <label>Please specify</label>
+                    <input class="field-input" [(ngModel)]="edit.professionOther" placeholder="e.g. Tiling, Welding…" />
+                  </div>
+                }
 
                 <div class="field">
                   <label>Hourly rate (€)</label>
@@ -718,6 +744,8 @@ export class WorkerProfileComponent implements OnInit {
     latitude: null as number | null, longitude: null as number | null,
     isAvailable: true,
     dateOfBirth: '' as string,
+    profession: '' as string,
+    professionOther: '' as string,
   };
 
   ngOnInit() {
@@ -735,7 +763,10 @@ export class WorkerProfileComponent implements OnInit {
       latitude: p.latitude, longitude: p.longitude,
       isAvailable: p.isAvailable,
       dateOfBirth: p.dateOfBirth ? p.dateOfBirth.substring(0, 10) : '',
+      profession: p.profession && !['Plumbing','Electrical','Carpentry','Painting','Cleaning','Moving','Mechanical','Handyman','Delivery','Caregiving','General Tasks'].includes(p.profession) ? 'Other' : (p.profession ?? ''),
+      professionOther: p.profession && !['Plumbing','Electrical','Carpentry','Painting','Cleaning','Moving','Mechanical','Handyman','Delivery','Caregiving','General Tasks'].includes(p.profession) ? p.profession : '',
     };
+    this.customSkills.set(p.customSkills ?? []);
     if (p.city || p.address) {
       this.locationQuery = [p.address, p.city].filter(Boolean).join(', ');
       this.locationConfirmed.set(p.latitude != null);
@@ -760,12 +791,14 @@ export class WorkerProfileComponent implements OnInit {
     if (this.hasSkill(skill.id)) return;
     this.api.addSkill(skill.id).subscribe({
       next: () => this.profile.update((p) => p ? { ...p, skills: [...p.skills, { skill }] } : p),
+      error: () => this.saveError.set('Failed to add skill'),
     });
   }
 
   removeSkill(skillId: string) {
     this.api.removeSkill(skillId).subscribe({
       next: () => this.profile.update((p) => p ? { ...p, skills: p.skills.filter((ws) => ws.skill.id !== skillId) } : p),
+      error: () => this.saveError.set('Failed to remove skill'),
     });
   }
 
@@ -841,7 +874,13 @@ export class WorkerProfileComponent implements OnInit {
     this.saving.set(true);
     this.saveSuccess.set(false);
     this.saveError.set(null);
-    this.api.updateWorkerProfile(this.edit).subscribe({
+    const { professionOther, profession, ...rest } = this.edit;
+    const payload = {
+      ...rest,
+      profession: profession === 'Other' ? professionOther.trim() : profession,
+      customSkills: this.customSkills(),
+    };
+    this.api.updateWorkerProfile(payload).subscribe({
       next: (p) => {
         this.setProfile(p as WorkerProfile);
         this.saving.set(false);

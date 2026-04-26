@@ -101,6 +101,10 @@ model WorkerProfile {
   // Personal
   dateOfBirth DateTime?
 
+  // Profession
+  profession   String?
+  customSkills String[]
+
   // Pricing & work
   hourlyRate  Float?
   isAvailable Boolean @default(true)

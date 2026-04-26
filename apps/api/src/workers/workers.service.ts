@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -28,6 +28,8 @@ export class WorkersService {
     longitude?: number;
     isAvailable?: boolean;
     dateOfBirth?: string;
+    profession?: string;
+    customSkills?: string[];
   }) {
     const profile = await this.prisma.workerProfile.findUnique({ where: { userId } });
     if (!profile) throw new NotFoundException('Worker profile not found');
@@ -82,8 +84,7 @@ export class WorkersService {
         include: {
           category: true,
           client: {
-            select: {
-              idVerified: true,
+            include: {
               clientProfile: { select: { firstName: true, lastName: true } },
             },
           },
