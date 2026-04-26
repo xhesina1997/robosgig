@@ -32,9 +32,14 @@ export class WorkersService {
     const profile = await this.prisma.workerProfile.findUnique({ where: { userId } });
     if (!profile) throw new NotFoundException('Worker profile not found');
 
+    const data = {
+      ...dto,
+      ...(dto.dateOfBirth ? { dateOfBirth: new Date(dto.dateOfBirth) } : {}),
+    };
+
     return this.prisma.workerProfile.update({
       where: { userId },
-      data: dto,
+      data,
       include: {
         skills: { include: { skill: { include: { category: true } } } },
       },
