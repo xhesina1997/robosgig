@@ -4,8 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 // ── Config ────────────────────────────────────────────────────────────────────
-// Change this to your production app URL before deploying
-const APP_URL = 'http://localhost:4200';
+const APP_URL = 'https://app.robosgig.com';
 
 // Wire all links that use data-href
 document.querySelectorAll('[data-href]').forEach(el => {
