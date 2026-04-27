@@ -49,6 +49,12 @@ export const appRoutes: Route[] = [
       import('./features/client/client-dashboard.component').then((m) => m.ClientDashboardComponent),
   },
   {
+    path: 'client/profile',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/client/client-profile.component').then((m) => m.ClientProfileComponent),
+  },
+  {
     path: 'pricing',
     loadComponent: () =>
       import('./features/pricing/pricing.component').then((m) => m.PricingComponent),

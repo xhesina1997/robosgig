@@ -1,8 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
-import { AuthService } from '../../core/services/auth.service';
 import { WorkerProfileModalComponent } from '../../shared/worker-profile-modal.component';
 import { ChatService } from '../../core/services/chat.service';
 import { VerifyIdentityComponent } from '../../shared/verify-identity.component';
@@ -37,10 +36,13 @@ interface ClientDashboard {
               <p class="eyebrow">Client Dashboard</p>
               <h1 class="page-title">My Jobs</h1>
             </div>
-            <a routerLink="/post" class="btn-primary">
-              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-              Post new job
-            </a>
+            <div class="header-actions">
+              <a routerLink="/client/profile" class="btn-ghost">My profile</a>
+              <a routerLink="/post" class="btn-primary">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Post new job
+              </a>
+            </div>
           </div>
 
           @if (data()) {
@@ -75,26 +77,6 @@ interface ClientDashboard {
           <!-- Identity verification -->
           <div class="verify-section">
             <app-verify-identity />
-          </div>
-
-          <!-- Danger Zone -->
-          <div class="danger-card">
-            <p class="section-label danger-label">Danger Zone</p>
-            @if (!confirmDeleteAccount()) {
-              <p class="danger-desc">Permanently delete your account and all associated data. This cannot be undone.</p>
-              <button class="btn-delete-account" (click)="confirmDeleteAccount.set(true)">Delete my account</button>
-            } @else {
-              <p class="danger-desc danger-warn">Are you sure? All your jobs, profile, and data will be permanently erased.</p>
-              <div class="danger-actions">
-                <button class="btn-delete-confirm-acc" (click)="deleteAccount()" [disabled]="deletingAccount()">
-                  {{ deletingAccount() ? 'Deleting…' : 'Yes, delete everything' }}
-                </button>
-                <button class="btn-cancel-acc" (click)="confirmDeleteAccount.set(false)">Cancel</button>
-              </div>
-              @if (deleteAccountError()) {
-                <p class="danger-error">{{ deleteAccountError() }}</p>
-              }
-            }
           </div>
 
           @if (data()) {
@@ -908,31 +890,13 @@ interface ClientDashboard {
       font-size: 0.78rem; color: #a1a1aa; margin-top: 0.5rem;
     }
 
-    .danger-card {
-      background: #fff; border: 1.5px solid #fca5a5; border-radius: 14px;
-      padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+    .header-actions { display: flex; align-items: center; gap: 0.75rem; }
+    .btn-ghost {
+      padding: 0.5rem 1rem; border-radius: 10px; font-size: 0.875rem; font-weight: 500;
+      background: transparent; border: 1.5px solid #e4e4e7; color: #3f3f46;
+      text-decoration: none; transition: background 0.15s;
     }
-    .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #a1a1aa; margin: 0 0 0.5rem; }
-    .danger-label { color: #dc2626 !important; }
-    .danger-desc { font-size: 0.875rem; color: #71717a; margin: 0.5rem 0 1rem; }
-    .danger-warn { color: #dc2626; font-weight: 500; }
-    .danger-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
-    .btn-delete-account {
-      padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
-      background: #fff; border: 1.5px solid #fca5a5; color: #dc2626; cursor: pointer; transition: background 0.15s;
-    }
-    .btn-delete-account:hover { background: #fef2f2; }
-    .btn-delete-confirm-acc {
-      padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
-      background: #dc2626; border: none; color: #fff; cursor: pointer; transition: background 0.15s;
-    }
-    .btn-delete-confirm-acc:hover:not(:disabled) { background: #b91c1c; }
-    .btn-delete-confirm-acc:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-cancel-acc {
-      padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500;
-      background: transparent; border: 1.5px solid #e4e4e7; color: #71717a; cursor: pointer;
-    }
-    .danger-error { color: #dc2626; font-size: 0.8rem; margin-top: 0.5rem; }
+    .btn-ghost:hover { background: #f4f4f5; }
 
     @media (max-width: 640px) {
       .inner { padding: 0 1rem; }
@@ -944,8 +908,6 @@ interface ClientDashboard {
 })
 export class ClientDashboardComponent implements OnInit {
   private api = inject(ApiService);
-  private auth = inject(AuthService);
-  private router = inject(Router);
   chat = inject(ChatService);
 
   data = signal<ClientDashboard | null>(null);
@@ -960,9 +922,6 @@ export class ClientDashboardComponent implements OnInit {
   selectedJobCompleted = signal(false);
   payingJob = signal<string | null>(null);
   confirmDeleteId = signal<string | null>(null);
-  confirmDeleteAccount = signal(false);
-  deletingAccount = signal(false);
-  deleteAccountError = signal<string | null>(null);
 
   hasActiveApplication(job: Job): boolean {
     return job.applications.some(a => ['ACCEPTED', 'ASSIGNED', 'IN_PROGRESS'].includes(a.status));
@@ -1098,18 +1057,4 @@ export class ClientDashboardComponent implements OnInit {
     return map[status] ?? status;
   }
 
-  deleteAccount() {
-    this.deletingAccount.set(true);
-    this.deleteAccountError.set(null);
-    this.api.deleteAccount().subscribe({
-      next: () => {
-        this.auth.logout();
-        this.router.navigate(['/login']);
-      },
-      error: (err) => {
-        this.deleteAccountError.set(err?.error?.message ?? 'Failed to delete account');
-        this.deletingAccount.set(false);
-      },
-    });
-  }
 }

@@ -12,6 +12,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { ChatModule } from '../chat/chat.module';
 import { VerifyModule } from '../verify/verify.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { ClientsModule } from '../clients/clients.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PaymentsModule } from '../payments/payments.module';
     JobsModule,
     AiModule,
     WorkersModule,
+    ClientsModule,
     ApplicationsModule,
     DashboardModule,
     SubscriptionsModule,

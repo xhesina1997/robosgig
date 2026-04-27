@@ -200,6 +200,15 @@ export class ApiService {
     return this.http.delete(`${this.baseUrl}/subscriptions/me`);
   }
 
+  // ── Clients ───────────────────────────────────────────────────────
+  getClientProfile(): Observable<unknown> {
+    return this.http.get(`${this.baseUrl}/clients/me`);
+  }
+
+  updateClientProfile(data: unknown): Observable<unknown> {
+    return this.http.patch(`${this.baseUrl}/clients/me`, data);
+  }
+
   // ── Account ───────────────────────────────────────────────────────
   deleteAccount(): Observable<{ deleted: boolean }> {
     return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/auth/me`);
