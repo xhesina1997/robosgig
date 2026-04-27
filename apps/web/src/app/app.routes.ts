@@ -1,5 +1,5 @@
 import { Route } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard, clientOnlyGuard } from './core/guards/auth.guard';
 
 export const appRoutes: Route[] = [
   {
@@ -9,6 +9,7 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'post',
+    canActivate: [clientOnlyGuard],
     loadComponent: () =>
       import('./features/job-wizard/job-wizard.component').then((m) => m.JobWizardComponent),
   },

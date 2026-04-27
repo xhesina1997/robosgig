@@ -11,3 +11,15 @@ export const authGuard: CanActivateFn = () => {
   router.navigate(['/login']);
   return false;
 };
+
+export const clientOnlyGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  if (auth.isWorker()) {
+    router.navigate(['/dashboard/worker']);
+    return false;
+  }
+
+  return true;
+};
