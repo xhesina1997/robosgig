@@ -1,15 +1,12 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 
 interface VerificationEntry {
   id: string;
   userId: string;
-  documentUrl: string;
-  selfieUrl: string | null;
+  stripeSessionId: string | null;
   status: 'PENDING' | 'VERIFIED' | 'REJECTED';
-  rejectionNote: string | null;
   submittedAt: string;
   reviewedAt: string | null;
   user: {
@@ -24,19 +21,17 @@ interface VerificationEntry {
 @Component({
   selector: 'app-admin-verifications',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   template: `
     <div class="page">
       <div class="page-header">
         <div class="inner">
           <h1 class="page-title">ID Verifications</h1>
-          <p class="page-sub">Review and approve identity documents</p>
+          <p class="page-sub">Stripe Identity handles verification automatically</p>
         </div>
       </div>
 
       <div class="inner">
-
-        <!-- Filter tabs -->
         <div class="tabs">
           @for (tab of tabs; track tab.value) {
             <button class="tab" [class.active]="activeTab() === tab.value" (click)="activeTab.set(tab.value)">
@@ -56,8 +51,6 @@ interface VerificationEntry {
           <div class="cards">
             @for (v of filtered(); track v.id) {
               <div class="card" [class.verified]="v.status === 'VERIFIED'" [class.rejected]="v.status === 'REJECTED'">
-
-                <!-- User info -->
                 <div class="card-head">
                   <div class="avatar">{{ initials(v) }}</div>
                   <div class="card-meta">
@@ -70,53 +63,20 @@ interface VerificationEntry {
                   </div>
                 </div>
 
-                <!-- Documents -->
-                <div class="docs">
-                  <div class="doc-box">
-                    <p class="doc-label">ID Document</p>
-                    <a [href]="v.documentUrl" target="_blank" class="doc-link">
-                      <img [src]="v.documentUrl" alt="ID document" class="doc-img" />
-                      <span class="doc-overlay">View full size ↗</span>
-                    </a>
-                  </div>
-                  @if (v.selfieUrl) {
-                    <div class="doc-box">
-                      <p class="doc-label">Selfie</p>
-                      <a [href]="v.selfieUrl" target="_blank" class="doc-link">
-                        <img [src]="v.selfieUrl" alt="Selfie" class="doc-img" />
-                        <span class="doc-overlay">View full size ↗</span>
-                      </a>
-                    </div>
-                  }
-                </div>
-
-                <!-- Metadata -->
                 <div class="card-info">
                   <span>Submitted: {{ v.submittedAt | date:'dd MMM yyyy, HH:mm' }}</span>
                   @if (v.reviewedAt) {
                     <span>Reviewed: {{ v.reviewedAt | date:'dd MMM yyyy, HH:mm' }}</span>
                   }
-                  @if (v.rejectionNote) {
-                    <span class="rejection-note">Note: {{ v.rejectionNote }}</span>
+                  @if (v.stripeSessionId) {
+                    <span class="session-id">Session: {{ v.stripeSessionId }}</span>
                   }
                 </div>
-
-                <!-- Actions -->
-                @if (v.status === 'PENDING') {
-                  <div class="card-actions">
-                    <input class="note-input" [(ngModel)]="rejectNotes[v.userId]" placeholder="Rejection reason (optional)" />
-                    <div class="btns">
-                      <button class="btn-reject" (click)="reject(v.userId)" [disabled]="working()">Reject</button>
-                      <button class="btn-approve" (click)="approve(v.userId)" [disabled]="working()">Approve</button>
-                    </div>
-                  </div>
-                }
 
               </div>
             }
           </div>
         }
-
       </div>
     </div>
   `,
@@ -136,26 +96,17 @@ interface VerificationEntry {
       transition: color 0.15s; font-family: inherit;
     }
     .tab.active { color: #18181b; border-bottom-color: #18181b; }
-    .tab-badge {
-      background: #f4f4f5; color: #71717a;
-      font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.4rem; border-radius: 99px;
-    }
+    .tab-badge { background: #f4f4f5; color: #71717a; font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.4rem; border-radius: 99px; }
     .tab-badge.pending { background: #fef3c7; color: #92400e; }
 
     .empty-state { text-align: center; padding: 4rem 0; color: #a1a1aa; font-size: 0.9rem; }
-
     .cards { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 3rem; }
 
-    .card {
-      background: #fff; border: 1px solid #e4e4e7; border-radius: 16px; overflow: hidden;
-    }
+    .card { background: #fff; border: 1px solid #e4e4e7; border-radius: 16px; overflow: hidden; }
     .card.verified { border-color: #bbf7d0; }
     .card.rejected { border-color: #fecaca; }
 
-    .card-head {
-      display: flex; align-items: center; gap: 0.875rem;
-      padding: 1.25rem 1.25rem 1rem;
-    }
+    .card-head { display: flex; align-items: center; gap: 0.875rem; padding: 1.25rem; }
     .avatar {
       width: 42px; height: 42px; border-radius: 50%;
       background: #18181b; color: #fff;
@@ -165,69 +116,16 @@ interface VerificationEntry {
     .card-meta { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; }
     .card-name { font-size: 0.95rem; font-weight: 600; color: #18181b; }
     .card-email { font-size: 0.8rem; color: #71717a; }
-    .card-role {
-      display: inline-block; font-size: 0.7rem; font-weight: 600;
-      background: #f4f4f5; color: #52525b;
-      padding: 0.1rem 0.5rem; border-radius: 99px; width: fit-content;
-    }
+    .card-role { display: inline-block; font-size: 0.7rem; font-weight: 600; background: #f4f4f5; color: #52525b; padding: 0.1rem 0.5rem; border-radius: 99px; width: fit-content; }
     .card-role.worker { background: #dbeafe; color: #1d4ed8; }
 
-    .card-status {
-      font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.75rem; border-radius: 99px;
-    }
+    .card-status { font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.75rem; border-radius: 99px; }
     .status-pending  { background: #fef3c7; color: #92400e; }
     .status-verified { background: #dcfce7; color: #166534; }
     .status-rejected { background: #fee2e2; color: #991b1b; }
 
-    .docs {
-      display: flex; gap: 1rem; padding: 0 1.25rem 1rem;
-      flex-wrap: wrap;
-    }
-    .doc-box { display: flex; flex-direction: column; gap: 0.4rem; }
-    .doc-label { font-size: 0.75rem; font-weight: 600; color: #71717a; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
-    .doc-link { position: relative; display: block; border-radius: 10px; overflow: hidden; border: 1px solid #e4e4e7; }
-    .doc-img { width: 220px; height: 140px; object-fit: cover; display: block; }
-    .doc-overlay {
-      position: absolute; inset: 0; background: rgba(0,0,0,0.5); color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; font-weight: 600; opacity: 0; transition: opacity 0.15s;
-    }
-    .doc-link:hover .doc-overlay { opacity: 1; }
-
-    .card-info {
-      display: flex; flex-wrap: wrap; gap: 0.75rem;
-      padding: 0 1.25rem 1rem; font-size: 0.78rem; color: #71717a;
-    }
-    .rejection-note { color: #dc2626; font-style: italic; }
-
-    .card-actions {
-      padding: 1rem 1.25rem 1.25rem;
-      border-top: 1px solid #f4f4f5;
-      display: flex; flex-direction: column; gap: 0.75rem;
-    }
-    .note-input {
-      width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e4e4e7; border-radius: 8px;
-      font-size: 0.85rem; font-family: inherit; color: #18181b; box-sizing: border-box;
-      outline: none;
-    }
-    .note-input:focus { border-color: #a1a1aa; }
-    .btns { display: flex; gap: 0.5rem; justify-content: flex-end; }
-    .btn-approve {
-      background: #18181b; color: #fff; border: none;
-      padding: 0.5rem 1.25rem; border-radius: 99px;
-      font-size: 0.875rem; font-weight: 600; cursor: pointer; font-family: inherit;
-      transition: background 0.15s;
-    }
-    .btn-approve:hover { background: #3f3f46; }
-    .btn-approve:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-reject {
-      background: transparent; color: #dc2626; border: 1.5px solid #fecaca;
-      padding: 0.5rem 1.25rem; border-radius: 99px;
-      font-size: 0.875rem; font-weight: 600; cursor: pointer; font-family: inherit;
-      transition: background 0.15s;
-    }
-    .btn-reject:hover { background: #fff1f2; }
-    .btn-reject:disabled { opacity: 0.5; cursor: not-allowed; }
+    .card-info { display: flex; flex-wrap: wrap; gap: 0.75rem; padding: 0 1.25rem 1.25rem; font-size: 0.78rem; color: #71717a; }
+    .session-id { font-family: monospace; font-size: 0.72rem; color: #a1a1aa; }
   `],
 })
 export class AdminVerificationsComponent implements OnInit {
@@ -235,23 +133,18 @@ export class AdminVerificationsComponent implements OnInit {
 
   verifications = signal<VerificationEntry[]>([]);
   loading = signal(true);
-  working = signal(false);
   activeTab = signal<'PENDING' | 'VERIFIED' | 'REJECTED' | 'ALL'>('PENDING');
-  rejectNotes: Record<string, string> = {};
 
   tabs = [
-    { label: 'Pending', value: 'PENDING' as const },
+    { label: 'Pending',  value: 'PENDING'  as const },
     { label: 'Verified', value: 'VERIFIED' as const },
     { label: 'Rejected', value: 'REJECTED' as const },
-    { label: 'All', value: 'ALL' as const },
+    { label: 'All',      value: 'ALL'      as const },
   ];
 
-  ngOnInit() { this.load(); }
-
-  load() {
-    this.loading.set(true);
+  ngOnInit() {
     this.api.getAdminVerifications().subscribe({
-      next: (data: any) => { this.verifications.set(data); this.loading.set(false); },
+      next: (data: VerificationEntry[]) => { this.verifications.set(data); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
@@ -275,22 +168,5 @@ export class AdminVerificationsComponent implements OnInit {
   initials(v: VerificationEntry) {
     const p = v.user.workerProfile ?? v.user.clientProfile;
     return p ? `${p.firstName[0]}${p.lastName[0]}`.toUpperCase() : '?';
-  }
-
-  approve(userId: string) {
-    this.working.set(true);
-    this.api.approveVerification(userId).subscribe({
-      next: () => { this.load(); this.working.set(false); },
-      error: () => this.working.set(false),
-    });
-  }
-
-  reject(userId: string) {
-    this.working.set(true);
-    const note = this.rejectNotes[userId];
-    this.api.rejectVerification(userId, note).subscribe({
-      next: () => { this.load(); this.working.set(false); },
-      error: () => this.working.set(false),
-    });
   }
 }

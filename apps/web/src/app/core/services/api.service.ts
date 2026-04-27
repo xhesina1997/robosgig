@@ -148,6 +148,10 @@ export class ApiService {
     return this.http.post<{ clientSecret: string }>(`${this.baseUrl}/verify/session`, {});
   }
 
+  getAdminVerifications(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/verify/admin/all`);
+  }
+
   // ── Payments ──────────────────────────────────────────────────────
   createJobPaymentSession(jobId: string): Observable<{ url: string }> {
     return this.http.post<{ url: string }>(`${this.baseUrl}/payments/jobs/${jobId}/checkout`, {});

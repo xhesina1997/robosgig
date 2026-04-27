@@ -27,6 +27,13 @@ export class VerifyController {
     return this.verify.createSession(req.user.sub);
   }
 
+  @Get('admin/all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  listAll() {
+    return this.verify.listAll();
+  }
+
   @Post('webhook')
   @HttpCode(200)
   webhook(

@@ -57,6 +57,21 @@ export class VerifyService {
     return { clientSecret: session.client_secret };
   }
 
+  async listAll() {
+    return this.prisma.identityVerification.findMany({
+      include: {
+        user: {
+          select: {
+            id: true, email: true, role: true,
+            workerProfile: { select: { firstName: true, lastName: true, avatarUrl: true } },
+            clientProfile: { select: { firstName: true, lastName: true, avatarUrl: true } },
+          },
+        },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+  }
+
   async handleWebhook(payload: Buffer, sig: string) {
     const secret = this.config.get<string>('STRIPE_IDENTITY_WEBHOOK_SECRET') ?? '';
     let event: Stripe.Event;
