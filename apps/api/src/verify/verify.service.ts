@@ -15,7 +15,7 @@ export class VerifyService {
     private stripe: StripeService,
     private config: ConfigService,
   ) {
-    this.resend = new Resend(this.config.get<string>('RESEND_API_KEY'));
+    this.resend = new Resend(this.config.get<string>('RESEND_API_KEY') ?? 'placeholder');
   }
 
   async getStatus(userId: string) {
