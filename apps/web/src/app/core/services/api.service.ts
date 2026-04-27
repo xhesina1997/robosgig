@@ -210,6 +210,10 @@ export class ApiService {
   }
 
   // ── Account ───────────────────────────────────────────────────────
+  changePassword(currentPassword: string, newPassword: string): Observable<{ updated: boolean }> {
+    return this.http.patch<{ updated: boolean }>(`${this.baseUrl}/auth/password`, { currentPassword, newPassword });
+  }
+
   deleteAccount(): Observable<{ deleted: boolean }> {
     return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/auth/me`);
   }

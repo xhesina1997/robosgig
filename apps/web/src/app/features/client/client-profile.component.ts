@@ -111,6 +111,28 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                   <app-verify-identity />
                 </div>
 
+                <!-- Change password -->
+                <div class="card">
+                  <div class="section-label">Change Password</div>
+                  <div class="field-row">
+                    <label class="field-label">Current password</label>
+                    <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
+                  </div>
+                  <div class="field-row">
+                    <label class="field-label">New password</label>
+                    <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
+                  </div>
+                  <div class="field-row">
+                    <label class="field-label">Confirm new password</label>
+                    <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
+                  </div>
+                  @if (pwError()) { <p class="save-error">{{ pwError() }}</p> }
+                  @if (pwSuccess()) { <p class="save-success">Password updated!</p> }
+                  <button class="btn-save" (click)="changePassword()" [disabled]="pwSaving()">
+                    {{ pwSaving() ? 'Saving…' : 'Update password' }}
+                  </button>
+                </div>
+
                 <!-- Delete account -->
                 <div class="card">
                   <div class="section-label">Delete Account</div>
@@ -215,6 +237,10 @@ export class ClientProfileComponent implements OnInit {
   confirmDelete = signal(false);
   deleting = signal(false);
   deleteError = signal<string | null>(null);
+  pwSaving = signal(false);
+  pwSuccess = signal(false);
+  pwError = signal<string | null>(null);
+  pw = { current: '', next: '', confirm: '' };
 
   locationQuery = '';
   locationSuggestions = signal<NominatimResult[]>([]);
@@ -290,6 +316,35 @@ export class ClientProfileComponent implements OnInit {
       error: (err) => {
         this.saveError.set(err?.error?.message ?? 'Failed to save');
         this.saving.set(false);
+      },
+    });
+  }
+
+  changePassword() {
+    if (!this.pw.current || !this.pw.next) {
+      this.pwError.set('Please fill in all password fields.');
+      return;
+    }
+    if (this.pw.next !== this.pw.confirm) {
+      this.pwError.set('New passwords do not match.');
+      return;
+    }
+    if (this.pw.next.length < 8) {
+      this.pwError.set('New password must be at least 8 characters.');
+      return;
+    }
+    this.pwSaving.set(true);
+    this.pwError.set(null);
+    this.api.changePassword(this.pw.current, this.pw.next).subscribe({
+      next: () => {
+        this.pw = { current: '', next: '', confirm: '' };
+        this.pwSaving.set(false);
+        this.pwSuccess.set(true);
+        setTimeout(() => this.pwSuccess.set(false), 3000);
+      },
+      error: (err) => {
+        this.pwError.set(err?.error?.message ?? 'Failed to update password');
+        this.pwSaving.set(false);
       },
     });
   }

@@ -284,6 +284,28 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
               <app-verify-identity />
             </div>
 
+            <!-- Change password -->
+            <div class="form-card">
+              <p class="section-label">Change Password</p>
+              <div class="field-row">
+                <label class="field-label">Current password</label>
+                <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
+              </div>
+              <div class="field-row">
+                <label class="field-label">New password</label>
+                <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
+              </div>
+              <div class="field-row">
+                <label class="field-label">Confirm new password</label>
+                <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
+              </div>
+              @if (pwError()) { <p class="pw-error">{{ pwError() }}</p> }
+              @if (pwSuccess()) { <p class="pw-success">Password updated!</p> }
+              <button class="btn-save-pw" (click)="changePassword()" [disabled]="pwSaving()">
+                {{ pwSaving() ? 'Saving…' : 'Update password' }}
+              </button>
+            </div>
+
             <!-- Delete account -->
             <div class="form-card">
               <p class="section-label">Delete Account</p>
@@ -728,6 +750,15 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       animation: spin 0.8s linear infinite;
     }
 
+    .field-row { margin-bottom: 0.875rem; }
+    .field-label { display: block; font-size: 0.75rem; font-weight: 600; color: #71717a; margin-bottom: 0.3rem; }
+    .field-input { width: 100%; padding: 0.5rem 0.75rem; border: 1.5px solid #e4e4e7; border-radius: 8px; font-size: 0.875rem; color: #18181b; font-family: inherit; outline: none; transition: border-color 0.15s; }
+    .field-input:focus { border-color: #18181b; }
+    .btn-save-pw { margin-top: 0.25rem; width: 100%; padding: 0.575rem; border-radius: 10px; background: #18181b; color: #fff; font-size: 0.875rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.15s; }
+    .btn-save-pw:hover:not(:disabled) { background: #3f3f46; }
+    .btn-save-pw:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pw-error { font-size: 0.8rem; color: #dc2626; margin: 0.5rem 0 0; }
+    .pw-success { font-size: 0.8rem; color: #16a34a; margin: 0.5rem 0 0; }
     .delete-desc { font-size: 0.875rem; color: #71717a; margin: 0.5rem 0 1rem; }
     .delete-warn { font-size: 0.875rem; color: #3f3f46; margin: 0.5rem 0 1rem; }
     .delete-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
@@ -772,6 +803,10 @@ export class WorkerProfileComponent implements OnInit {
   confirmDelete = signal(false);
   deleting = signal(false);
   deleteError = signal<string | null>(null);
+  pwSaving = signal(false);
+  pwSuccess = signal(false);
+  pwError = signal<string | null>(null);
+  pw = { current: '', next: '', confirm: '' };
 
   customSkillInput = '';
 
@@ -938,6 +973,35 @@ export class WorkerProfileComponent implements OnInit {
       error: (err) => {
         this.saveError.set(err?.error?.message ?? 'Failed to save');
         this.saving.set(false);
+      },
+    });
+  }
+
+  changePassword() {
+    if (!this.pw.current || !this.pw.next) {
+      this.pwError.set('Please fill in all password fields.');
+      return;
+    }
+    if (this.pw.next !== this.pw.confirm) {
+      this.pwError.set('New passwords do not match.');
+      return;
+    }
+    if (this.pw.next.length < 8) {
+      this.pwError.set('New password must be at least 8 characters.');
+      return;
+    }
+    this.pwSaving.set(true);
+    this.pwError.set(null);
+    this.api.changePassword(this.pw.current, this.pw.next).subscribe({
+      next: () => {
+        this.pw = { current: '', next: '', confirm: '' };
+        this.pwSaving.set(false);
+        this.pwSuccess.set(true);
+        setTimeout(() => this.pwSuccess.set(false), 3000);
+      },
+      error: (err) => {
+        this.pwError.set(err?.error?.message ?? 'Failed to update password');
+        this.pwSaving.set(false);
       },
     });
   }

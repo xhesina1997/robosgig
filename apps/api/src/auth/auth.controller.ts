@@ -1,4 +1,4 @@
-import { Controller, Post, Delete, Body, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Patch, Delete, Body, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -30,5 +30,17 @@ export class AuthController {
   @ApiOperation({ summary: 'Delete own account and all associated data' })
   deleteAccount(@Request() req: { user: { sub: string } }) {
     return this.authService.deleteAccount(req.user.sub);
+  }
+
+  @Patch('password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change own password' })
+  changePassword(
+    @Request() req: { user: { sub: string } },
+    @Body() dto: { currentPassword: string; newPassword: string },
+  ) {
+    return this.authService.changePassword(req.user.sub, dto.currentPassword, dto.newPassword);
   }
 }

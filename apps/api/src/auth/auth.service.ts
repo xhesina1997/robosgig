@@ -65,6 +65,18 @@ export class AuthService {
     return this.signToken(user.id, user.email, user.role);
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) throw new BadRequestException('Current password is incorrect.');
+
+    const hash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({ where: { id: userId }, data: { password: hash } });
+    return { updated: true };
+  }
+
   async deleteAccount(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
