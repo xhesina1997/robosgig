@@ -73,6 +73,10 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/jobs/${id}`);
   }
 
+  deleteJob(id: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/jobs/${id}`);
+  }
+
   // ── Workers ───────────────────────────────────────────────────────
   getMyWorkerProfile(): Observable<unknown> {
     return this.http.get(`${this.baseUrl}/workers/me`);
@@ -194,5 +198,10 @@ export class ApiService {
 
   cancelSubscription(): Observable<unknown> {
     return this.http.delete(`${this.baseUrl}/subscriptions/me`);
+  }
+
+  // ── Account ───────────────────────────────────────────────────────
+  deleteAccount(): Observable<{ deleted: boolean }> {
+    return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/auth/me`);
   }
 }

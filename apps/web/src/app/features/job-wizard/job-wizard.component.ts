@@ -312,6 +312,14 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                   </div>
                 </div>
               </div>
+              <div class="meta-cell scheduled-cell">
+                <span class="meta-label">Scheduled date <span class="opt-label">(optional)</span></span>
+                <input class="inline-date" type="date"
+                  [min]="minDate()"
+                  [value]="scheduledDate()"
+                  (change)="scheduledDate.set($any($event.target).value)" />
+              </div>
+
               @if (result()!.jobPreview.toolsNeeded.length > 0) {
                 <div class="tools-row">
                   <span class="meta-label">Tools needed</span>
@@ -1153,6 +1161,20 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .inline-number:focus { border-bottom-color: #6366f1; }
     .inline-number::-webkit-inner-spin-button,
     .inline-number::-webkit-outer-spin-button { opacity: 0; }
+    .inline-date {
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #3f3f46;
+      font-family: inherit;
+      padding: 0;
+      border-bottom: 1.5px solid #e5e5ea;
+      transition: border-color 0.15s;
+      width: auto;
+    }
+    .inline-date:focus { border-bottom-color: #6366f1; }
     .meta-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1484,6 +1506,13 @@ export class JobWizardComponent {
   result = signal<AnalyzeJobResponse | null>(null);
   error = signal<string | null>(null);
   jobLimitReached = signal(false);
+  scheduledDate = signal<string>('');
+
+  minDate(): string {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  }
 
   rawInput = '';
 
@@ -1602,6 +1631,7 @@ export class JobWizardComponent {
       address: this.jobLocation.address,
       latitude: this.jobLocation.latitude ?? undefined,
       longitude: this.jobLocation.longitude ?? undefined,
+      ...(this.scheduledDate() ? { scheduledDate: this.scheduledDate() } : {}),
       ...(directWorkerId ? { directAssignWorkerId: directWorkerId } : {}),
     }).subscribe({
       next: () => this.step.set('confirmed'),
@@ -1703,6 +1733,7 @@ export class JobWizardComponent {
     this.directAssignedWorker.set(null);
     this.selectedWorkerId.set(null);
     this.editablePreview.set(null);
+    this.scheduledDate.set('');
     this.step.set('input');
   }
 }

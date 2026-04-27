@@ -1,7 +1,8 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { WorkerProfileModalComponent } from '../../shared/worker-profile-modal.component';
 import { ChatService } from '../../core/services/chat.service';
 import { VerifyIdentityComponent } from '../../shared/verify-identity.component';
@@ -12,7 +13,7 @@ interface Application {
 }
 interface Job {
   id: string; title: string; description: string | null; status: string; priceMin: number | null; priceMax: number | null;
-  urgency: string; city: string | null; createdAt: string;
+  urgency: string; city: string | null; createdAt: string; scheduledDate: string | null;
   category: { name: string; icon: string } | null;
   applications: Application[];
 }
@@ -74,6 +75,26 @@ interface ClientDashboard {
           <!-- Identity verification -->
           <div class="verify-section">
             <app-verify-identity />
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="danger-card">
+            <p class="section-label danger-label">Danger Zone</p>
+            @if (!confirmDeleteAccount()) {
+              <p class="danger-desc">Permanently delete your account and all associated data. This cannot be undone.</p>
+              <button class="btn-delete-account" (click)="confirmDeleteAccount.set(true)">Delete my account</button>
+            } @else {
+              <p class="danger-desc danger-warn">Are you sure? All your jobs, profile, and data will be permanently erased.</p>
+              <div class="danger-actions">
+                <button class="btn-delete-confirm-acc" (click)="deleteAccount()" [disabled]="deletingAccount()">
+                  {{ deletingAccount() ? 'Deleting…' : 'Yes, delete everything' }}
+                </button>
+                <button class="btn-cancel-acc" (click)="confirmDeleteAccount.set(false)">Cancel</button>
+              </div>
+              @if (deleteAccountError()) {
+                <p class="danger-error">{{ deleteAccountError() }}</p>
+              }
+            }
           </div>
 
           @if (data()) {
@@ -246,6 +267,31 @@ interface ClientDashboard {
                               Submit review
                             </button>
                           </div>
+                        }
+
+                        <!-- Delete job -->
+                        @if (job.status === 'POSTED' || job.status === 'DRAFT') {
+                          @if (!canDelete(job)) {
+                            <p class="delete-blocked">
+                              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                              @if (hasActiveApplication(job)) {
+                                Cannot delete — there is an accepted application in progress.
+                              } @else {
+                                Cannot delete — less than 24 hours before the scheduled date.
+                              }
+                            </p>
+                          } @else if (confirmDeleteId() === job.id) {
+                            <div class="delete-confirm">
+                              <span>Are you sure?</span>
+                              <button class="btn-delete-confirm" (click)="deleteJob(job.id)">Yes, delete</button>
+                              <button class="btn-delete-cancel" (click)="confirmDeleteId.set(null)">Cancel</button>
+                            </div>
+                          } @else {
+                            <button class="btn-delete" (click)="confirmDeleteId.set(job.id)">
+                              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                              Delete job
+                            </button>
+                          }
                         }
 
                       </div>
@@ -835,6 +881,59 @@ interface ClientDashboard {
     .skel-line.w35 { width: 35%; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
+    .btn-delete {
+      display: inline-flex; align-items: center; gap: 0.375rem;
+      background: none; border: 1px solid #fecaca; color: #dc2626;
+      font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.875rem;
+      border-radius: 99px; cursor: pointer; font-family: inherit;
+      transition: background 0.15s; margin-top: 0.5rem;
+    }
+    .btn-delete:hover { background: #fff1f2; }
+    .delete-confirm {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-top: 0.5rem; font-size: 0.82rem; color: #52525b;
+    }
+    .btn-delete-confirm {
+      background: #dc2626; color: #fff; border: none;
+      padding: 0.35rem 0.875rem; border-radius: 99px;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+    .btn-delete-cancel {
+      background: none; color: #71717a; border: 1px solid #e4e4e7;
+      padding: 0.35rem 0.875rem; border-radius: 99px;
+      font-size: 0.8rem; cursor: pointer; font-family: inherit;
+    }
+    .delete-blocked {
+      display: flex; align-items: center; gap: 0.375rem;
+      font-size: 0.78rem; color: #a1a1aa; margin-top: 0.5rem;
+    }
+
+    .danger-card {
+      background: #fff; border: 1.5px solid #fca5a5; border-radius: 14px;
+      padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+    }
+    .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #a1a1aa; margin: 0 0 0.5rem; }
+    .danger-label { color: #dc2626 !important; }
+    .danger-desc { font-size: 0.875rem; color: #71717a; margin: 0.5rem 0 1rem; }
+    .danger-warn { color: #dc2626; font-weight: 500; }
+    .danger-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+    .btn-delete-account {
+      padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+      background: #fff; border: 1.5px solid #fca5a5; color: #dc2626; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-delete-account:hover { background: #fef2f2; }
+    .btn-delete-confirm-acc {
+      padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+      background: #dc2626; border: none; color: #fff; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-delete-confirm-acc:hover:not(:disabled) { background: #b91c1c; }
+    .btn-delete-confirm-acc:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-cancel-acc {
+      padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500;
+      background: transparent; border: 1.5px solid #e4e4e7; color: #71717a; cursor: pointer;
+    }
+    .danger-error { color: #dc2626; font-size: 0.8rem; margin-top: 0.5rem; }
+
     @media (max-width: 640px) {
       .inner { padding: 0 1rem; }
       .stat-bar { flex-wrap: wrap; }
@@ -845,6 +944,8 @@ interface ClientDashboard {
 })
 export class ClientDashboardComponent implements OnInit {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
   chat = inject(ChatService);
 
   data = signal<ClientDashboard | null>(null);
@@ -858,6 +959,36 @@ export class ClientDashboardComponent implements OnInit {
   selectedApp = signal<Application | null>(null);
   selectedJobCompleted = signal(false);
   payingJob = signal<string | null>(null);
+  confirmDeleteId = signal<string | null>(null);
+  confirmDeleteAccount = signal(false);
+  deletingAccount = signal(false);
+  deleteAccountError = signal<string | null>(null);
+
+  hasActiveApplication(job: Job): boolean {
+    return job.applications.some(a => ['ACCEPTED', 'ASSIGNED', 'IN_PROGRESS'].includes(a.status));
+  }
+
+  canDelete(job: Job): boolean {
+    if (this.hasActiveApplication(job)) return false;
+    if (job.scheduledDate) {
+      const hoursUntil = (new Date(job.scheduledDate).getTime() - Date.now()) / (1000 * 60 * 60);
+      if (hoursUntil < 24) return false;
+    }
+    return true;
+  }
+
+  deleteJob(jobId: string) {
+    this.api.deleteJob(jobId).subscribe({
+      next: () => {
+        this.confirmDeleteId.set(null);
+        this.load();
+      },
+      error: (err: { error?: { message?: string } }) => {
+        alert(err?.error?.message ?? 'Could not delete job.');
+        this.confirmDeleteId.set(null);
+      },
+    });
+  }
 
   filteredJobs(): Job[] {
     const jobs = this.data()?.jobs ?? [];
@@ -965,5 +1096,20 @@ export class ClientDashboardComponent implements OnInit {
       APPLIED: 'Applied', ACCEPTED: 'Accepted', REJECTED: 'Declined',
     };
     return map[status] ?? status;
+  }
+
+  deleteAccount() {
+    this.deletingAccount.set(true);
+    this.deleteAccountError.set(null);
+    this.api.deleteAccount().subscribe({
+      next: () => {
+        this.auth.logout();
+        this.router.navigate(['/login']);
+      },
+      error: (err) => {
+        this.deleteAccountError.set(err?.error?.message ?? 'Failed to delete account');
+        this.deletingAccount.set(false);
+      },
+    });
   }
 }

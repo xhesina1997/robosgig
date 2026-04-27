@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -55,5 +56,13 @@ export class JobsController {
   @ApiBearerAuth()
   findOne(@Param('id') id: string) {
     return this.jobsService.findOne(id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Client: delete a job (no accepted application, 24h before scheduled date)' })
+  deleteJob(@Param('id') id: string, @Request() req: { user: { sub: string } }) {
+    return this.jobsService.deleteJob(id, req.user.sub);
   }
 }

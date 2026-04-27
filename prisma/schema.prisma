@@ -206,7 +206,8 @@ model Job {
   address   String?
   city      String?
 
-  status JobStatus @default(DRAFT)
+  scheduledDate DateTime?
+  status        JobStatus @default(DRAFT)
 
   applications JobApplication[]
   reviews      Review[]

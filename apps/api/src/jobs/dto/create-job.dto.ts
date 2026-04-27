@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray, IsEnum, IsDateString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Urgency } from '@prisma/client';
 
@@ -72,4 +72,9 @@ export class CreateJobDto {
   @IsOptional()
   @IsString()
   directAssignWorkerId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  scheduledDate?: string;
 }

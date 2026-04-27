@@ -1,7 +1,9 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { VerifyIdentityComponent } from '../../shared/verify-identity.component';
 
 interface Skill { id: string; name: string; category: { name: string; icon: string } }
@@ -280,6 +282,26 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
             <div class="form-card">
               <p class="section-label">Identity Verification</p>
               <app-verify-identity />
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="danger-card">
+              <p class="section-label danger-label">Danger Zone</p>
+              @if (!confirmDelete()) {
+                <p class="danger-desc">Permanently delete your account and all associated data. This cannot be undone.</p>
+                <button class="btn-delete-account" (click)="confirmDelete.set(true)">Delete my account</button>
+              } @else {
+                <p class="danger-desc danger-warn">Are you sure? All your jobs, profile, and data will be permanently erased.</p>
+                <div class="danger-actions">
+                  <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
+                    {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
+                  </button>
+                  <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
+                </div>
+                @if (deleteError()) {
+                  <p class="danger-error">{{ deleteError() }}</p>
+                }
+              }
             </div>
 
           </div>
@@ -706,6 +728,34 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       animation: spin 0.8s linear infinite;
     }
 
+    .danger-card {
+      background: #fff;
+      border: 1.5px solid #fca5a5;
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+    }
+    .danger-label { color: #dc2626 !important; }
+    .danger-desc { font-size: 0.875rem; color: #71717a; margin: 0.5rem 0 1rem; }
+    .danger-warn { color: #dc2626; font-weight: 500; }
+    .danger-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+    .btn-delete-account {
+      padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+      background: #fff; border: 1.5px solid #fca5a5; color: #dc2626; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-delete-account:hover { background: #fef2f2; }
+    .btn-delete-confirm {
+      padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+      background: #dc2626; border: none; color: #fff; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-delete-confirm:hover:not(:disabled) { background: #b91c1c; }
+    .btn-delete-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-cancel {
+      padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500;
+      background: transparent; border: 1.5px solid #e4e4e7; color: #71717a; cursor: pointer;
+    }
+    .danger-error { color: #dc2626; font-size: 0.8rem; margin-top: 0.5rem; }
+
     @media (max-width: 680px) {
       .inner { padding: 0 1rem; }
       .profile-grid { grid-template-columns: 1fr; }
@@ -716,6 +766,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 })
 export class WorkerProfileComponent implements OnInit {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
 
   profile = signal<WorkerProfile | null>(null);
   allSkills = signal<Skill[]>([]);
@@ -724,6 +776,9 @@ export class WorkerProfileComponent implements OnInit {
   saving = signal(false);
   saveSuccess = signal(false);
   saveError = signal<string | null>(null);
+  confirmDelete = signal(false);
+  deleting = signal(false);
+  deleteError = signal<string | null>(null);
 
   customSkillInput = '';
 
@@ -890,6 +945,21 @@ export class WorkerProfileComponent implements OnInit {
       error: (err) => {
         this.saveError.set(err?.error?.message ?? 'Failed to save');
         this.saving.set(false);
+      },
+    });
+  }
+
+  deleteAccount() {
+    this.deleting.set(true);
+    this.deleteError.set(null);
+    this.api.deleteAccount().subscribe({
+      next: () => {
+        this.auth.logout();
+        this.router.navigate(['/login']);
+      },
+      error: (err) => {
+        this.deleteError.set(err?.error?.message ?? 'Failed to delete account');
+        this.deleting.set(false);
       },
     });
   }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { AnalyzeJobDto } from './dto/analyze-job.dto';
@@ -148,6 +148,7 @@ export class JobsService {
         longitude: dto.longitude,
         address: dto.address,
         city: dto.city,
+        scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : null,
         status: 'POSTED',
       },
       include: { category: true },
@@ -164,6 +165,33 @@ export class JobsService {
     }
 
     return job;
+  }
+
+  async deleteJob(jobId: string, clientId: string) {
+    const job = await this.prisma.job.findUnique({
+      where: { id: jobId },
+      include: { applications: { select: { status: true } } },
+    });
+    if (!job) throw new NotFoundException('Job not found');
+    if (job.clientId !== clientId) throw new ForbiddenException('Not your job');
+
+    const blocked = ['ACCEPTED', 'ASSIGNED', 'IN_PROGRESS'];
+    const hasActive = job.applications.some(a => blocked.includes(a.status));
+    if (hasActive) throw new BadRequestException('Cannot delete a job with an accepted application');
+
+    if (job.scheduledDate) {
+      const hoursUntil = (job.scheduledDate.getTime() - Date.now()) / (1000 * 60 * 60);
+      if (hoursUntil < 24) throw new BadRequestException('Cannot delete a job less than 24 hours before the scheduled date');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.jobApplication.deleteMany({ where: { jobId } }),
+      this.prisma.message.deleteMany({ where: { jobId } }),
+      this.prisma.review.deleteMany({ where: { jobId } }),
+      this.prisma.job.delete({ where: { id: jobId } }),
+    ]);
+
+    return { deleted: true };
   }
 
   async findAll(userId: string, role: string) {
