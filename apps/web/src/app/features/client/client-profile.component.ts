@@ -41,121 +41,106 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       @if (profile()) {
         <div class="page-body">
           <div class="inner">
-            <div class="profile-grid">
 
-              <!-- Info card -->
-              <div class="card">
-                <div class="avatar-row">
-                  <div class="avatar-circle">{{ profile()!.firstName[0] }}{{ profile()!.lastName[0] }}</div>
-                  <div>
-                    <p class="avatar-name">{{ profile()!.firstName }} {{ profile()!.lastName }}</p>
-                    <p class="avatar-email">{{ profile()!.email }}</p>
-                  </div>
+            <!-- Personal Info -->
+            <div class="card">
+              <div class="avatar-row">
+                <div class="avatar-circle">{{ profile()!.firstName[0] }}{{ profile()!.lastName[0] }}</div>
+                <div>
+                  <p class="avatar-name">{{ profile()!.firstName }} {{ profile()!.lastName }}</p>
+                  <p class="avatar-email">{{ profile()!.email }}</p>
                 </div>
-
-                <div class="section-label">Personal Info</div>
-
-                <div class="field-row">
+              </div>
+              <div class="fields-grid">
+                <div class="field-col">
                   <label class="field-label">First name</label>
                   <input class="field-input" [(ngModel)]="edit.firstName" />
                 </div>
-                <div class="field-row">
+                <div class="field-col">
                   <label class="field-label">Last name</label>
                   <input class="field-input" [(ngModel)]="edit.lastName" />
                 </div>
-                <div class="field-row">
+                <div class="field-col">
                   <label class="field-label">Phone</label>
                   <input class="field-input" [(ngModel)]="edit.phone" placeholder="Optional" />
                 </div>
-
-                <div class="section-label" style="margin-top:1.25rem">Location</div>
-
-                <div class="field-row">
-                  <label class="field-label">Search address</label>
-                  <input class="field-input" [(ngModel)]="locationQuery"
-                    (input)="searchLocation()"
-                    placeholder="Street, city…" />
+                <div class="field-col">
+                  <label class="field-label">City / Address</label>
+                  <input class="field-input" [(ngModel)]="locationQuery" (input)="searchLocation()" placeholder="Search address…" />
+                  @if (locationSuggestions().length > 0) {
+                    <ul class="suggestions">
+                      @for (item of locationSuggestions(); track item.display_name) {
+                        <li (click)="selectLocation(item)">{{ item.display_name }}</li>
+                      }
+                    </ul>
+                  }
+                  @if (locationConfirmed()) {
+                    <p class="loc-confirmed">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      {{ edit.city || 'Location set' }}
+                    </p>
+                  }
                 </div>
-                @if (locationSuggestions().length > 0) {
-                  <ul class="suggestions">
-                    @for (item of locationSuggestions(); track item.display_name) {
-                      <li (click)="selectLocation(item)">{{ item.display_name }}</li>
-                    }
-                  </ul>
-                }
-                @if (locationConfirmed()) {
-                  <p class="loc-confirmed">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    {{ edit.city || 'Location set' }}
-                  </p>
-                }
-
-                @if (saveSuccess()) {
-                  <p class="save-success">Changes saved!</p>
-                }
-                @if (saveError()) {
-                  <p class="save-error">{{ saveError() }}</p>
-                }
-
-                <button class="btn-save" (click)="saveProfile()" [disabled]="saving()">
+              </div>
+              @if (saveSuccess()) { <p class="msg-ok">Changes saved!</p> }
+              @if (saveError()) { <p class="msg-err">{{ saveError() }}</p> }
+              <div class="card-footer">
+                <button class="btn-primary" (click)="saveProfile()" [disabled]="saving()">
                   {{ saving() ? 'Saving…' : 'Save changes' }}
                 </button>
               </div>
+            </div>
 
-              <!-- Right column -->
-              <div style="display:flex;flex-direction:column;gap:1.25rem">
+            <!-- Identity Verification -->
+            <div class="card">
+              <div class="section-label">Identity Verification</div>
+              <app-verify-identity />
+            </div>
 
-                <!-- Identity Verification -->
-                <div class="card">
-                  <div class="section-label">Identity Verification</div>
-                  <app-verify-identity />
+            <!-- Change Password -->
+            <div class="card">
+              <div class="section-label">Change Password</div>
+              <div class="fields-grid">
+                <div class="field-col">
+                  <label class="field-label">Current password</label>
+                  <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
                 </div>
-
-                <!-- Change password -->
-                <div class="card">
-                  <div class="section-label">Change Password</div>
-                  <div class="field-row">
-                    <label class="field-label">Current password</label>
-                    <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
-                  </div>
-                  <div class="field-row">
-                    <label class="field-label">New password</label>
-                    <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
-                  </div>
-                  <div class="field-row">
-                    <label class="field-label">Confirm new password</label>
-                    <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
-                  </div>
-                  @if (pwError()) { <p class="save-error">{{ pwError() }}</p> }
-                  @if (pwSuccess()) { <p class="save-success">Password updated!</p> }
-                  <button class="btn-save" (click)="changePassword()" [disabled]="pwSaving()">
-                    {{ pwSaving() ? 'Saving…' : 'Update password' }}
-                  </button>
+                <div class="field-col">
+                  <label class="field-label">New password</label>
+                  <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
                 </div>
-
-                <!-- Delete account -->
-                <div class="card">
-                  <div class="section-label">Delete Account</div>
-                  <p class="delete-desc">Permanently remove your account and all associated data.</p>
-
-                  @if (!confirmDelete()) {
-                    <button class="btn-delete-account" (click)="confirmDelete.set(true)">Delete my account</button>
-                  } @else {
-                    <p class="delete-warn">This cannot be undone. All your jobs, profile, and data will be erased.</p>
-                    <div class="delete-actions">
-                      <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
-                        {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
-                      </button>
-                      <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
-                    </div>
-                    @if (deleteError()) {
-                      <p class="save-error">{{ deleteError() }}</p>
-                    }
-                  }
+                <div class="field-col">
+                  <label class="field-label">Confirm new password</label>
+                  <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
                 </div>
-
+              </div>
+              @if (pwError()) { <p class="msg-err">{{ pwError() }}</p> }
+              @if (pwSuccess()) { <p class="msg-ok">Password updated!</p> }
+              <div class="card-footer">
+                <button class="btn-primary" (click)="changePassword()" [disabled]="pwSaving()">
+                  {{ pwSaving() ? 'Saving…' : 'Update password' }}
+                </button>
               </div>
             </div>
+
+            <!-- Delete Account -->
+            <div class="card">
+              <div class="section-label">Delete Account</div>
+              <p class="delete-desc">Permanently remove your account and all associated data.</p>
+              @if (!confirmDelete()) {
+                <button class="btn-delete" (click)="confirmDelete.set(true)">Delete my account</button>
+              } @else {
+                <p class="delete-warn">This cannot be undone. All your jobs, profile, and data will be erased.</p>
+                <div class="delete-actions">
+                  <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
+                    {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
+                  </button>
+                  <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
+                </div>
+                @if (deleteError()) { <p class="msg-err">{{ deleteError() }}</p> }
+              }
+            </div>
+
           </div>
         </div>
       } @else {
@@ -181,36 +166,43 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 
     .card { background: #fff; border: 1.5px solid #e4e4e7; border-radius: 16px; padding: 1.5rem; }
 
-    .avatar-row { display: flex; align-items: center; gap: 0.875rem; padding-bottom: 1.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid #f4f4f5; }
-    .avatar-circle { width: 52px; height: 52px; border-radius: 50%; background: #18181b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 700; flex-shrink: 0; }
+    .page-body { padding: 2rem 0 4rem; }
+    .inner { max-width: 660px; }
+
+    .card { background: #fff; border: 1.5px solid #e4e4e7; border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem; }
+
+    .avatar-row { display: flex; align-items: center; gap: 0.875rem; padding-bottom: 1.25rem; margin-bottom: 1.5rem; border-bottom: 1px solid #f4f4f5; }
+    .avatar-circle { width: 48px; height: 48px; border-radius: 50%; background: #18181b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; flex-shrink: 0; }
     .avatar-name { font-size: 0.95rem; font-weight: 600; color: #18181b; margin: 0 0 0.2rem; }
     .avatar-email { font-size: 0.8rem; color: #a1a1aa; margin: 0; }
 
-    .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #a1a1aa; margin: 0 0 0.875rem; }
+    .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #a1a1aa; margin: 0 0 1rem; }
 
-    .field-row { margin-bottom: 0.875rem; }
-    .field-label { display: block; font-size: 0.75rem; font-weight: 600; color: #71717a; margin-bottom: 0.3rem; }
+    .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1rem; }
+    .field-col { display: flex; flex-direction: column; }
+    .field-label { font-size: 0.75rem; font-weight: 600; color: #71717a; margin-bottom: 0.3rem; }
     .field-input { width: 100%; padding: 0.5rem 0.75rem; border: 1.5px solid #e4e4e7; border-radius: 8px; font-size: 0.875rem; color: #18181b; font-family: inherit; outline: none; transition: border-color 0.15s; }
     .field-input:focus { border-color: #18181b; }
 
-    .suggestions { list-style: none; margin: 0; padding: 0; border: 1.5px solid #e4e4e7; border-radius: 8px; overflow: hidden; }
+    .suggestions { list-style: none; margin: 0.25rem 0 0; padding: 0; border: 1.5px solid #e4e4e7; border-radius: 8px; overflow: hidden; position: absolute; z-index: 10; background: #fff; width: 100%; }
     .suggestions li { padding: 0.5rem 0.75rem; font-size: 0.8rem; cursor: pointer; color: #3f3f46; }
     .suggestions li:hover { background: #f4f4f5; }
-    .loc-confirmed { display: flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: #0f766e; margin: 0.5rem 0 0; }
+    .loc-confirmed { display: flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: #0f766e; margin: 0.3rem 0 0; }
 
-    .save-success { font-size: 0.8rem; color: #16a34a; margin: 0.75rem 0 0; }
-    .save-error { font-size: 0.8rem; color: #dc2626; margin: 0.75rem 0 0; }
+    .card-footer { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #f4f4f5; display: flex; justify-content: flex-end; }
+    .btn-primary { padding: 0.55rem 1.4rem; border-radius: 10px; background: #18181b; color: #fff; font-size: 0.875rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.15s; }
+    .btn-primary:hover:not(:disabled) { background: #3f3f46; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .btn-save { margin-top: 1.25rem; width: 100%; padding: 0.625rem; border-radius: 10px; background: #18181b; color: #fff; font-size: 0.875rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.15s; }
-    .btn-save:hover:not(:disabled) { background: #3f3f46; }
-    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+    .msg-ok { font-size: 0.8rem; color: #16a34a; margin: 0.75rem 0 0; }
+    .msg-err { font-size: 0.8rem; color: #dc2626; margin: 0.75rem 0 0; }
 
     .delete-desc { font-size: 0.875rem; color: #71717a; margin: 0 0 1rem; }
     .delete-warn { font-size: 0.875rem; color: #3f3f46; margin: 0 0 1rem; }
     .delete-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
-    .btn-delete-account { padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; background: #fff; border: 1.5px solid #e4e4e7; color: #dc2626; cursor: pointer; transition: background 0.15s; }
-    .btn-delete-account:hover { background: #fef2f2; border-color: #fca5a5; }
-    .btn-delete-confirm { padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; background: #dc2626; border: none; color: #fff; cursor: pointer; transition: background 0.15s; }
+    .btn-delete { padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; background: #fff; border: 1.5px solid #e4e4e7; color: #dc2626; cursor: pointer; transition: background 0.15s; }
+    .btn-delete:hover { background: #fef2f2; border-color: #fca5a5; }
+    .btn-delete-confirm { padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; background: #dc2626; border: none; color: #fff; cursor: pointer; }
     .btn-delete-confirm:hover:not(:disabled) { background: #b91c1c; }
     .btn-delete-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-cancel { padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; background: transparent; border: 1.5px solid #e4e4e7; color: #71717a; cursor: pointer; }
@@ -219,9 +211,9 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .load-ring { width: 30px; height: 30px; border: 2.5px solid #e4e4e7; border-top-color: #18181b; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 680px) {
+    @media (max-width: 600px) {
       .inner { padding: 0 1rem; }
-      .profile-grid { grid-template-columns: 1fr; }
+      .fields-grid { grid-template-columns: 1fr; }
     }
   `]
 })

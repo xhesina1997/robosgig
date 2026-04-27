@@ -214,117 +214,107 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                 </button>
               </div>
 
-              <!-- Right: Skills -->
-              <div class="card">
-                <div class="section-label">My Skills</div>
-                <p class="skills-hint">These appear on your profile and help clients find you.</p>
+              <!-- Right column: stacked cards -->
+              <div class="right-col">
 
-                <!-- Current skills -->
-                <div class="skills-wrap">
-                  @for (ws of profile()!.skills; track ws.skill.id) {
-                    <span class="skill-tag">
-                      {{ ws.skill.name }}
-                      <button class="skill-x" (click)="removeSkill(ws.skill.id)" title="Remove">
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    </span>
-                  }
-                  @for (name of customSkills(); track name) {
-                    <span class="skill-tag skill-tag--custom">
-                      {{ name }}
-                      <button class="skill-x" (click)="removeCustomSkill(name)" title="Remove">
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    </span>
-                  }
-                  @if (profile()!.skills.length === 0 && customSkills().length === 0) {
-                    <p class="no-skills">No skills yet — add from the list below or type your own.</p>
-                  }
-                </div>
+                <!-- Skills -->
+                <div class="card">
+                  <div class="section-label">My Skills</div>
+                  <p class="skills-hint">These appear on your profile and help clients find you.</p>
 
-                <!-- Custom skill input -->
-                <div class="section-label" style="margin-top:1.5rem">Add a custom skill</div>
-                <div class="custom-skill-row">
-                  <input
-                    class="field-input"
-                    [(ngModel)]="customSkillInput"
-                    placeholder="e.g. Tile installation, HVAC, Welding…"
-                    (keydown.enter)="addCustomSkill()"
-                  />
-                  <button class="add-btn" (click)="addCustomSkill()" [disabled]="!customSkillInput.trim()">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Add
-                  </button>
-                </div>
-
-                <!-- Predefined skills -->
-                <div class="section-label" style="margin-top:1.5rem">Browse skills</div>
-                @for (group of skillGroups(); track group.category) {
-                  <div class="skill-group">
-                    <p class="group-label">{{ group.category }}</p>
-                    <div class="skill-options">
-                      @for (skill of group.skills; track skill.id) {
-                        <button
-                          class="skill-opt"
-                          [class.skill-opt--owned]="hasSkill(skill.id)"
-                          (click)="toggleSkill(skill)"
-                          [disabled]="hasSkill(skill.id)"
-                        >{{ skill.name }}</button>
-                      }
-                    </div>
+                  <div class="skills-wrap">
+                    @for (ws of profile()!.skills; track ws.skill.id) {
+                      <span class="skill-tag">
+                        {{ ws.skill.name }}
+                        <button class="skill-x" (click)="removeSkill(ws.skill.id)" title="Remove">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </span>
+                    }
+                    @for (name of customSkills(); track name) {
+                      <span class="skill-tag skill-tag--custom">
+                        {{ name }}
+                        <button class="skill-x" (click)="removeCustomSkill(name)" title="Remove">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </span>
+                    }
+                    @if (profile()!.skills.length === 0 && customSkills().length === 0) {
+                      <p class="no-skills">No skills yet — add from the list below or type your own.</p>
+                    }
                   </div>
-                }
-              </div>
 
-            </div>
+                  <div class="section-label" style="margin-top:1.5rem">Add a custom skill</div>
+                  <div class="custom-skill-row">
+                    <input class="field-input" [(ngModel)]="customSkillInput" placeholder="e.g. Tile installation, HVAC, Welding…" (keydown.enter)="addCustomSkill()" />
+                    <button class="add-btn" (click)="addCustomSkill()" [disabled]="!customSkillInput.trim()">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      Add
+                    </button>
+                  </div>
 
-            <!-- Identity Verification -->
-            <div class="form-card">
-              <p class="section-label">Identity Verification</p>
-              <app-verify-identity />
-            </div>
-
-            <!-- Change password -->
-            <div class="form-card">
-              <p class="section-label">Change Password</p>
-              <div class="field-row">
-                <label class="field-label">Current password</label>
-                <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
-              </div>
-              <div class="field-row">
-                <label class="field-label">New password</label>
-                <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
-              </div>
-              <div class="field-row">
-                <label class="field-label">Confirm new password</label>
-                <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
-              </div>
-              @if (pwError()) { <p class="pw-error">{{ pwError() }}</p> }
-              @if (pwSuccess()) { <p class="pw-success">Password updated!</p> }
-              <button class="btn-save-pw" (click)="changePassword()" [disabled]="pwSaving()">
-                {{ pwSaving() ? 'Saving…' : 'Update password' }}
-              </button>
-            </div>
-
-            <!-- Delete account -->
-            <div class="form-card">
-              <p class="section-label">Delete Account</p>
-              @if (!confirmDelete()) {
-                <p class="delete-desc">Permanently remove your account and all associated data.</p>
-                <button class="btn-delete-account" (click)="confirmDelete.set(true)">Delete my account</button>
-              } @else {
-                <p class="delete-warn">This cannot be undone. All your jobs, profile, and data will be erased.</p>
-                <div class="delete-actions">
-                  <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
-                    {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
-                  </button>
-                  <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
+                  <div class="section-label" style="margin-top:1.5rem">Browse skills</div>
+                  @for (group of skillGroups(); track group.category) {
+                    <div class="skill-group">
+                      <p class="group-label">{{ group.category }}</p>
+                      <div class="skill-options">
+                        @for (skill of group.skills; track skill.id) {
+                          <button class="skill-opt" [class.skill-opt--owned]="hasSkill(skill.id)" (click)="toggleSkill(skill)" [disabled]="hasSkill(skill.id)">{{ skill.name }}</button>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
-                @if (deleteError()) {
-                  <p class="delete-error">{{ deleteError() }}</p>
-                }
-              }
-            </div>
+
+                <!-- Identity Verification -->
+                <div class="card">
+                  <p class="section-label">Identity Verification</p>
+                  <app-verify-identity />
+                </div>
+
+                <!-- Change password -->
+                <div class="card">
+                  <p class="section-label">Change Password</p>
+                  <div class="field-row">
+                    <label class="field-label">Current password</label>
+                    <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
+                  </div>
+                  <div class="field-row">
+                    <label class="field-label">New password</label>
+                    <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
+                  </div>
+                  <div class="field-row">
+                    <label class="field-label">Confirm new password</label>
+                    <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
+                  </div>
+                  @if (pwError()) { <p class="pw-error">{{ pwError() }}</p> }
+                  @if (pwSuccess()) { <p class="pw-success">Password updated!</p> }
+                  <button class="btn-save-pw" (click)="changePassword()" [disabled]="pwSaving()">
+                    {{ pwSaving() ? 'Saving…' : 'Update password' }}
+                  </button>
+                </div>
+
+                <!-- Delete account -->
+                <div class="card">
+                  <p class="section-label">Delete Account</p>
+                  @if (!confirmDelete()) {
+                    <p class="delete-desc">Permanently remove your account and all associated data.</p>
+                    <button class="btn-delete-account" (click)="confirmDelete.set(true)">Delete my account</button>
+                  } @else {
+                    <p class="delete-warn">This cannot be undone. All your jobs, profile, and data will be erased.</p>
+                    <div class="delete-actions">
+                      <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
+                        {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
+                      </button>
+                      <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
+                    </div>
+                    @if (deleteError()) { <p class="delete-error">{{ deleteError() }}</p> }
+                  }
+                </div>
+
+              </div><!-- /right-col -->
+
+            </div><!-- /profile-grid -->
 
           </div>
         </div>
@@ -386,13 +376,17 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .stat-label { font-size: 0.68rem; color: #a1a1aa; font-weight: 500; }
 
     /* ── Body ─────────────────────────────── */
-    .page-body { padding: 2rem 0; }
+    .page-body { padding: 2rem 0 4rem; }
+    .inner { max-width: 660px; }
 
     .profile-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
-      align-items: start;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .right-col {
+      display: contents;
     }
 
     /* ── Card ─────────────────────────────── */
@@ -401,6 +395,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border: 1.5px solid #e4e4e7;
       border-radius: 16px;
       padding: 1.5rem;
+      margin-bottom: 0;
     }
 
     /* ── Avatar ───────────────────────────── */
