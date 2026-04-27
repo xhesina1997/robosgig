@@ -1,19 +1,21 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { v2 as cloudinary } from 'cloudinary';
+import { StripeService } from '../stripe/stripe.service';
+import { Resend } from 'resend';
+import Stripe from 'stripe';
 
 @Injectable()
 export class VerifyService {
+  private readonly logger = new Logger(VerifyService.name);
+  private readonly resend: Resend;
+
   constructor(
     private prisma: PrismaService,
+    private stripe: StripeService,
     private config: ConfigService,
   ) {
-    cloudinary.config({
-      cloud_name: this.config.get('CLOUDINARY_CLOUD_NAME'),
-      api_key: this.config.get('CLOUDINARY_API_KEY'),
-      api_secret: this.config.get('CLOUDINARY_API_SECRET'),
-    });
+    this.resend = new Resend(this.config.get<string>('RESEND_API_KEY'));
   }
 
   async getStatus(userId: string) {
@@ -28,108 +30,108 @@ export class VerifyService {
     };
   }
 
-  async submitVerification(userId: string, documentBuffer: Buffer, documentMime: string, selfieBuffer?: Buffer) {
+  async createSession(userId: string) {
     const existing = await this.prisma.identityVerification.findUnique({ where: { userId } });
     if (existing?.status === 'VERIFIED') {
       throw new BadRequestException('Already verified');
     }
 
-    const documentUrl = await this.uploadToCloudinary(documentBuffer, documentMime, `verifications/${userId}/doc`);
-    let selfieUrl: string | undefined;
-    if (selfieBuffer) {
-      selfieUrl = await this.uploadToCloudinary(selfieBuffer, 'image/jpeg', `verifications/${userId}/selfie`);
+    const session = await this.stripe.client.identity.verificationSessions.create({
+      type: 'document',
+      options: {
+        document: {
+          require_live_capture: true,
+          require_matching_selfie: true,
+        },
+      },
+      metadata: { userId },
+    });
+
+    await this.prisma.identityVerification.upsert({
+      where: { userId },
+      create: { userId, stripeSessionId: session.id, status: 'PENDING' },
+      update: { stripeSessionId: session.id, status: 'PENDING', submittedAt: new Date(), reviewedAt: null },
+    });
+
+
+    return { clientSecret: session.client_secret };
+  }
+
+  async handleWebhook(payload: Buffer, sig: string) {
+    const secret = this.config.get<string>('STRIPE_IDENTITY_WEBHOOK_SECRET') ?? '';
+    let event: Stripe.Event;
+
+    try {
+      event = this.stripe.constructWebhookEvent(payload, sig, secret);
+    } catch {
+      throw new BadRequestException('Invalid webhook signature');
     }
 
-    const verification = await this.prisma.identityVerification.upsert({
-      where: { userId },
-      create: { userId, documentUrl, selfieUrl, status: 'PENDING' },
-      update: { documentUrl, selfieUrl, status: 'PENDING', rejectionNote: null, reviewedAt: null, submittedAt: new Date() },
-    });
+    if (event.type === 'identity.verification_session.verified') {
+      const session = event.data.object as Stripe.Identity.VerificationSession;
+      const userId = session.metadata?.userId;
+      if (!userId) return;
 
-    return verification;
+      await this.prisma.$transaction([
+        this.prisma.identityVerification.updateMany({
+          where: { stripeSessionId: session.id },
+          data: { status: 'VERIFIED', reviewedAt: new Date() },
+        }),
+        this.prisma.user.update({
+          where: { id: userId },
+          data: { idVerified: true },
+        }),
+      ]);
+
+      await this.sendVerifiedEmail(userId);
+    }
+
+    if (event.type === 'identity.verification_session.requires_input') {
+      const session = event.data.object as Stripe.Identity.VerificationSession;
+      await this.prisma.identityVerification.updateMany({
+        where: { stripeSessionId: session.id },
+        data: { status: 'REJECTED', reviewedAt: new Date() },
+      });
+    }
   }
 
-  // ── Admin ────────────────────────────────────────────────────────────────
-
-  async listPending() {
-    return this.prisma.identityVerification.findMany({
-      where: { status: 'PENDING' },
-      include: {
-        user: {
-          select: {
-            id: true, email: true, role: true,
-            workerProfile: { select: { firstName: true, lastName: true, avatarUrl: true } },
-            clientProfile: { select: { firstName: true, lastName: true, avatarUrl: true } },
-          },
-        },
-      },
-      orderBy: { submittedAt: 'asc' },
-    });
-  }
-
-  async listAll() {
-    return this.prisma.identityVerification.findMany({
-      include: {
-        user: {
-          select: {
-            id: true, email: true, role: true,
-            workerProfile: { select: { firstName: true, lastName: true, avatarUrl: true } },
-            clientProfile: { select: { firstName: true, lastName: true, avatarUrl: true } },
-          },
-        },
-      },
-      orderBy: { submittedAt: 'desc' },
-    });
-  }
-
-  async approve(adminId: string, userId: string) {
-    await this.assertAdmin(adminId);
-    const v = await this.prisma.identityVerification.findUnique({ where: { userId } });
-    if (!v) throw new NotFoundException('Verification request not found');
-
-    await this.prisma.$transaction([
-      this.prisma.identityVerification.update({
-        where: { userId },
-        data: { status: 'VERIFIED', reviewedAt: new Date(), rejectionNote: null },
-      }),
-      this.prisma.user.update({
+  private async sendVerifiedEmail(userId: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        data: { idVerified: true },
-      }),
-    ]);
-
-    return { approved: true };
-  }
-
-  async reject(adminId: string, userId: string, note?: string) {
-    await this.assertAdmin(adminId);
-    const v = await this.prisma.identityVerification.findUnique({ where: { userId } });
-    if (!v) throw new NotFoundException('Verification request not found');
-
-    await this.prisma.identityVerification.update({
-      where: { userId },
-      data: { status: 'REJECTED', reviewedAt: new Date(), rejectionNote: note ?? null },
-    });
-
-    return { rejected: true };
-  }
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  private async assertAdmin(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    if (user?.role !== 'ADMIN') throw new ForbiddenException('Admin only');
-  }
-
-  private uploadToCloudinary(buffer: Buffer, mime: string, publicId: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { public_id: publicId, resource_type: 'image', overwrite: true },
-        (err, result) => {
-          if (err || !result) return reject(err ?? new Error('Upload failed'));
-          resolve(result.secure_url);
+        select: {
+          email: true,
+          workerProfile: { select: { firstName: true } },
+          clientProfile: { select: { firstName: true } },
         },
-      ).end(buffer);
-    });
+      });
+      if (!user) return;
+
+      const firstName = user.workerProfile?.firstName ?? user.clientProfile?.firstName ?? 'there';
+      const from = this.config.get<string>('RESEND_FROM') ?? 'RobosGig <noreply@robosgig.com>';
+
+      await this.resend.emails.send({
+        from,
+        to: user.email,
+        subject: '✅ Your identity has been verified — RobosGig',
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+            <img src="https://robosgig.com/logo.svg" width="32" height="32" alt="RobosGig" style="margin-bottom:24px" />
+            <h2 style="margin:0 0 12px;font-size:20px;color:#18181b">Hey ${firstName}, you're verified! 🎉</h2>
+            <p style="color:#52525b;line-height:1.6;margin:0 0 24px">
+              Your identity has been successfully verified on RobosGig.
+              Your profile now shows a verified badge, which helps you get more jobs and builds trust with clients.
+            </p>
+            <a href="https://app.robosgig.com/dashboard"
+               style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:99px;font-weight:600;font-size:14px">
+              Go to your dashboard
+            </a>
+            <p style="color:#a1a1aa;font-size:12px;margin-top:32px">RobosGig · Vienna, Austria</p>
+          </div>
+        `,
+      });
+    } catch (err) {
+      this.logger.error('Failed to send verified email', err);
+    }
   }
 }

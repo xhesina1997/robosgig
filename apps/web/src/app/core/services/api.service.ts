@@ -140,24 +140,12 @@ export class ApiService {
   }
 
   // ── Verify ────────────────────────────────────────────────────────────
-  getVerifyStatus(): Observable<{ idVerified: boolean; verification: any }> {
-    return this.http.get<{ idVerified: boolean; verification: any }>(`${this.baseUrl}/verify/status`);
+  getVerifyStatus(): Observable<{ idVerified: boolean; verification: { status: string } | null }> {
+    return this.http.get<{ idVerified: boolean; verification: { status: string } | null }>(`${this.baseUrl}/verify/status`);
   }
 
-  submitVerification(formData: FormData): Observable<unknown> {
-    return this.http.post(`${this.baseUrl}/verify/submit`, formData);
-  }
-
-  getAdminVerifications(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/verify/admin/all`);
-  }
-
-  approveVerification(userId: string): Observable<unknown> {
-    return this.http.patch(`${this.baseUrl}/verify/admin/${userId}/approve`, {});
-  }
-
-  rejectVerification(userId: string, note?: string): Observable<unknown> {
-    return this.http.patch(`${this.baseUrl}/verify/admin/${userId}/reject`, { note });
+  createVerifySession(): Observable<{ clientSecret: string }> {
+    return this.http.post<{ clientSecret: string }>(`${this.baseUrl}/verify/session`, {});
   }
 
   // ── Payments ──────────────────────────────────────────────────────

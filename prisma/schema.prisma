@@ -289,15 +289,13 @@ model Message {
 // ─── Identity Verification ───────────────────────────────────────────────────
 
 model IdentityVerification {
-  id            String             @id @default(cuid())
-  userId        String             @unique
-  user          User               @relation(fields: [userId], references: [id])
-  documentUrl   String
-  selfieUrl     String?
-  status        VerificationStatus @default(PENDING)
-  rejectionNote String?
-  submittedAt   DateTime           @default(now())
-  reviewedAt    DateTime?
+  id               String             @id @default(cuid())
+  userId           String             @unique
+  user             User               @relation(fields: [userId], references: [id])
+  stripeSessionId  String?            @unique
+  status           VerificationStatus @default(PENDING)
+  submittedAt      DateTime           @default(now())
+  reviewedAt       DateTime?
 }
 
 // ─── Payments ────────────────────────────────────────────────────────────────
