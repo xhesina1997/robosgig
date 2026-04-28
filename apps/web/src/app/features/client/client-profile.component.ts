@@ -41,106 +41,113 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       @if (profile()) {
         <div class="page-body">
           <div class="inner">
+            <div class="profile-grid">
 
-            <!-- Personal Info -->
-            <div class="card">
-              <div class="avatar-row">
-                <div class="avatar-circle">{{ profile()!.firstName[0] }}{{ profile()!.lastName[0] }}</div>
-                <div>
-                  <p class="avatar-name">{{ profile()!.firstName }} {{ profile()!.lastName }}</p>
-                  <p class="avatar-email">{{ profile()!.email }}</p>
+              <!-- Left: Personal Info -->
+              <div class="card">
+                <div class="avatar-row">
+                  <div class="avatar-circle">{{ profile()!.firstName[0] }}{{ profile()!.lastName[0] }}</div>
+                  <div>
+                    <p class="avatar-name">{{ profile()!.firstName }} {{ profile()!.lastName }}</p>
+                    <p class="avatar-email">{{ profile()!.email }}</p>
+                  </div>
                 </div>
-              </div>
-              <div class="fields-grid">
-                <div class="field-col">
-                  <label class="field-label">First name</label>
-                  <input class="field-input" [(ngModel)]="edit.firstName" />
+                <div class="fields-grid">
+                  <div class="field-col">
+                    <label class="field-label">First name</label>
+                    <input class="field-input" [(ngModel)]="edit.firstName" />
+                  </div>
+                  <div class="field-col">
+                    <label class="field-label">Last name</label>
+                    <input class="field-input" [(ngModel)]="edit.lastName" />
+                  </div>
+                  <div class="field-col">
+                    <label class="field-label">Phone</label>
+                    <input class="field-input" [(ngModel)]="edit.phone" placeholder="Optional" />
+                  </div>
+                  <div class="field-col">
+                    <label class="field-label">City / Address</label>
+                    <input class="field-input" [(ngModel)]="locationQuery" (input)="searchLocation()" placeholder="Search address…" />
+                    @if (locationSuggestions().length > 0) {
+                      <ul class="suggestions">
+                        @for (item of locationSuggestions(); track item.display_name) {
+                          <li (click)="selectLocation(item)">{{ item.display_name }}</li>
+                        }
+                      </ul>
+                    }
+                    @if (locationConfirmed()) {
+                      <p class="loc-confirmed">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        {{ edit.city || 'Location set' }}
+                      </p>
+                    }
+                  </div>
                 </div>
-                <div class="field-col">
-                  <label class="field-label">Last name</label>
-                  <input class="field-input" [(ngModel)]="edit.lastName" />
-                </div>
-                <div class="field-col">
-                  <label class="field-label">Phone</label>
-                  <input class="field-input" [(ngModel)]="edit.phone" placeholder="Optional" />
-                </div>
-                <div class="field-col">
-                  <label class="field-label">City / Address</label>
-                  <input class="field-input" [(ngModel)]="locationQuery" (input)="searchLocation()" placeholder="Search address…" />
-                  @if (locationSuggestions().length > 0) {
-                    <ul class="suggestions">
-                      @for (item of locationSuggestions(); track item.display_name) {
-                        <li (click)="selectLocation(item)">{{ item.display_name }}</li>
-                      }
-                    </ul>
-                  }
-                  @if (locationConfirmed()) {
-                    <p class="loc-confirmed">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      {{ edit.city || 'Location set' }}
-                    </p>
-                  }
-                </div>
-              </div>
-              @if (saveSuccess()) { <p class="msg-ok">Changes saved!</p> }
-              @if (saveError()) { <p class="msg-err">{{ saveError() }}</p> }
-              <div class="card-footer">
-                <button class="btn-primary" (click)="saveProfile()" [disabled]="saving()">
-                  {{ saving() ? 'Saving…' : 'Save changes' }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Identity Verification -->
-            <div class="card">
-              <div class="section-label">Identity Verification</div>
-              <app-verify-identity />
-            </div>
-
-            <!-- Change Password -->
-            <div class="card">
-              <div class="section-label">Change Password</div>
-              <div class="fields-grid">
-                <div class="field-col">
-                  <label class="field-label">Current password</label>
-                  <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
-                </div>
-                <div class="field-col">
-                  <label class="field-label">New password</label>
-                  <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
-                </div>
-                <div class="field-col">
-                  <label class="field-label">Confirm new password</label>
-                  <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
-                </div>
-              </div>
-              @if (pwError()) { <p class="msg-err">{{ pwError() }}</p> }
-              @if (pwSuccess()) { <p class="msg-ok">Password updated!</p> }
-              <div class="card-footer">
-                <button class="btn-primary" (click)="changePassword()" [disabled]="pwSaving()">
-                  {{ pwSaving() ? 'Saving…' : 'Update password' }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Delete Account -->
-            <div class="card">
-              <div class="section-label">Delete Account</div>
-              <p class="delete-desc">Permanently remove your account and all associated data.</p>
-              @if (!confirmDelete()) {
-                <button class="btn-delete" (click)="confirmDelete.set(true)">Delete my account</button>
-              } @else {
-                <p class="delete-warn">This cannot be undone. All your jobs, profile, and data will be erased.</p>
-                <div class="delete-actions">
-                  <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
-                    {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
+                @if (saveSuccess()) { <p class="msg-ok">Changes saved!</p> }
+                @if (saveError()) { <p class="msg-err">{{ saveError() }}</p> }
+                <div class="card-footer">
+                  <button class="btn-primary" (click)="saveProfile()" [disabled]="saving()">
+                    {{ saving() ? 'Saving…' : 'Save changes' }}
                   </button>
-                  <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
                 </div>
-                @if (deleteError()) { <p class="msg-err">{{ deleteError() }}</p> }
-              }
-            </div>
+              </div>
 
+              <!-- Right column -->
+              <div class="right-col">
+
+                <!-- Identity Verification -->
+                <div class="card">
+                  <div class="section-label">Identity Verification</div>
+                  <app-verify-identity />
+                </div>
+
+                <!-- Change Password -->
+                <div class="card">
+                  <div class="section-label">Change Password</div>
+                  <div class="fields-grid fields-grid--single">
+                    <div class="field-col">
+                      <label class="field-label">Current password</label>
+                      <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
+                    </div>
+                    <div class="field-col">
+                      <label class="field-label">New password</label>
+                      <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
+                    </div>
+                    <div class="field-col">
+                      <label class="field-label">Confirm new password</label>
+                      <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
+                    </div>
+                  </div>
+                  @if (pwError()) { <p class="msg-err">{{ pwError() }}</p> }
+                  @if (pwSuccess()) { <p class="msg-ok">Password updated!</p> }
+                  <div class="card-footer">
+                    <button class="btn-primary" (click)="changePassword()" [disabled]="pwSaving()">
+                      {{ pwSaving() ? 'Saving…' : 'Update password' }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Delete Account -->
+                <div class="card">
+                  <div class="section-label">Delete Account</div>
+                  <p class="delete-desc">Permanently remove your account and all associated data.</p>
+                  @if (!confirmDelete()) {
+                    <button class="btn-delete" (click)="confirmDelete.set(true)">Delete my account</button>
+                  } @else {
+                    <p class="delete-warn">This cannot be undone. All your jobs, profile, and data will be erased.</p>
+                    <div class="delete-actions">
+                      <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
+                        {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
+                      </button>
+                      <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
+                    </div>
+                    @if (deleteError()) { <p class="msg-err">{{ deleteError() }}</p> }
+                  }
+                </div>
+
+              </div><!-- /right-col -->
+
+            </div><!-- /profile-grid -->
           </div>
         </div>
       } @else {
@@ -167,9 +174,10 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .card { background: #fff; border: 1.5px solid #e4e4e7; border-radius: 16px; padding: 1.5rem; }
 
     .page-body { padding: 2rem 0 4rem; }
-    .inner { max-width: 660px; }
 
-    .card { background: #fff; border: 1.5px solid #e4e4e7; border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card { background: #fff; border: 1.5px solid #e4e4e7; border-radius: 16px; padding: 1.5rem; }
+    .right-col { display: flex; flex-direction: column; gap: 1.25rem; }
+    .fields-grid--single { grid-template-columns: 1fr; }
 
     .avatar-row { display: flex; align-items: center; gap: 0.875rem; padding-bottom: 1.25rem; margin-bottom: 1.5rem; border-bottom: 1px solid #f4f4f5; }
     .avatar-circle { width: 48px; height: 48px; border-radius: 50%; background: #18181b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; flex-shrink: 0; }

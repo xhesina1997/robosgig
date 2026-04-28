@@ -377,16 +377,18 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 
     /* ── Body ─────────────────────────────── */
     .page-body { padding: 2rem 0 4rem; }
-    .inner { max-width: 660px; }
 
     .profile-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
     }
 
     .right-col {
-      display: contents;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
     }
 
     /* ── Card ─────────────────────────────── */
