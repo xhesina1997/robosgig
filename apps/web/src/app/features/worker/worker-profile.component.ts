@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -54,9 +54,46 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
             }
           </div>
         </div>
+        <div class="inner">
+          <nav class="tabs-nav">
+            <button class="tab-btn" [class.tab-active]="activeTab() === 'profile'" (click)="activeTab.set('profile')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              Profile
+            </button>
+            <button class="tab-btn" [class.tab-active]="activeTab() === 'identity'" (click)="activeTab.set('identity')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M13 11h5M13 15h3"/></svg>
+              Identity
+            </button>
+            <button class="tab-btn" [class.tab-active]="activeTab() === 'security'" (click)="activeTab.set('security')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Security
+            </button>
+          </nav>
+        </div>
       </div>
 
       @if (profile()) {
+        @if (!profileComplete()) {
+          <div class="setup-banner">
+            <div class="inner">
+              <div class="setup-banner-inner">
+                <div class="setup-icon">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div class="setup-text">
+                  <span class="setup-title">Complete your profile to start getting hired</span>
+                  <span class="setup-desc">
+                    Add your
+                    @if (!profile()!.city) { <strong>location</strong> }
+                    @if (!profile()!.city && !profile()!.profession) { and }
+                    @if (!profile()!.profession) { <strong>profession</strong> }
+                    — clients can't find you until your profile is complete.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
         <div class="page-body">
           <div class="inner">
             <div class="profile-grid">
@@ -374,6 +411,42 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .stat-val { display: block; font-size: 0.95rem; font-weight: 700; color: #18181b; margin-bottom: 0.1rem; }
     .avail-on { color: #14b8a6; }
     .stat-label { font-size: 0.68rem; color: #a1a1aa; font-weight: 500; }
+
+    /* ── Setup banner ────────────────────── */
+    .setup-banner {
+      background: #fffbeb;
+      border-bottom: 1.5px solid #fde68a;
+      padding: 0.875rem 0;
+    }
+    .setup-banner-inner {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+    .setup-icon {
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      background: #fef3c7;
+      border: 1.5px solid #fde68a;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #d97706;
+      margin-top: 1px;
+    }
+    .setup-title {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 0.2rem;
+    }
+    .setup-desc {
+      display: block;
+      font-size: 0.8rem;
+      color: #b45309;
+      line-height: 1.5;
+    }
+    .setup-desc strong { font-weight: 700; }
 
     /* ── Body ─────────────────────────────── */
     .page-body { padding: 2rem 0 4rem; }
@@ -791,6 +864,7 @@ export class WorkerProfileComponent implements OnInit {
   private router = inject(Router);
 
   profile = signal<WorkerProfile | null>(null);
+  profileComplete = computed(() => { const p = this.profile(); return !!(p?.city && p?.profession); });
   allSkills = signal<Skill[]>([]);
   skillGroups = signal<{ category: string; icon: string; skills: Skill[] }[]>([]);
   customSkills = signal<string[]>([]);

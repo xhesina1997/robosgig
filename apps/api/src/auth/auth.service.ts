@@ -29,10 +29,10 @@ export class AuthService {
                 create: {
                   firstName: dto.firstName,
                   lastName: dto.lastName,
-                  latitude: dto.latitude ?? 48.2082,
-                  longitude: dto.longitude ?? 16.3738,
+                  latitude: dto.latitude ?? 0,
+                  longitude: dto.longitude ?? 0,
                   address: dto.address ?? '',
-                  city: dto.city ?? 'Vienna',
+                  city: dto.city ?? '',
                   hourlyRate: dto.hourlyRate,
                 },
               },

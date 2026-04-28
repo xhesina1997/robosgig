@@ -5,7 +5,6 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 type Role = 'CLIENT' | 'WORKER';
-interface NominatimResult { display_name: string; lat: string; lon: string; address: Record<string, string>; }
 
 @Component({
   selector: 'app-register',
@@ -167,62 +166,13 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
               </div>
             </div>
 
-            <!-- Worker-only fields -->
+            <!-- Worker info note -->
             @if (role() === 'WORKER') {
-              <div class="worker-section">
-                <div class="worker-section-header">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
-                  <span class="worker-section-title">Work details</span>
-                </div>
-
-                <div class="field-group">
-                  <label class="field-label">Location</label>
-                  <div class="loc-wrap">
-                    <div class="loc-input-row">
-                      <div class="input-wrap" style="flex:1">
-                        <svg class="input-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <input class="field-input field-input--icon"
-                               [(ngModel)]="locationQuery"
-                               name="locationQuery"
-                               (ngModelChange)="onLocationInput()"
-                               (blur)="onLocationBlur()"
-                               placeholder="Search address, postcode, city…" />
-                      </div>
-                      <button class="loc-gps-btn" type="button" (click)="useMyLocation()" title="Use my location" [disabled]="locationLoading()">
-                        @if (locationLoading()) {
-                          <span class="loc-spinner"></span>
-                        } @else {
-                          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-                        }
-                      </button>
-                    </div>
-                    @if (locationSuggestions().length > 0) {
-                      <div class="loc-dropdown">
-                        @for (item of locationSuggestions(); track item.display_name) {
-                          <button class="loc-option" type="button" (mousedown)="selectLocation(item)">
-                            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;color:#a1a1aa"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            {{ item.display_name }}
-                          </button>
-                        }
-                      </div>
-                    }
-                    @if (locationConfirmed() && workerLocation.latitude) {
-                      <div class="loc-confirmed-row">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        {{ workerLocation.city }}{{ workerLocation.address ? ' · ' + workerLocation.address : '' }}
-                      </div>
-                    }
-                  </div>
-                </div>
-                <div class="field-row">
-                  <div class="field-group">
-                    <label class="field-label">Hourly rate (€)</label>
-                    <input class="field-input" type="number" [(ngModel)]="hourlyRate" name="hourlyRate" placeholder="35" min="5" max="500"/>
-                  </div>
-                  <div class="field-group">
-                    <label class="field-label">Skills</label>
-                    <input class="field-input" [(ngModel)]="skillsText" name="skillsText" placeholder="e.g. Plumber, pipe repair"/>
-                  </div>
+              <div class="worker-info">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <div>
+                  <span class="worker-info-title">You'll set up your work profile after signing up</span>
+                  <span class="worker-info-desc">Add your location, profession, hourly rate, and skills — then you'll start appearing to nearby clients.</span>
                 </div>
               </div>
             }
@@ -545,60 +495,31 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .pw-toggle:hover { background: rgba(0,0,0,0.05); color: #18181b; }
 
-    /* Worker section */
-    .worker-section {
+    /* Worker info note */
+    .worker-info {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
       background: #f4faf9;
       border: 1.5px solid #ccede8;
       border-radius: 12px;
-      padding: 1rem 1rem 0.25rem;
-      margin-bottom: 0.875rem;
-    }
-    .worker-section-header {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
+      padding: 0.875rem 1rem;
       margin-bottom: 0.875rem;
       color: #0f766e;
     }
-    .worker-section-title {
-      font-size: 0.7rem;
-      font-weight: 700;
+    .worker-info-title {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
       color: #0f766e;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
+      margin-bottom: 0.2rem;
     }
-    .worker-section .field-group { margin-bottom: 0.7rem; }
-    .worker-section .field-input { background: #fff; }
-
-    /* Location picker */
-    .loc-wrap { display: flex; flex-direction: column; position: relative; }
-    .loc-input-row { display: flex; gap: 0.4rem; align-items: center; }
-    .loc-gps-btn {
-      flex-shrink: 0; width: 40px; height: 40px;
-      border: 1.5px solid #e4e4e7; border-radius: 10px;
-      background: #fff; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      color: #71717a; transition: border-color 0.15s, color 0.15s;
+    .worker-info-desc {
+      display: block;
+      font-size: 0.75rem;
+      color: #14b8a6;
+      line-height: 1.5;
     }
-    .loc-gps-btn:hover:not(:disabled) { border-color: #18181b; color: #18181b; }
-    .loc-gps-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .loc-spinner { width: 12px; height: 12px; border: 2px solid #e4e4e7; border-top-color: #18181b; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
-    .loc-dropdown {
-      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-      background: #fff; border: 1.5px solid #e4e4e7; border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 100;
-      overflow: hidden; max-height: 200px; overflow-y: auto;
-    }
-    .loc-option {
-      width: 100%; display: flex; align-items: flex-start; gap: 0.5rem;
-      padding: 0.55rem 0.875rem; background: none; border: none;
-      border-bottom: 1px solid #f4f4f5; cursor: pointer;
-      font-size: 0.8rem; color: #3f3f46; text-align: left;
-      font-family: inherit; line-height: 1.4; transition: background 0.1s;
-    }
-    .loc-option:last-child { border-bottom: none; }
-    .loc-option:hover { background: #f8f8f8; }
-    .loc-confirmed-row { display: flex; align-items: center; gap: 0.35rem; margin-top: 0.4rem; font-size: 0.75rem; color: #0f766e; font-weight: 500; }
 
     /* Fee notice */
     .fee-notice {
@@ -715,14 +636,6 @@ export class RegisterComponent {
   lastName = '';
   email = '';
   password = '';
-  locationQuery = '';
-  locationSuggestions = signal<NominatimResult[]>([]);
-  locationLoading = signal(false);
-  locationConfirmed = signal(false);
-  private locationTimer: ReturnType<typeof setTimeout> | null = null;
-  workerLocation = { city: '', address: '', latitude: null as number | null, longitude: null as number | null };
-  hourlyRate: number | null = null;
-  skillsText = '';
   loading = signal(false);
   error = signal<string | null>(null);
   showPassword = signal(false);
@@ -737,26 +650,15 @@ export class RegisterComponent {
     this.loading.set(true);
     this.error.set(null);
 
-    const data: Record<string, unknown> = {
+    this.auth.register({
       firstName: this.firstName,
       lastName: this.lastName,
       email: this.email,
       password: this.password,
       role: this.role(),
-    };
-
-    if (this.role() === 'WORKER') {
-      data['city'] = this.workerLocation.city || 'Vienna';
-      data['address'] = this.workerLocation.address;
-      data['hourlyRate'] = this.hourlyRate;
-      data['latitude'] = this.workerLocation.latitude ?? 48.2082;
-      data['longitude'] = this.workerLocation.longitude ?? 16.3738;
-    }
-
-    this.auth.register(data).subscribe({
+    }).subscribe({
       next: (res) => {
         const role = (res as { role: string }).role;
-        // Workers go to profile to complete setup, clients to their dashboard
         this.router.navigate([role === 'WORKER' ? '/worker/profile' : '/dashboard/client']);
       },
       error: (err) => {
@@ -766,59 +668,4 @@ export class RegisterComponent {
     });
   }
 
-  onLocationInput() {
-    this.locationConfirmed.set(false);
-    if (this.locationTimer) clearTimeout(this.locationTimer);
-    if (this.locationQuery.trim().length < 3) { this.locationSuggestions.set([]); return; }
-    this.locationTimer = setTimeout(() => this.fetchSuggestions(), 400);
-  }
-
-  onLocationBlur() {
-    setTimeout(() => this.locationSuggestions.set([]), 150);
-  }
-
-  private async fetchSuggestions() {
-    this.locationLoading.set(true);
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(this.locationQuery)}&limit=5&addressdetails=1`;
-      const res = await fetch(url);
-      this.locationSuggestions.set(await res.json());
-    } catch { this.locationSuggestions.set([]); }
-    finally { this.locationLoading.set(false); }
-  }
-
-  selectLocation(item: NominatimResult) {
-    this.workerLocation.latitude = parseFloat(item.lat);
-    this.workerLocation.longitude = parseFloat(item.lon);
-    this.workerLocation.city = item.address['city'] || item.address['town'] || item.address['village'] || item.address['county'] || '';
-    this.workerLocation.address = [item.address['road'], item.address['house_number'], item.address['suburb']].filter(Boolean).join(' ') || '';
-    this.locationQuery = item.display_name;
-    this.locationSuggestions.set([]);
-    this.locationConfirmed.set(true);
-  }
-
-  async useMyLocation() {
-    if (!navigator.geolocation) return;
-    this.locationLoading.set(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        this.workerLocation.latitude = latitude;
-        this.workerLocation.longitude = longitude;
-        try {
-          const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
-          const res = await fetch(url);
-          const data = await res.json();
-          this.workerLocation.city = data.address?.city || data.address?.town || data.address?.village || '';
-          this.workerLocation.address = [data.address?.road, data.address?.house_number].filter(Boolean).join(' ') || '';
-          this.locationQuery = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-        } catch {
-          this.locationQuery = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-        }
-        this.locationConfirmed.set(true);
-        this.locationLoading.set(false);
-      },
-      () => this.locationLoading.set(false),
-    );
-  }
 }
