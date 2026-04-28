@@ -217,4 +217,17 @@ export class ApiService {
   deleteAccount(): Observable<{ deleted: boolean }> {
     return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/auth/me`);
   }
+
+  // ── Reports ───────────────────────────────────────────────────────
+  submitReport(data: { category: string; subject: string; description: string }): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/reports`, data);
+  }
+
+  getAdminReports(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/reports/admin`);
+  }
+
+  updateReportStatus(id: string, status: string, adminNotes?: string): Observable<unknown> {
+    return this.http.patch(`${this.baseUrl}/reports/admin/${id}`, { status, adminNotes });
+  }
 }

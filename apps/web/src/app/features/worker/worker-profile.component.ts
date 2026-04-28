@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { VerifyIdentityComponent } from '../../shared/verify-identity.component';
+import { ReportProblemComponent } from '../../shared/report-problem.component';
 
 interface Skill { id: string; name: string; category: { name: string; icon: string } }
 interface WorkerSkill { skill: Skill }
@@ -22,7 +23,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 @Component({
   selector: 'app-worker-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, VerifyIdentityComponent],
+  imports: [CommonModule, FormsModule, VerifyIdentityComponent, ReportProblemComponent],
   template: `
     <div class="page">
 
@@ -94,9 +95,14 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
             </div>
           </div>
         }
-        <div class="page-body">
-          <div class="inner">
-            <div class="profile-grid">
+        <div class="slides-outer">
+          <div class="slides-track" [style.transform]="'translateX(-' + tabIndex() * 100 + '%)'">
+
+            <!-- Slide 0: Profile -->
+            <div class="slide">
+              <div class="page-body">
+                <div class="inner">
+                  <div class="profile-grid">
 
               <!-- Left: Info -->
               <div class="card">
@@ -303,63 +309,92 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                   }
                 </div>
 
-                <!-- Identity Verification -->
-                <div class="card">
-                  <p class="section-label">Identity Verification</p>
-                  <app-verify-identity />
-                </div>
-
-                <!-- Change password -->
-                <div class="card">
-                  <p class="section-label">Change Password</p>
-                  <div class="field-row">
-                    <label class="field-label">Current password</label>
-                    <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
-                  </div>
-                  <div class="field-row">
-                    <label class="field-label">New password</label>
-                    <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
-                  </div>
-                  <div class="field-row">
-                    <label class="field-label">Confirm new password</label>
-                    <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
-                  </div>
-                  @if (pwError()) { <p class="pw-error">{{ pwError() }}</p> }
-                  @if (pwSuccess()) { <p class="pw-success">Password updated!</p> }
-                  <button class="btn-save-pw" (click)="changePassword()" [disabled]="pwSaving()">
-                    {{ pwSaving() ? 'Saving…' : 'Update password' }}
-                  </button>
-                </div>
-
-                <!-- Delete account -->
-                <div class="card">
-                  <p class="section-label">Delete Account</p>
-                  @if (!confirmDelete()) {
-                    <p class="delete-desc">Permanently remove your account and all associated data.</p>
-                    <button class="btn-delete-account" (click)="confirmDelete.set(true)">Delete my account</button>
-                  } @else {
-                    <p class="delete-warn">This cannot be undone. All your jobs, profile, and data will be erased.</p>
-                    <div class="delete-actions">
-                      <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
-                        {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
-                      </button>
-                      <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
-                    </div>
-                    @if (deleteError()) { <p class="delete-error">{{ deleteError() }}</p> }
-                  }
-                </div>
-
               </div><!-- /right-col -->
 
-            </div><!-- /profile-grid -->
+                  </div><!-- /profile-grid -->
+                </div>
+              </div>
+            </div><!-- /slide-0 -->
 
-          </div>
-        </div>
+            <!-- Slide 1: Identity -->
+            <div class="slide">
+              <div class="page-body">
+                <div class="inner inner--narrow">
+                  <div class="card">
+                    <p class="section-label">Identity Verification</p>
+                    <app-verify-identity />
+                  </div>
+                </div>
+              </div>
+            </div><!-- /slide-1 -->
+
+            <!-- Slide 2: Security -->
+            <div class="slide">
+              <div class="page-body">
+                <div class="inner inner--narrow">
+
+                  <div class="card">
+                    <p class="section-label">Change Password</p>
+                    <div class="field-row">
+                      <label class="field-label">Current password</label>
+                      <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
+                    </div>
+                    <div class="field-row">
+                      <label class="field-label">New password</label>
+                      <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
+                    </div>
+                    <div class="field-row">
+                      <label class="field-label">Confirm new password</label>
+                      <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
+                    </div>
+                    @if (pwError()) { <p class="pw-error">{{ pwError() }}</p> }
+                    @if (pwSuccess()) { <p class="pw-success">Password updated!</p> }
+                    <button class="btn-save-pw" (click)="changePassword()" [disabled]="pwSaving()">
+                      {{ pwSaving() ? 'Saving…' : 'Update password' }}
+                    </button>
+                  </div>
+
+                  <div class="card" style="margin-top:1.25rem">
+                    <p class="section-label">Delete Account</p>
+                    @if (!confirmDelete()) {
+                      <p class="delete-desc">Permanently remove your account and all associated data.</p>
+                      <button class="btn-delete-account" (click)="confirmDelete.set(true)">Delete my account</button>
+                    } @else {
+                      <p class="delete-warn">This cannot be undone. All your jobs, profile, and data will be erased.</p>
+                      <div class="delete-actions">
+                        <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
+                          {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
+                        </button>
+                        <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
+                      </div>
+                      @if (deleteError()) { <p class="delete-error">{{ deleteError() }}</p> }
+                    }
+                  </div>
+
+                  <div class="card" style="margin-top:1.25rem">
+                    <p class="section-label">Report a Problem</p>
+                    <p class="delete-desc">Experiencing an issue? Let us know and we'll look into it.</p>
+                    <button class="btn-report" (click)="showReportModal.set(true)">
+                      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      Report a problem
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            </div><!-- /slide-2 -->
+
+          </div><!-- /slides-track -->
+        </div><!-- /slides-outer -->
       } @else {
         <div class="loading">
           <div class="load-ring"></div>
           <p>Loading your profile…</p>
         </div>
+      }
+
+      @if (showReportModal()) {
+        <app-report-problem (closed)="showReportModal.set(false)" />
       }
     </div>
   `,
@@ -411,6 +446,28 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .stat-val { display: block; font-size: 0.95rem; font-weight: 700; color: #18181b; margin-bottom: 0.1rem; }
     .avail-on { color: #14b8a6; }
     .stat-label { font-size: 0.68rem; color: #a1a1aa; font-weight: 500; }
+
+    /* ── Tabs ─────────────────────────────── */
+    .tabs-nav { display: flex; gap: 0; }
+    .tab-btn {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.75rem 1.1rem;
+      border: none; background: none; cursor: pointer;
+      font-size: 0.855rem; font-weight: 500; color: #71717a;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+      font-family: inherit; white-space: nowrap;
+    }
+    .tab-btn:hover { color: #3f3f46; }
+    .tab-active { color: #18181b !important; border-bottom-color: #18181b; font-weight: 600; }
+    .tab-active svg { stroke: #18181b; }
+
+    /* ── Slides ────────────────────────────── */
+    .slides-outer { overflow: hidden; }
+    .slides-track { display: flex; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
+    .slide { flex: 0 0 100%; min-width: 0; }
+    .inner--narrow { max-width: 660px; }
 
     /* ── Setup banner ────────────────────── */
     .setup-banner {
@@ -470,7 +527,6 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border: 1.5px solid #e4e4e7;
       border-radius: 16px;
       padding: 1.5rem;
-      margin-bottom: 0;
     }
 
     /* ── Avatar ───────────────────────────── */
@@ -838,6 +894,13 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       transition: background 0.15s;
     }
     .btn-delete-account:hover { background: #fef2f2; border-color: #fca5a5; }
+    .btn-report {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+      background: #fafafa; border: 1.5px solid #e4e4e7; color: #3f3f46; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-report:hover { background: #f4f4f5; border-color: #a1a1aa; }
     .btn-delete-confirm {
       padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
       background: #dc2626; border: none; color: #fff; cursor: pointer; transition: background 0.15s;
@@ -865,6 +928,8 @@ export class WorkerProfileComponent implements OnInit {
 
   profile = signal<WorkerProfile | null>(null);
   profileComplete = computed(() => { const p = this.profile(); return !!(p?.city && p?.profession); });
+  activeTab = signal<'profile' | 'identity' | 'security'>('profile');
+  tabIndex = computed(() => (['profile', 'identity', 'security'] as const).indexOf(this.activeTab()));
   allSkills = signal<Skill[]>([]);
   skillGroups = signal<{ category: string; icon: string; skills: Skill[] }[]>([]);
   customSkills = signal<string[]>([]);
@@ -874,6 +939,7 @@ export class WorkerProfileComponent implements OnInit {
   confirmDelete = signal(false);
   deleting = signal(false);
   deleteError = signal<string | null>(null);
+  showReportModal = signal(false);
   pwSaving = signal(false);
   pwSuccess = signal(false);
   pwError = signal<string | null>(null);

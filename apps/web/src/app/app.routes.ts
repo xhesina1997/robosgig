@@ -79,6 +79,12 @@ export const appRoutes: Route[] = [
       import('./features/admin/admin-verifications.component').then((m) => m.AdminVerificationsComponent),
   },
   {
+    path: 'admin/reports',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-reports.component').then((m) => m.AdminReportsComponent),
+  },
+  {
     path: 'terms',
     loadComponent: () =>
       import('./features/legal/terms.component').then((m) => m.TermsComponent),

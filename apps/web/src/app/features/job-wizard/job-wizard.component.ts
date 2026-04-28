@@ -141,6 +141,52 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                 }
               </div>
 
+              <div class="loc-divider"></div>
+
+              <div class="access-section">
+                <div class="access-title">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                  Property details <span class="access-optional">(optional)</span>
+                </div>
+
+                <div class="access-row">
+                  <span class="access-label">Type</span>
+                  <div class="access-chips">
+                    @for (opt of propertyTypeOpts; track opt.value) {
+                      <button class="access-chip" [class.access-chip-on]="propertyType() === opt.value" (click)="propertyType.set(opt.value)">{{ opt.label }}</button>
+                    }
+                  </div>
+                </div>
+
+                <div class="access-row">
+                  <span class="access-label">Floor</span>
+                  <div class="access-chips">
+                    @for (opt of floorOpts; track opt.value) {
+                      <button class="access-chip" [class.access-chip-on]="floorNumber() === opt.value" (click)="floorNumber.set(opt.value)">{{ opt.label }}</button>
+                    }
+                  </div>
+                </div>
+
+                @if (floorNumber() !== null && floorNumber() !== 0) {
+                  <div class="access-row">
+                    <span class="access-label">Elevator</span>
+                    <div class="access-chips">
+                      <button class="access-chip" [class.access-chip-on]="hasElevator() === true" (click)="hasElevator.set(true)">Yes</button>
+                      <button class="access-chip" [class.access-chip-on]="hasElevator() === false" (click)="hasElevator.set(false)">No</button>
+                    </div>
+                  </div>
+                }
+
+                <div class="access-row">
+                  <span class="access-label">Parking</span>
+                  <div class="access-chips">
+                    @for (opt of parkingOpts; track opt.value) {
+                      <button class="access-chip" [class.access-chip-on]="parking() === opt.value" (click)="parking.set(opt.value)">{{ opt.label }}</button>
+                    }
+                  </div>
+                </div>
+              </div>
+
               <button class="submit-btn" (click)="analyze()" [disabled]="!rawInput.trim() || !locationConfirmed()">
                 Analyze with AI
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -1430,6 +1476,37 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       margin-top: 0.4rem;
     }
 
+    /* ── Access details ────────────────────── */
+    .access-section {
+      display: flex; flex-direction: column; gap: 0.6rem;
+      padding: 0.75rem 0 0.25rem;
+    }
+    .access-title {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.72rem; font-weight: 600; color: #52525b;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .access-optional { font-weight: 400; color: #a1a1aa; text-transform: none; letter-spacing: 0; }
+    .access-row {
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .access-label {
+      font-size: 0.75rem; color: #71717a; min-width: 52px;
+    }
+    .access-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .access-chip {
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      border: 1.5px solid #e4e4e7;
+      background: #fafafa;
+      font-size: 0.75rem; font-weight: 500; color: #3f3f46;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .access-chip:hover { border-color: #a1a1aa; background: #f4f4f5; }
+    .access-chip-on {
+      border-color: #18181b; background: #18181b; color: #fff;
+    }
+
     /* ── Error ────────────────────────────── */
     /* ── Job limit overlay ───────────────────── */
     .limit-overlay {
@@ -1543,6 +1620,45 @@ export class JobWizardComponent {
     'Light switch stopped working',
   ];
 
+  propertyType = signal<string | null>(null);
+  floorNumber = signal<number | null>(null);
+  hasElevator = signal<boolean | null>(null);
+  parking = signal<string | null>(null);
+
+  propertyTypeOpts = [
+    { label: 'Apartment', value: 'apartment' },
+    { label: 'House', value: 'house' },
+    { label: 'Office', value: 'office' },
+    { label: 'Other', value: 'other' },
+  ];
+  floorOpts = [
+    { label: 'Ground', value: 0 },
+    { label: '1st', value: 1 },
+    { label: '2nd', value: 2 },
+    { label: '3rd', value: 3 },
+    { label: '4th', value: 4 },
+    { label: '5th+', value: 5 },
+  ];
+  parkingOpts = [
+    { label: 'Available', value: 'available' },
+    { label: 'Street only', value: 'street' },
+    { label: 'None', value: 'none' },
+  ];
+
+  private buildAccessContext(): string {
+    const parts: string[] = [];
+    if (this.propertyType()) parts.push(`Property type: ${this.propertyType()}`);
+    const floor = this.floorNumber();
+    if (floor !== null) {
+      parts.push(`Floor: ${floor === 0 ? 'ground floor' : `${floor}${floor >= 5 ? '+' : ''} floor`}`);
+      if (floor > 0 && this.hasElevator() !== null) {
+        parts.push(`Elevator: ${this.hasElevator() ? 'yes' : 'no'}`);
+      }
+    }
+    if (this.parking()) parts.push(`Parking: ${this.parking()}`);
+    return parts.length ? `\n\nAccess details: ${parts.join(', ')}.` : '';
+  }
+
   analyze() {
     if (!this.rawInput.trim()) return;
 
@@ -1556,7 +1672,7 @@ export class JobWizardComponent {
     });
 
     this.api.analyzeJob({
-      rawInput: this.rawInput,
+      rawInput: this.rawInput + this.buildAccessContext(),
       city: this.jobLocation.city,
       country: this.jobLocation.country,
       latitude: this.jobLocation.latitude ?? undefined,
@@ -1734,6 +1850,10 @@ export class JobWizardComponent {
     this.selectedWorkerId.set(null);
     this.editablePreview.set(null);
     this.scheduledDate.set('');
+    this.propertyType.set(null);
+    this.floorNumber.set(null);
+    this.hasElevator.set(null);
+    this.parking.set(null);
     this.step.set('input');
   }
 }

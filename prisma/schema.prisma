@@ -59,6 +59,13 @@ enum VerificationStatus {
   REJECTED
 }
 
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 model User {
@@ -75,6 +82,7 @@ model User {
   subscription  Subscription?
   messages      Message[]
   verification  IdentityVerification?
+  reports       Report[]
 
   idVerified Boolean @default(false)
 }
@@ -297,6 +305,21 @@ model IdentityVerification {
   status           VerificationStatus @default(PENDING)
   submittedAt      DateTime           @default(now())
   reviewedAt       DateTime?
+}
+
+// ─── Reports ─────────────────────────────────────────────────────────────────
+
+model Report {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  category    String       // 'payment', 'worker', 'client', 'technical', 'other'
+  subject     String
+  description String
+  status      ReportStatus @default(OPEN)
+  adminNotes  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 // ─── Payments ────────────────────────────────────────────────────────────────
