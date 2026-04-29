@@ -73,6 +73,12 @@ export const appRoutes: Route[] = [
       import('./features/payment/payment-success.component').then((m) => m.PaymentSuccessComponent),
   },
   {
+    path: 'admin/dashboard',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-dashboard.component').then((m) => m.AdminDashboardComponent),
+  },
+  {
     path: 'admin/verifications',
     canActivate: [authGuard],
     loadComponent: () =>

@@ -19,6 +19,11 @@ export class AuthService {
   readonly isLoggedIn = computed(() => !!this._user());
   readonly isWorker = computed(() => this._user()?.role === 'WORKER');
   readonly isClient = computed(() => this._user()?.role === 'CLIENT');
+  readonly isAdmin = computed(() => {
+    const token = this.getToken();
+    if (!token) return false;
+    try { return JSON.parse(atob(token.split('.')[1])).email === 'adm@adm.com'; } catch { return false; }
+  });
 
   login(email: string, password: string) {
     return this.api.login(email, password).pipe(

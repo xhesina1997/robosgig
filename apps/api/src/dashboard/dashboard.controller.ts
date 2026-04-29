@@ -27,4 +27,9 @@ export class DashboardController {
   ) {
     return this.dashboardService.getWorkerDashboard(req.user.sub, +(skip ?? 0), +(take ?? 10));
   }
+
+  @Get('admin')
+  getAdminDashboard() {
+    return this.dashboardService.getAdminDashboard();
+  }
 }

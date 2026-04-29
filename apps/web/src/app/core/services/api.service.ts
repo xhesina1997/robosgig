@@ -218,6 +218,11 @@ export class ApiService {
     return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/auth/me`);
   }
 
+  // ── Admin ─────────────────────────────────────────────────────────
+  getAdminDashboard(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/dashboard/admin`);
+  }
+
   // ── Reports ───────────────────────────────────────────────────────
   submitReport(data: { category: string; subject: string; description: string }): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/reports`, data);

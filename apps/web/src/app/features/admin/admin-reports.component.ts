@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 
 interface ReportEntry {
@@ -24,9 +25,22 @@ interface ReportEntry {
 @Component({
   selector: 'app-admin-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="page">
+      <div class="admin-nav">
+        <div class="nav-inner">
+          <span class="nav-brand">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+            Admin
+          </span>
+          <nav class="nav-links">
+            <a class="nav-link" routerLink="/admin/dashboard">Dashboard</a>
+            <a class="nav-link" routerLink="/admin/verifications">Verifications</a>
+            <a class="nav-link active" routerLink="/admin/reports">Reports</a>
+          </nav>
+        </div>
+      </div>
       <div class="page-header">
         <div class="inner">
           <div class="header-top">
@@ -123,6 +137,13 @@ interface ReportEntry {
   `,
   styles: [`
     .page { min-height: 100vh; background: #f9f9f9; }
+    .admin-nav { background: #18181b; padding: 0 1.5rem; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 2rem; height: 48px; }
+    .nav-brand { color: #fff; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem; }
+    .nav-links { display: flex; }
+    .nav-link { color: #a1a1aa; font-size: 0.82rem; font-weight: 500; text-decoration: none; padding: 0 0.85rem; height: 48px; display: flex; align-items: center; border-bottom: 2px solid transparent; transition: color 0.15s; }
+    .nav-link:hover { color: #e4e4e7; }
+    .nav-link.active { color: #fff; border-bottom-color: #fff; }
     .page-header { background: #fff; border-bottom: 1px solid #e4e4e7; padding: 1.5rem 0 0; }
     .inner { max-width: 860px; margin: 0 auto; padding: 0 1.5rem; }
     .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
