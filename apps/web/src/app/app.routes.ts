@@ -79,6 +79,24 @@ export const appRoutes: Route[] = [
       import('./features/admin/admin-dashboard.component').then((m) => m.AdminDashboardComponent),
   },
   {
+    path: 'admin/users',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-users.component').then((m) => m.AdminUsersComponent),
+  },
+  {
+    path: 'admin/subscriptions',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-subscriptions.component').then((m) => m.AdminSubscriptionsComponent),
+  },
+  {
+    path: 'admin/chats',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-chats.component').then((m) => m.AdminChatsComponent),
+  },
+  {
     path: 'admin/verifications',
     canActivate: [authGuard],
     loadComponent: () =>

@@ -19,6 +19,9 @@ import { ApiService } from '../../core/services/api.service';
           </span>
           <nav class="nav-links">
             <a class="nav-link active" routerLink="/admin/dashboard">Dashboard</a>
+            <a class="nav-link" routerLink="/admin/users">Users</a>
+            <a class="nav-link" routerLink="/admin/subscriptions">Subscriptions</a>
+            <a class="nav-link" routerLink="/admin/chats">Chats</a>
             <a class="nav-link" routerLink="/admin/verifications">Verifications</a>
             <a class="nav-link" routerLink="/admin/reports">
               Reports

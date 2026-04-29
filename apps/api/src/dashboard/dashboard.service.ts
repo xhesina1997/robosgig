@@ -160,4 +160,82 @@ export class DashboardService {
       recentUsers,
     };
   }
+
+  async getAdminUsers() {
+    return this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, email: true, role: true, createdAt: true, idVerified: true,
+        workerProfile: {
+          select: {
+            firstName: true, lastName: true, city: true, profession: true,
+            hourlyRate: true, totalJobs: true, rating: true, isAvailable: true,
+          },
+        },
+        clientProfile: { select: { firstName: true, lastName: true, city: true } },
+        subscription: { select: { planType: true, isActive: true, currentPeriodEnd: true } },
+        _count: { select: { jobsPosted: true, messages: true, reports: true } },
+      },
+    });
+  }
+
+  async getAdminSubscriptions() {
+    return this.prisma.subscription.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true, email: true, role: true,
+            workerProfile: { select: { firstName: true, lastName: true } },
+            clientProfile: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+  }
+
+  async getAdminConversations() {
+    return this.prisma.job.findMany({
+      where: { messages: { some: {} } },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        category: { select: { name: true } },
+        client: {
+          select: {
+            id: true, email: true,
+            clientProfile: { select: { firstName: true, lastName: true } },
+          },
+        },
+        applications: {
+          where: { status: { in: ['ACCEPTED', 'NOTIFIED', 'COMPLETED'] } },
+          include: {
+            worker: { select: { userId: true, firstName: true, lastName: true } },
+          },
+          take: 1,
+        },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { content: true, createdAt: true },
+        },
+        _count: { select: { messages: true } },
+      },
+    });
+  }
+
+  async getAdminConversationMessages(jobId: string) {
+    return this.prisma.message.findMany({
+      where: { jobId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        sender: {
+          select: {
+            id: true, role: true,
+            clientProfile: { select: { firstName: true, lastName: true } },
+            workerProfile: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+  }
 }

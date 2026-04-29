@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Query, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -31,5 +31,25 @@ export class DashboardController {
   @Get('admin')
   getAdminDashboard() {
     return this.dashboardService.getAdminDashboard();
+  }
+
+  @Get('admin/users')
+  getAdminUsers() {
+    return this.dashboardService.getAdminUsers();
+  }
+
+  @Get('admin/subscriptions')
+  getAdminSubscriptions() {
+    return this.dashboardService.getAdminSubscriptions();
+  }
+
+  @Get('admin/conversations')
+  getAdminConversations() {
+    return this.dashboardService.getAdminConversations();
+  }
+
+  @Get('admin/conversations/:jobId/messages')
+  getAdminConversationMessages(@Param('jobId') jobId: string) {
+    return this.dashboardService.getAdminConversationMessages(jobId);
   }
 }

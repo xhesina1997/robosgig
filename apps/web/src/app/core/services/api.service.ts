@@ -223,6 +223,22 @@ export class ApiService {
     return this.http.get<any>(`${this.baseUrl}/dashboard/admin`);
   }
 
+  getAdminUsers(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/dashboard/admin/users`);
+  }
+
+  getAdminSubscriptions(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/dashboard/admin/subscriptions`);
+  }
+
+  getAdminConversations(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/dashboard/admin/conversations`);
+  }
+
+  getAdminConversationMessages(jobId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/dashboard/admin/conversations/${jobId}/messages`);
+  }
+
   // ── Reports ───────────────────────────────────────────────────────
   submitReport(data: { category: string; subject: string; description: string }): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/reports`, data);
