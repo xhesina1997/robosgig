@@ -398,7 +398,8 @@ export class LoginComponent {
         if (returnUrl) {
           this.router.navigateByUrl(returnUrl);
         } else {
-          this.router.navigate([role === 'WORKER' ? '/dashboard/worker' : '/dashboard/client']);
+          if (role === 'ADMIN') this.router.navigate(['/admin/dashboard']);
+          else this.router.navigate([role === 'WORKER' ? '/dashboard/worker' : '/dashboard/client']);
         }
       },
       error: (err) => {

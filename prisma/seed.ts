@@ -133,6 +133,23 @@ async function main() {
     console.log(`Created worker: ${w.firstName} ${w.lastName} (${user.id})`);
   }
 
+  // Seed admin user
+  console.log('Seeding admin user...');
+  const adminExists = await prisma.user.findUnique({ where: { email: 'adm@adm.com' } });
+  if (!adminExists) {
+    const adminPassword = await bcrypt.hash('Admin123!', 12);
+    await prisma.user.create({
+      data: {
+        email: 'adm@adm.com',
+        password: adminPassword,
+        role: 'ADMIN',
+      },
+    });
+    console.log('Admin user created: adm@adm.com / Admin123!');
+  } else {
+    console.log('Admin user already exists.');
+  }
+
   console.log('Seed complete.');
 }
 
