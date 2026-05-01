@@ -1323,7 +1323,35 @@
   body.font-soft h1, body.font-soft h2 { letter-spacing: -0.03em; font-weight: 700; }
   body.font-soft h1 .ital, body.font-soft h2 .ital { font-size: 1.05em; }
 
+@media (max-width: 900px) {
+  .nav-end {
+    display: flex;
+    gap: 8px;
+  }
 
+  .lang-toggle {
+    display: flex !important;
+  }
+
+  .nav-end .btn-link {
+    display: none;
+  }
+
+  .nav-end .btn {
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 420px) {
+  .nav-end .btn {
+    display: none;
+  }
+
+  .lang-toggle {
+    display: flex !important;
+  }
+}
 /* Language toggle */
 .lang-toggle{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--line-2);border-radius:999px;background:rgba(244,244,240,0.04)}.lang-btn{min-width:34px;height:28px;border-radius:999px;font-size:11px;font-weight:800;font-family:var(--font-mono);color:var(--muted)}.lang-btn.active{background:var(--lime);color:#0c0c0a}.lang-sep{color:var(--soft);font-size:11px}
 /* Support chat */
