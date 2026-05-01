@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 
 interface MapJob {
@@ -606,7 +606,6 @@ interface MapJob {
 })
 export class WorkerMapComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
-  private router = inject(Router);
   private route = inject(ActivatedRoute);
 
   // Data
@@ -887,7 +886,6 @@ export class WorkerMapComponent implements OnInit, OnDestroy {
     this.mapMarkers.forEach(m => m.remove());
     this.mapMarkers = [];
 
-    const L_module = (window as any).__leaflet__;
     if (!this.mapInstance) return;
 
     import('leaflet').then((L) => {
