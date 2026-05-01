@@ -1,5 +1,7 @@
-import { Controller, Post, Patch, Delete, Body, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Patch, Delete, Get, Body, HttpCode, HttpStatus, UseGuards, Request, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -8,7 +10,10 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly config: ConfigService,
+  ) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Register as client or worker' })
@@ -21,6 +26,22 @@ export class AuthController {
   @ApiOperation({ summary: 'Login and get JWT token' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  googleAuth() {
+    // Passport handles redirect to Google
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async googleCallback(@Request() req: { user: { email: string; firstName: string; lastName: string } }, @Res() res: any) {
+    const { email, firstName, lastName } = req.user;
+    const { accessToken, role } = await this.authService.findOrCreateGoogleUser(email, firstName, lastName);
+    const frontendUrl = this.config.get<string>('APP_FRONTEND_URL') ?? 'http://localhost:4200';
+    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}&role=${role}`);
   }
 
   @Delete('me')

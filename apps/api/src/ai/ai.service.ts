@@ -22,6 +22,17 @@ export interface WorkerMatchScore {
   reasons: string[];
 }
 
+export interface MapFilters {
+  categories?: string[];
+  urgency?: string[];
+  distanceKm?: number;
+  maxPrice?: number;
+  minPrice?: number;
+  unappliedOnly?: boolean;
+  verifiedOnly?: boolean;
+  summary?: string;
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -108,6 +119,38 @@ Respond ONLY with a valid JSON object (no markdown, no explanation):
     } catch {
       this.logger.error('Failed to parse AI response', text);
       throw new Error('AI returned invalid response. Please try again.');
+    }
+  }
+
+  async parseMapFilters(query: string, availableCategories: string[]): Promise<MapFilters> {
+    const response = await this.anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      system: `You are a search filter parser for a job map. Convert natural language queries into structured filter parameters.
+
+Available categories: ${availableCategories.join(', ')}
+Available urgency levels: LOW, NORMAL, HIGH, EMERGENCY
+("urgent" → HIGH or EMERGENCY, "emergency" → EMERGENCY only)
+
+Respond ONLY with a JSON object (no markdown):
+{
+  "categories": string[],
+  "urgency": string[],
+  "distanceKm": number,
+  "maxPrice": number,
+  "minPrice": number,
+  "unappliedOnly": boolean,
+  "verifiedOnly": boolean,
+  "summary": string
+}
+Only include fields clearly implied. "summary" max 60 chars describes what was extracted.`,
+      messages: [{ role: 'user', content: query }],
+    });
+    const text = (response.content[0] as { type: string; text: string }).text;
+    try {
+      return JSON.parse(text) as MapFilters;
+    } catch {
+      return { summary: 'Could not parse query' };
     }
   }
 

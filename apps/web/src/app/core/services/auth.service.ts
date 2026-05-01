@@ -25,6 +25,10 @@ export class AuthService {
     try { return JSON.parse(atob(token.split('.')[1])).email === 'adm@adm.com'; } catch { return false; }
   });
 
+  loginWithToken(accessToken: string, role: 'CLIENT' | 'WORKER' | 'ADMIN') {
+    this.setUser({ accessToken, role });
+  }
+
   login(email: string, password: string) {
     return this.api.login(email, password).pipe(
       tap((res) => this.setUser(res as AuthUser))

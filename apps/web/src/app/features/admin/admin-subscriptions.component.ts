@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-subscriptions',
@@ -23,6 +24,10 @@ import { ApiService } from '../../core/services/api.service';
             <a class="nav-link" routerLink="/admin/verifications">Verifications</a>
             <a class="nav-link" routerLink="/admin/reports">Reports</a>
           </nav>
+          <button class="nav-logout" (click)="auth.logout()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+          </button>
         </div>
       </div>
 
@@ -121,6 +126,8 @@ import { ApiService } from '../../core/services/api.service';
     .nav-link { color: #a1a1aa; font-size: 0.82rem; font-weight: 500; text-decoration: none; padding: 0 0.75rem; height: 48px; display: flex; align-items: center; border-bottom: 2px solid transparent; transition: color 0.15s; white-space: nowrap; }
     .nav-link:hover { color: #e4e4e7; }
     .nav-link.active { color: #fff; border-bottom-color: #fff; }
+    .nav-logout { margin-left: auto; display: flex; align-items: center; gap: 0.4rem; background: none; border: 1px solid rgba(255,255,255,0.15); color: #a1a1aa; font-size: 0.78rem; font-weight: 500; padding: 0.3rem 0.75rem; border-radius: 6px; cursor: pointer; height: 30px; font-family: inherit; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+    .nav-logout:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
     .page-header { background: #fff; border-bottom: 1px solid #e4e4e7; padding: 1.5rem 0 0; }
     .inner { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
     .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
@@ -163,6 +170,7 @@ import { ApiService } from '../../core/services/api.service';
 })
 export class AdminSubscriptionsComponent implements OnInit {
   private api = inject(ApiService);
+  auth = inject(AuthService);
 
   subs = signal<any[]>([]);
   loading = signal(true);

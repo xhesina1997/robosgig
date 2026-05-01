@@ -30,6 +30,25 @@ export class WorkersController {
     return this.workersService.updateProfile(req.user.sub, dto);
   }
 
+  @Get('me/jobs/map')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all open jobs for the map view (no pagination)' })
+  getJobsForMap(@Request() req: { user: { sub: string } }) {
+    return this.workersService.getJobsForMap(req.user.sub);
+  }
+
+  @Post('me/jobs/ai-filter')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Parse a natural language query into map filter params using AI' })
+  parseAiFilter(
+    @Request() req: { user: { sub: string } },
+    @Body() body: { query: string },
+  ) {
+    return this.workersService.parseAiMapFilter(req.user.sub, body.query);
+  }
+
   @Get('me/jobs')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

@@ -126,6 +126,26 @@ export class AuthService {
     return { deleted: true };
   }
 
+  async findOrCreateGoogleUser(email: string, firstName: string, lastName: string) {
+    let user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      const randomPassword = await bcrypt.hash(Math.random().toString(36), 10);
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          password: randomPassword,
+          role: 'CLIENT',
+          clientProfile: {
+            create: { firstName, lastName, latitude: 0, longitude: 0, address: '', city: '' },
+          },
+        },
+      });
+    }
+
+    return this.signToken(user.id, user.email, user.role);
+  }
+
   private signToken(userId: string, email: string, role: string) {
     const payload = { sub: userId, email, role };
     return {

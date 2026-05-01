@@ -168,12 +168,25 @@ export class DashboardService {
         id: true, email: true, role: true, createdAt: true, idVerified: true,
         workerProfile: {
           select: {
-            firstName: true, lastName: true, city: true, profession: true,
-            hourlyRate: true, totalJobs: true, rating: true, isAvailable: true,
+            firstName: true, lastName: true, phone: true,
+            address: true, city: true, postalCode: true,
+            profession: true, bio: true, hourlyRate: true,
+            totalJobs: true, rating: true, isAvailable: true,
+            dateOfBirth: true, customSkills: true,
           },
         },
-        clientProfile: { select: { firstName: true, lastName: true, city: true } },
-        subscription: { select: { planType: true, isActive: true, currentPeriodEnd: true } },
+        clientProfile: {
+          select: {
+            firstName: true, lastName: true, phone: true,
+            address: true, city: true, postalCode: true,
+          },
+        },
+        subscription: {
+          select: {
+            planType: true, isActive: true,
+            currentPeriodEnd: true, stripeCustomerId: true,
+          },
+        },
         _count: { select: { jobsPosted: true, messages: true, reports: true } },
       },
     });

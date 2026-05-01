@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -30,6 +31,10 @@ import { ApiService } from '../../core/services/api.service';
               }
             </a>
           </nav>
+          <button class="nav-logout" (click)="auth.logout()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+          </button>
         </div>
       </div>
 
@@ -234,6 +239,8 @@ import { ApiService } from '../../core/services/api.service';
     .nav-link { color: #a1a1aa; font-size: 0.82rem; font-weight: 500; text-decoration: none; padding: 0 0.85rem; height: 48px; display: flex; align-items: center; gap: 0.4rem; border-bottom: 2px solid transparent; transition: color 0.15s; }
     .nav-link:hover { color: #e4e4e7; }
     .nav-link.active { color: #fff; border-bottom-color: #fff; }
+    .nav-logout { margin-left: auto; display: flex; align-items: center; gap: 0.4rem; background: none; border: 1px solid rgba(255,255,255,0.15); color: #a1a1aa; font-size: 0.78rem; font-weight: 500; padding: 0.3rem 0.75rem; border-radius: 6px; cursor: pointer; height: 30px; font-family: inherit; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+    .nav-logout:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
     .nav-badge { background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 999px; }
 
     .inner { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
@@ -334,6 +341,7 @@ import { ApiService } from '../../core/services/api.service';
 })
 export class AdminDashboardComponent implements OnInit {
   private api = inject(ApiService);
+  auth = inject(AuthService);
 
   data = signal<any>(null);
   loading = signal(true);

@@ -90,6 +90,14 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/workers/me/jobs?skip=${skip}&take=10`);
   }
 
+  getJobsForMap(): Observable<unknown> {
+    return this.http.get(`${this.baseUrl}/workers/me/jobs/map`);
+  }
+
+  parseAiMapFilter(query: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/workers/me/jobs/ai-filter`, { query });
+  }
+
   getAllSkills(): Observable<unknown[]> {
     return this.http.get<unknown[]>(`${this.baseUrl}/workers/skills`);
   }

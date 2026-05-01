@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -12,6 +12,8 @@ interface NearbyJob {
   priceMax: number | null;
   urgency: string;
   city: string | null;
+  latitude: number | null;
+  longitude: number | null;
   distanceKm: number | null;
   alreadyApplied: boolean;
   applicationStatus: string | null;
@@ -74,12 +76,24 @@ interface NearbyJob {
                 <h1 class="page-title">Browse Jobs</h1>
               </div>
             </div>
-            @if (!loading()) {
-              <div class="count-pill">
-                <span class="count-dot"></span>
-                {{ filteredByPool().length }} open job{{ filteredByPool().length !== 1 ? 's' : '' }}
+            <div class="header-right-group">
+              @if (!loading()) {
+                <div class="count-pill">
+                  <span class="count-dot"></span>
+                  {{ filteredByPool().length }} open job{{ filteredByPool().length !== 1 ? 's' : '' }}
+                </div>
+              }
+              <div class="view-toggle">
+                <button class="vt-btn" [class.vt-btn--active]="viewMode() === 'list'" (click)="setViewMode('list')">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  List
+                </button>
+                <button class="vt-btn" routerLink="/worker/map">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                  Map
+                </button>
               </div>
-            }
+            </div>
           </div>
 
           <!-- Filter bar -->
@@ -171,7 +185,57 @@ interface NearbyJob {
       }
 
 
-      <!-- Body -->
+      <!-- Map view -->
+      @if (viewMode() === 'map') {
+        <div class="map-section">
+          <div id="job-map" class="map-canvas"></div>
+          @if (selectedMapJob()) {
+            <div class="map-job-card">
+              <div class="mjc-top">
+                <div class="job-cat-chip" [style.--dot]="catColor(selectedMapJob()!.category?.name)">
+                  <span class="job-cat-dot"></span>{{ selectedMapJob()!.category?.name || 'General' }}
+                </div>
+                <span class="urgency-pill urgency-{{ selectedMapJob()!.urgency.toLowerCase() }}">{{ urgencyLabel(selectedMapJob()!.urgency) }}</span>
+                <button class="mjc-close" (click)="selectedMapJob.set(null)">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <h3 class="mjc-title">{{ selectedMapJob()!.title }}</h3>
+              <p class="mjc-desc">{{ selectedMapJob()!.description }}</p>
+              <div class="mjc-meta">
+                @if (selectedMapJob()!.city) {
+                  <span class="meta-chip">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    {{ selectedMapJob()!.city }}
+                  </span>
+                }
+                @if (selectedMapJob()!.distanceKm !== null) {
+                  <span class="meta-chip">{{ selectedMapJob()!.distanceKm }} km away</span>
+                }
+              </div>
+              <div class="mjc-footer">
+                <span class="price-val">
+                  @if (selectedMapJob()!.priceMin) { €{{ selectedMapJob()!.priceMin }}–{{ selectedMapJob()!.priceMax }} }
+                  @else { Negotiable }
+                </span>
+                @if (selectedMapJob()!.alreadyApplied) {
+                  <span class="status-pill status-{{ selectedMapJob()!.applicationStatus?.toLowerCase() }}">{{ statusLabel(selectedMapJob()!.applicationStatus) }}</span>
+                } @else if (idVerified()) {
+                  <button class="apply-btn" (click)="openApply(selectedMapJob()!)">Apply <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+                }
+              </div>
+            </div>
+          } @else {
+            <div class="map-hint">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Click a pin to see job details
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Body (list) -->
+      @if (viewMode() === 'list') {
       <div class="page-body">
         <div class="inner">
 
@@ -265,6 +329,12 @@ interface NearbyJob {
                       }
                     </div>
 
+                    @if (job.latitude && job.longitude) {
+                      <button class="map-btn" [routerLink]="['/worker/map']" [queryParams]="{focus: job.id}" (click)="$event.stopPropagation()">
+                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                        Map
+                      </button>
+                    }
                     @if (job.alreadyApplied) {
                       <span class="status-pill status-{{ job.applicationStatus?.toLowerCase() }}">
                         {{ statusLabel(job.applicationStatus) }}
@@ -299,6 +369,8 @@ interface NearbyJob {
 
         </div>
       </div>
+      }<!-- /viewMode list -->
+
       }<!-- /pool selected -->
 
       <!-- Apply modal -->
@@ -962,6 +1034,17 @@ interface NearbyJob {
       color: #a1a1aa;
       white-space: nowrap;
     }
+    .map-btn {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      background: #f4f4f5; color: #52525b;
+      border: 1.5px solid #e4e4e7; border-radius: 99px;
+      padding: 0.3rem 0.65rem; font-size: 0.7rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: border-color 0.15s, color 0.15s;
+      text-decoration: none;
+    }
+    .map-btn:hover { border-color: #2d9580; color: #2d9580; }
+
     .load-ring-sm {
       width: 12px; height: 12px;
       border: 2px solid #d4d4d8;
@@ -971,14 +1054,88 @@ interface NearbyJob {
       display: inline-block;
     }
 
+    /* ── Header right group ───────────────── */
+    .header-right-group {
+      display: flex; align-items: center; gap: 0.625rem; flex-wrap: wrap;
+    }
+
+    /* ── View toggle ──────────────────────── */
+    .view-toggle {
+      display: flex; align-items: center;
+      background: #f4f4f5; border-radius: 10px; padding: 3px; gap: 2px;
+    }
+    .vt-btn {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.3rem 0.7rem; border-radius: 7px; border: none;
+      background: transparent; color: #71717a;
+      font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s, color 0.15s; font-family: inherit;
+      white-space: nowrap;
+    }
+    .vt-btn--active { background: #fff; color: #18181b; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+    /* ── Map section ──────────────────────── */
+    .map-section {
+      display: flex; flex-direction: column;
+    }
+    .map-canvas {
+      width: 100%; height: 500px;
+      border-bottom: 1.5px solid #e4e4e7;
+    }
+
+    /* ── Map job card ─────────────────────── */
+    .map-job-card {
+      background: #fff; border-bottom: 1.5px solid #e4e4e7;
+      padding: 1.125rem 1.5rem; animation: fadeUp 0.2s ease both;
+    }
+    .mjc-top {
+      display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;
+    }
+    .mjc-close {
+      margin-left: auto; width: 24px; height: 24px; border-radius: 50%;
+      background: #f4f4f5; border: none; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; color: #71717a; flex-shrink: 0;
+      transition: background 0.12s;
+    }
+    .mjc-close:hover { background: #e4e4e7; color: #18181b; }
+    .mjc-title { font-size: 1rem; font-weight: 700; color: #18181b; margin: 0 0 0.3rem; letter-spacing: -0.01em; }
+    .mjc-desc {
+      font-size: 0.83rem; color: #71717a; line-height: 1.6; margin: 0 0 0.625rem;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .mjc-meta { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.75rem; }
+    .mjc-footer {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding-top: 0.75rem; border-top: 1px solid #f4f4f5;
+    }
+
+    .map-hint {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.875rem 1.5rem;
+      background: #fafafa; color: #a1a1aa; font-size: 0.83rem;
+      border-bottom: 1.5px solid #e4e4e7;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     @media (max-width: 640px) {
       .inner { padding: 0 1rem; }
       .header-top { flex-direction: column; align-items: flex-start; }
+      .map-canvas { height: 340px; }
     }
   `]
 })
-export class WorkerJobsComponent implements OnInit {
+export class WorkerJobsComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
+
+  // Map state
+  viewMode = signal<'list' | 'map'>('list');
+  selectedMapJob = signal<NearbyJob | null>(null);
+  private mapInstance: any = null;
+  private mapMarkers: any[] = [];
 
   jobs = signal<NearbyJob[]>([]);
   total = signal(0);
@@ -1112,6 +1269,87 @@ export class WorkerJobsComponent implements OnInit {
         this.applying.set(false);
       },
     });
+  }
+
+  setViewMode(mode: 'list' | 'map') {
+    this.viewMode.set(mode);
+    if (mode === 'map') {
+      setTimeout(() => this.initMap(), 50);
+    } else {
+      this.destroyMap();
+    }
+  }
+
+  ngOnDestroy() {
+    this.destroyMap();
+  }
+
+  private destroyMap() {
+    if (this.mapInstance) {
+      this.mapInstance.remove();
+      this.mapInstance = null;
+      this.mapMarkers = [];
+    }
+  }
+
+  private async initMap() {
+    const el = document.getElementById('job-map');
+    if (!el) return;
+    this.destroyMap();
+
+    const L = await import('leaflet');
+    const lf: typeof import('leaflet') = (L as any).default ?? L;
+
+    this.mapInstance = lf.map(el, { center: [48.2082, 16.3738], zoom: 12 });
+    lf.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(this.mapInstance);
+
+    this.renderMarkers(lf);
+  }
+
+  private renderMarkers(lf: typeof import('leaflet')) {
+    this.mapMarkers.forEach(m => m.remove());
+    this.mapMarkers = [];
+
+    const jobs = this.filteredJobs().filter(j => j.latitude && j.longitude);
+    if (!jobs.length) return;
+
+    const bounds: [number, number][] = [];
+
+    jobs.forEach(job => {
+      const urgencyColor: Record<string, string> = {
+        EMERGENCY: '#ef4444', HIGH: '#f97316', NORMAL: '#2d9580', LOW: '#a1a1aa',
+      };
+      const color = job.alreadyApplied ? '#d4d4d8' : (urgencyColor[job.urgency] ?? '#2d9580');
+
+      const icon = lf.divIcon({
+        className: '',
+        html: `<div style="
+          width:36px;height:36px;border-radius:50%;
+          background:${color};border:3px solid #fff;
+          box-shadow:0 2px 8px rgba(0,0,0,0.25);
+          display:flex;align-items:center;justify-content:center;
+          font-size:14px;cursor:pointer;transition:transform 0.15s;
+        ">${job.category?.icon ?? '📍'}</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+
+      const marker = lf.marker([job.latitude!, job.longitude!], { icon })
+        .addTo(this.mapInstance)
+        .on('click', () => this.selectedMapJob.set(job));
+
+      this.mapMarkers.push(marker);
+      bounds.push([job.latitude!, job.longitude!]);
+    });
+
+    if (bounds.length === 1) {
+      this.mapInstance.setView(bounds[0], 14);
+    } else {
+      this.mapInstance.fitBounds(bounds, { padding: [40, 40] });
+    }
   }
 
   catColor(category?: string | null): string {

@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class WorkersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private ai: AiService) {}
 
   async getProfile(userId: string) {
     const profile = await this.prisma.workerProfile.findUnique({
@@ -111,6 +112,43 @@ export class WorkersService {
         applicationStatus: job.applications[0]?.status ?? null,
       })),
     };
+  }
+
+  async getJobsForMap(userId: string) {
+    const profile = await this.prisma.workerProfile.findUnique({
+      where: { userId },
+    });
+    if (!profile) throw new NotFoundException('Worker profile not found');
+
+    const jobs = await this.prisma.job.findMany({
+      where: { status: 'POSTED' },
+      include: {
+        category: true,
+        client: {
+          include: { clientProfile: { select: { firstName: true, lastName: true } } },
+        },
+        applications: { where: { workerId: profile.id }, select: { status: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 300,
+    });
+
+    return {
+      workerLocation: { lat: profile.latitude, lng: profile.longitude },
+      jobs: jobs.map((job) => ({
+        ...job,
+        distanceKm: job.latitude && job.longitude
+          ? Math.round(distanceKm(profile.latitude, profile.longitude, job.latitude, job.longitude) * 10) / 10
+          : null,
+        alreadyApplied: job.applications.length > 0,
+        applicationStatus: job.applications[0]?.status ?? null,
+      })),
+    };
+  }
+
+  async parseAiMapFilter(_userId: string, query: string) {
+    const categories = await this.prisma.category.findMany({ select: { name: true } });
+    return this.ai.parseMapFilters(query, categories.map((c) => c.name));
   }
 
   async getAllSkills() {
