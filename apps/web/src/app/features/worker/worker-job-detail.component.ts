@@ -166,7 +166,7 @@ interface JobDetail {
                 </div>
               </section>
 
-              @if (job()!.toolsNeeded?.length > 0) {
+              @if ((job()?.toolsNeeded?.length ?? 0) > 0) {
                 <section class="card section">
                   <h2 class="section-title">Tools & equipment needed</h2>
                   <div class="tools-list">
