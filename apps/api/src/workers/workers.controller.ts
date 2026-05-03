@@ -49,6 +49,14 @@ export class WorkersController {
     return this.workersService.parseAiMapFilter(req.user.sub, body.query);
   }
 
+  @Get('me/jobs/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get full job detail for the logged-in worker' })
+  getJobDetail(@Request() req: { user: { sub: string } }, @Param('id') id: string) {
+    return this.workersService.getJobDetail(req.user.sub, id);
+  }
+
   @Get('me/jobs')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

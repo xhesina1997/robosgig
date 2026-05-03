@@ -94,6 +94,10 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/workers/me/jobs/map`);
   }
 
+  getWorkerJobDetail(id: string): Observable<unknown> {
+    return this.http.get(`${this.baseUrl}/workers/me/jobs/${id}`);
+  }
+
   parseAiMapFilter(query: string): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/workers/me/jobs/ai-filter`, { query });
   }

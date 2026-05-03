@@ -146,6 +146,43 @@ export class WorkersService {
     };
   }
 
+  async getJobDetail(userId: string, jobId: string) {
+    const profile = await this.prisma.workerProfile.findUnique({ where: { userId } });
+    if (!profile) throw new NotFoundException('Worker profile not found');
+
+    const job = await this.prisma.job.findUnique({
+      where: { id: jobId },
+      include: {
+        category: true,
+        client: {
+          select: {
+            idVerified: true,
+            clientProfile: { select: { firstName: true, lastName: true } },
+          },
+        },
+        applications: {
+          where: { workerId: profile.id },
+          select: { id: true, status: true, proposedPrice: true, message: true, createdAt: true },
+        },
+        _count: { select: { applications: true } },
+      },
+    });
+
+    if (!job) throw new NotFoundException('Job not found');
+
+    const myApp = job.applications[0] ?? null;
+    return {
+      ...job,
+      distanceKm: job.latitude && job.longitude
+        ? Math.round(distanceKm(profile.latitude, profile.longitude, job.latitude, job.longitude) * 10) / 10
+        : null,
+      alreadyApplied: !!myApp,
+      applicationStatus: myApp?.status ?? null,
+      myApplication: myApp,
+      applicationCount: job._count.applications,
+    };
+  }
+
   async parseAiMapFilter(_userId: string, query: string) {
     const categories = await this.prisma.category.findMany({ select: { name: true } });
     return this.ai.parseMapFilters(query, categories.map((c) => c.name));
