@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
+import { StripeService } from '../stripe/stripe.service';
 
 @Injectable()
 export class WorkersService {
-  constructor(private prisma: PrismaService, private ai: AiService) {}
+  constructor(
+    private prisma: PrismaService,
+    private ai: AiService,
+    private stripe: StripeService,
+    private config: ConfigService,
+  ) {}
 
   async getProfile(userId: string) {
     const profile = await this.prisma.workerProfile.findUnique({
@@ -211,6 +218,76 @@ export class WorkersService {
     });
     if (!profile) throw new NotFoundException('Worker not found');
     return profile;
+  }
+
+  // ── Stripe Connect ────────────────────────────────────────────────
+
+  async getConnectStatus(userId: string) {
+    const profile = await this.prisma.workerProfile.findUnique({
+      where: { userId },
+      select: { stripeConnectId: true, stripeConnectOnboarded: true },
+    });
+    if (!profile) throw new NotFoundException('Worker profile not found');
+
+    if (!profile.stripeConnectId) {
+      return { connected: false, onboarded: false, payoutsEnabled: false };
+    }
+
+    try {
+      const account = await this.stripe.retrieveConnectAccount(profile.stripeConnectId);
+      const onboarded = account.details_submitted && (account.payouts_enabled ?? false);
+      if (onboarded && !profile.stripeConnectOnboarded) {
+        await this.prisma.workerProfile.update({
+          where: { userId },
+          data: { stripeConnectOnboarded: true },
+        });
+      }
+      return {
+        connected: true,
+        onboarded: account.details_submitted,
+        payoutsEnabled: account.payouts_enabled ?? false,
+      };
+    } catch {
+      return { connected: true, onboarded: false, payoutsEnabled: false };
+    }
+  }
+
+  async initiateConnectOnboarding(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, workerProfile: { select: { stripeConnectId: true } } },
+    });
+    if (!user?.workerProfile) throw new NotFoundException('Worker profile not found');
+
+    let connectId = user.workerProfile.stripeConnectId;
+    if (!connectId) {
+      const account = await this.stripe.createConnectAccount(user.email);
+      connectId = account.id;
+      await this.prisma.workerProfile.update({
+        where: { userId },
+        data: { stripeConnectId: connectId },
+      });
+    }
+
+    const frontendUrl = this.config.get<string>('APP_FRONTEND_URL') ?? 'http://localhost:4200';
+    const link = await this.stripe.createAccountLink(
+      connectId,
+      `${frontendUrl}/worker/profile?connect=refresh`,
+      `${frontendUrl}/worker/profile?connect=success`,
+    );
+    return { url: link.url };
+  }
+
+  async getConnectDashboardLink(userId: string) {
+    const profile = await this.prisma.workerProfile.findUnique({
+      where: { userId },
+      select: { stripeConnectId: true, stripeConnectOnboarded: true },
+    });
+    if (!profile?.stripeConnectId) throw new BadRequestException('No Stripe account connected');
+    if (!profile.stripeConnectOnboarded) throw new BadRequestException('Stripe onboarding not complete');
+
+    const link = await this.stripe.createLoginLink(profile.stripeConnectId);
+    return { url: link.url };
   }
 }
 

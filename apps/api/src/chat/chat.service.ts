@@ -1,5 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { filterMessage } from './content-filter';
 
 @Injectable()
 export class ChatService {
@@ -136,8 +137,10 @@ export class ChatService {
   async saveMessage(jobId: string, senderId: string, content: string) {
     await this.assertParticipant(jobId, senderId);
 
+    const { content: filteredContent, wasFiltered } = filterMessage(content);
+
     const msg = await this.prisma.message.create({
-      data: { jobId, senderId, content },
+      data: { jobId, senderId, content: filteredContent, wasFiltered },
       include: {
         sender: {
           select: {
@@ -198,6 +201,7 @@ export class ChatService {
       senderName: profile ? `${profile.firstName} ${profile.lastName}` : 'Unknown',
       senderRole: msg.sender.role,
       content: msg.content,
+      wasFiltered: msg.wasFiltered ?? false,
       readAt: msg.readAt,
       createdAt: msg.createdAt,
     };

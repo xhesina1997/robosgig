@@ -27,4 +27,32 @@ export class StripeService {
   createCustomer(email: string) {
     return this.client.customers.create({ email });
   }
+
+  retrieveCustomer(customerId: string) {
+    return this.client.customers.retrieve(customerId);
+  }
+
+  listPaymentMethods(customerId: string) {
+    return this.client.paymentMethods.list({ customer: customerId, type: 'card' });
+  }
+
+  createConnectAccount(email: string) {
+    return this.client.accounts.create({ type: 'express', email, capabilities: { transfers: { requested: true } } });
+  }
+
+  retrieveConnectAccount(accountId: string) {
+    return this.client.accounts.retrieve(accountId);
+  }
+
+  createAccountLink(accountId: string, refreshUrl: string, returnUrl: string) {
+    return this.client.accountLinks.create({ account: accountId, refresh_url: refreshUrl, return_url: returnUrl, type: 'account_onboarding' });
+  }
+
+  createLoginLink(accountId: string) {
+    return this.client.accounts.createLoginLink(accountId);
+  }
+
+  createTransfer(amountCents: number, currency: string, destination: string, metadata: Record<string, string> = {}) {
+    return this.client.transfers.create({ amount: amountCents, currency, destination, metadata });
+  }
 }

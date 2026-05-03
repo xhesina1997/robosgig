@@ -52,6 +52,12 @@ export const appRoutes: Route[] = [
       import('./features/worker/worker-jobs.component').then((m) => m.WorkerJobsComponent),
   },
   {
+    path: 'worker/jobs/:id',
+    canActivate: [workerOnlyGuard],
+    loadComponent: () =>
+      import('./features/worker/worker-job-detail.component').then((m) => m.WorkerJobDetailComponent),
+  },
+  {
     path: 'worker/map',
     canActivate: [workerOnlyGuard],
     loadComponent: () =>

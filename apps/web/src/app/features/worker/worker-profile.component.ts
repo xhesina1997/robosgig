@@ -333,6 +333,46 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
               <div class="page-body">
                 <div class="inner inner--narrow">
 
+                  <!-- Payouts (Stripe Connect) -->
+                  <div class="card" style="margin-bottom:1.25rem">
+                    <p class="section-label">Payouts</p>
+                    @if (connectStatus() === null) {
+                      <div class="connect-loading">
+                        <div class="mini-ring"></div> Checking payout status…
+                      </div>
+                    } @else if (!connectStatus()!.connected) {
+                      <p class="connect-desc">Connect your bank account to receive payments directly after completing jobs.</p>
+                      <button class="btn-connect" (click)="startConnectOnboarding()" [disabled]="connectLoading()">
+                        @if (connectLoading()) { <span class="mini-ring"></span> Redirecting… }
+                        @else {
+                          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                          Set up payouts
+                        }
+                      </button>
+                    } @else if (!connectStatus()!.onboarded) {
+                      <p class="connect-desc">Your Stripe account was created but onboarding isn't complete. Finish setup to start receiving payments.</p>
+                      <button class="btn-connect" (click)="startConnectOnboarding()" [disabled]="connectLoading()">
+                        @if (connectLoading()) { <span class="mini-ring"></span> Redirecting… }
+                        @else { Continue onboarding }
+                      </button>
+                    } @else {
+                      <div class="connect-ok">
+                        <div class="connect-ok-icon">
+                          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                        <div>
+                          <p class="connect-ok-title">Payouts enabled</p>
+                          <p class="connect-ok-sub">Your bank account is connected. You'll receive payments automatically.</p>
+                        </div>
+                      </div>
+                      <button class="btn-connect-dashboard" (click)="openConnectDashboard()" [disabled]="connectLoading()">
+                        @if (connectLoading()) { <span class="mini-ring"></span> }
+                        @else { View Stripe dashboard }
+                      </button>
+                    }
+                    @if (connectError()) { <p class="connect-error">{{ connectError() }}</p> }
+                  </div>
+
                   <div class="card">
                     <p class="section-label">Change Password</p>
                     <div class="field-row">
@@ -885,6 +925,46 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .btn-save-pw:disabled { opacity: 0.5; cursor: not-allowed; }
     .pw-error { font-size: 0.8rem; color: #dc2626; margin: 0.5rem 0 0; }
     .pw-success { font-size: 0.8rem; color: #16a34a; margin: 0.5rem 0 0; }
+    /* ── Stripe Connect ─────────────────────── */
+    .connect-desc { font-size: 0.875rem; color: #71717a; margin: 0.25rem 0 1rem; line-height: 1.6; }
+    .connect-loading { display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; color: #a1a1aa; }
+    .connect-error { font-size: 0.8rem; color: #dc2626; margin-top: 0.75rem; }
+    .btn-connect {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      background: #4f46e5; color: #fff; border: none;
+      padding: 0.55rem 1.125rem; border-radius: 99px;
+      font-size: 0.84rem; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: background 0.15s;
+    }
+    .btn-connect:hover:not(:disabled) { background: #4338ca; }
+    .btn-connect:disabled { opacity: 0.5; cursor: not-allowed; }
+    .connect-ok {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 10px; padding: 0.875rem 1rem; margin-bottom: 0.875rem;
+    }
+    .connect-ok-icon {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      background: #16a34a; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .connect-ok-title { font-size: 0.875rem; font-weight: 600; color: #15803d; margin: 0 0 0.15rem; }
+    .connect-ok-sub { font-size: 0.78rem; color: #166534; margin: 0; }
+    .btn-connect-dashboard {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: transparent; color: #4f46e5;
+      border: 1.5px solid #e0e7ff; padding: 0.5rem 1rem;
+      border-radius: 99px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .btn-connect-dashboard:hover:not(:disabled) { background: #eef2ff; }
+    .btn-connect-dashboard:disabled { opacity: 0.5; cursor: not-allowed; }
+    .mini-ring {
+      width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.7s linear infinite; display: inline-block; flex-shrink: 0;
+    }
+
     .delete-desc { font-size: 0.875rem; color: #71717a; margin: 0.5rem 0 1rem; }
     .delete-warn { font-size: 0.875rem; color: #3f3f46; margin: 0.5rem 0 1rem; }
     .delete-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
@@ -968,9 +1048,38 @@ export class WorkerProfileComponent implements OnInit {
     professionOther: '' as string,
   };
 
+  connectStatus = signal<{ connected: boolean; onboarded: boolean; payoutsEnabled: boolean } | null>(null);
+  connectLoading = signal(false);
+  connectError = signal<string | null>(null);
+
   ngOnInit() {
     this.api.getMyWorkerProfile().subscribe({ next: (p) => this.setProfile(p as WorkerProfile) });
     this.api.getAllSkills().subscribe({ next: (skills) => this.buildSkillGroups(skills as Skill[]) });
+    this.api.getConnectStatus().subscribe({ next: (s) => this.connectStatus.set(s), error: () => this.connectStatus.set({ connected: false, onboarded: false, payoutsEnabled: false }) });
+
+    // Handle return from Stripe Connect onboarding
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('connect') === 'success' || urlParams.get('connect') === 'refresh') {
+      this.api.getConnectStatus().subscribe({ next: (s) => this.connectStatus.set(s) });
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }
+
+  startConnectOnboarding() {
+    this.connectLoading.set(true);
+    this.connectError.set(null);
+    this.api.startConnectOnboarding().subscribe({
+      next: (res) => { window.location.href = res.url; },
+      error: (err) => { this.connectError.set(err?.error?.message ?? 'Could not start onboarding'); this.connectLoading.set(false); },
+    });
+  }
+
+  openConnectDashboard() {
+    this.connectLoading.set(true);
+    this.api.getConnectDashboardLink().subscribe({
+      next: (res) => { window.open(res.url, '_blank'); this.connectLoading.set(false); },
+      error: (err) => { this.connectError.set(err?.error?.message ?? 'Could not open dashboard'); this.connectLoading.set(false); },
+    });
   }
 
   private setProfile(p: WorkerProfile) {

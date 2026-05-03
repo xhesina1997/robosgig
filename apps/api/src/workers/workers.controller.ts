@@ -85,6 +85,30 @@ export class WorkersController {
     return this.workersService.removeSkill(req.user.sub, skillId);
   }
 
+  @Get('me/connect/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Stripe Connect account status' })
+  getConnectStatus(@Request() req: { user: { sub: string } }) {
+    return this.workersService.getConnectStatus(req.user.sub);
+  }
+
+  @Post('me/connect/onboard')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Start or resume Stripe Connect onboarding' })
+  connectOnboard(@Request() req: { user: { sub: string } }) {
+    return this.workersService.initiateConnectOnboarding(req.user.sub);
+  }
+
+  @Get('me/connect/dashboard')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Stripe Express dashboard link' })
+  connectDashboard(@Request() req: { user: { sub: string } }) {
+    return this.workersService.getConnectDashboardLink(req.user.sub);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get public worker profile by id' })
   getPublicProfile(@Param('id') id: string) {

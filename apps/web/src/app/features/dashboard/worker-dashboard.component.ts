@@ -19,19 +19,16 @@ interface WorkerDashboard { stats: WorkerStats; applications: Application[]; pro
       <div class="page-header">
         <div class="inner">
           <div class="header-top">
-            <div>
-              <p class="eyebrow">Worker Dashboard</p>
-              <h1 class="page-title">
-                @if (data()?.profile) { Hey, {{ data()!.profile!.firstName }} }
-                @else { My Dashboard }
-              </h1>
-            </div>
+            <h1 class="page-title">
+              @if (data()?.profile) { Hey, {{ data()!.profile!.firstName }} }
+              @else { My Dashboard }
+            </h1>
             <div class="header-actions">
-              <a routerLink="/worker/jobs" class="btn-primary">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <a routerLink="/worker/jobs" class="hdr-link">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 Browse jobs
               </a>
-              <a routerLink="/worker/profile" class="btn-outline">Profile</a>
+              <a routerLink="/worker/profile" class="hdr-link hdr-link--muted">Profile</a>
             </div>
           </div>
 
@@ -43,7 +40,7 @@ interface WorkerDashboard { stats: WorkerStats; applications: Application[]; pro
                 <span class="stat-label">All</span>
               </button>
               <button class="stat-item" [class.stat-active]="filter() === 'NOTIFIED'" (click)="setFilter('NOTIFIED')">
-                <span class="stat-val stat-notified">{{ directAssignmentCount() }}</span>
+                <span class="stat-val">{{ directAssignmentCount() }}</span>
                 <span class="stat-label">Requests</span>
               </button>
               <button class="stat-item" [class.stat-active]="filter() === 'APPLIED'" (click)="setFilter('APPLIED')">
@@ -51,7 +48,7 @@ interface WorkerDashboard { stats: WorkerStats; applications: Application[]; pro
                 <span class="stat-label">Applied</span>
               </button>
               <button class="stat-item" [class.stat-active]="filter() === 'ACCEPTED'" (click)="setFilter('ACCEPTED')">
-                <span class="stat-val stat-accepted">{{ data()!.stats.accepted }}</span>
+                <span class="stat-val">{{ data()!.stats.accepted }}</span>
                 <span class="stat-label">Accepted</span>
               </button>
               <button class="stat-item" [class.stat-active]="filter() === 'COMPLETED'" (click)="setFilter('COMPLETED')">
@@ -318,63 +315,46 @@ interface WorkerDashboard { stats: WorkerStats; applications: Application[]; pro
     .page-header {
       background: #fff;
       border-bottom: 1px solid #e4e4e7;
-      padding: 2rem 0 0;
+      padding: 1.25rem 0 0;
     }
     .header-top {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
       gap: 1rem;
       flex-wrap: wrap;
-      padding-bottom: 1.5rem;
-    }
-    .eyebrow {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #a1a1aa;
-      margin-bottom: 0.3rem;
+      padding-bottom: 1.25rem;
     }
     .page-title {
-      font-size: 1.5rem;
-      font-weight: 700;
+      font-size: 1.2rem;
+      font-weight: 600;
       color: #18181b;
-      letter-spacing: -0.025em;
+      letter-spacing: -0.02em;
       margin: 0;
     }
-    .header-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .header-actions { display: flex; gap: 1.25rem; align-items: center; }
 
-    .btn-primary {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      background: #18181b; color: #fff; text-decoration: none;
-      padding: 0.5rem 1rem; border-radius: 99px;
-      font-size: 0.82rem; font-weight: 600; border: none; cursor: pointer;
-      transition: background 0.15s; font-family: inherit; white-space: nowrap;
+    .hdr-link {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.875rem; font-weight: 600; color: #374151;
+      text-decoration: none; transition: color 0.15s;
     }
-    .btn-primary:hover { background: #27272a; }
-
-    .btn-outline {
-      display: inline-flex; align-items: center;
-      background: transparent; color: #3f3f46; text-decoration: none;
-      padding: 0.5rem 1rem; border-radius: 99px;
-      font-size: 0.82rem; font-weight: 500;
-      border: 1.5px solid #e4e4e7; transition: border-color 0.15s, background 0.15s;
-    }
-    .btn-outline:hover { border-color: #a1a1aa; background: rgba(0,0,0,0.02); }
+    .hdr-link:hover { color: #111827; }
+    .hdr-link--muted { font-weight: 500; color: #9ca3af; }
+    .hdr-link--muted:hover { color: #374151; }
 
     /* ── Stat bar ─────────────────────────── */
     .stat-bar {
       display: flex;
       align-items: stretch;
-      border-top: 1px solid #e4e4e7;
+      border-top: 1px solid #f0f0f0;
     }
     .stat-item {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 0.2rem;
-      padding: 1rem 1.25rem;
+      gap: 0.15rem;
+      padding: 0.75rem 1rem;
       background: none;
       border: none;
       cursor: pointer;
@@ -396,7 +376,7 @@ interface WorkerDashboard { stats: WorkerStats; applications: Application[]; pro
     .stat-item--rating { cursor: default !important; }
     .stat-item--rating:hover { background: none !important; }
     .stat-val {
-      font-size: 1.4rem;
+      font-size: 1.2rem;
       font-weight: 700;
       color: #18181b;
       letter-spacing: -0.025em;
@@ -405,11 +385,10 @@ interface WorkerDashboard { stats: WorkerStats; applications: Application[]; pro
       align-items: center;
       gap: 0.3rem;
     }
-    .stat-accepted { color: #0f766e; }
-    .stat-rating { font-size: 1.3rem; }
-    .stat-label { font-size: 0.72rem; color: #a1a1aa; font-weight: 500; }
+    .stat-rating { font-size: 1.1rem; }
+    .stat-label { font-size: 0.7rem; color: #a1a1aa; font-weight: 500; }
     .stat-bar-skeleton {
-      height: 72px;
+      height: 60px;
       border-top: 1px solid #e4e4e7;
       animation: pulse 1.5s ease-in-out infinite;
     }
@@ -587,7 +566,6 @@ interface WorkerDashboard { stats: WorkerStats; applications: Application[]; pro
     .status-suggested { background: rgba(245,158,11,0.1);   color: #b45309; }
     .status-notified  { background: rgba(99,102,241,0.1);   color: #4f46e5; }
     .status-withdrawn { background: rgba(0,0,0,0.05);       color: #a1a1aa; }
-    .stat-notified    { color: #4f46e5; }
     .direct-badge {
       display: inline-flex; align-items: center; gap: 0.3rem;
       font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em;

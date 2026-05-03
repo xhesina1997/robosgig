@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 
@@ -66,43 +66,50 @@ interface NearbyJob {
       @if (pool() !== null) {
       <div class="page-header">
         <div class="inner">
-          <div class="header-top">
-            <div class="header-left">
-              <button class="back-pool-btn" (click)="pool.set(null)">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+
+          <!-- Top line: back + section label + map link -->
+          <div class="ph-topline">
+            <div class="ph-topline-left">
+              <button class="ph-back" (click)="pool.set(null)">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
               </button>
-              <div>
-                <p class="eyebrow">{{ pool() === 'trades' ? 'Trades & Skills' : 'Everyday Tasks' }}</p>
-                <h1 class="page-title">Browse Jobs</h1>
-              </div>
+              <span class="ph-section">{{ pool() === 'trades' ? 'Trades & Skills' : 'Everyday Tasks' }}</span>
             </div>
-            <div class="header-right-group">
-              @if (!loading()) {
-                <div class="count-pill">
-                  <span class="count-dot"></span>
-                  {{ filteredByPool().length }} open job{{ filteredByPool().length !== 1 ? 's' : '' }}
-                </div>
-              }
-              <a class="map-view-btn" routerLink="/worker/map">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-                Map view
-              </a>
-            </div>
+            <a class="ph-map-link" routerLink="/worker/map">
+              <!-- Compass icon -->
+              <svg class="ph-compass" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88" fill="currentColor" stroke="none" opacity="0.25"/>
+                <polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+              </svg>
+              Map view
+            </a>
           </div>
 
-          <!-- Filter bar -->
-          @if (!loading() && filteredByPool().length > 0) {
-            <div class="filter-bar">
+          <!-- Title + count -->
+          <div class="ph-title-block">
+            <h1 class="ph-title">Browse Jobs</h1>
+            @if (!loading()) {
+              <p class="ph-sub">
+                <span class="ph-live-dot"></span>
+                {{ filteredByPool().length }} open position{{ filteredByPool().length !== 1 ? 's' : '' }} near you
+              </p>
+            }
+          </div>
 
-              <!-- Distance -->
+          <!-- Filter tabs (text with underline indicator) -->
+          @if (!loading()) {
+            <div class="ph-filters">
+
               <div class="fd" [class.fd--set]="filterDistance() !== null">
-                <button class="fd-btn" (click)="toggleDropdown('distance')">
+                <button class="fd-tab" (click)="toggleDropdown('distance')">
                   {{ filterDistance() !== null ? 'Within ' + filterDistance() + ' km' : 'Distance' }}
-                  <svg class="fd-chevron" [class.fd-chevron--open]="openDropdown() === 'distance'" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                  <svg class="fd-caret" [class.fd-caret--open]="openDropdown() === 'distance'" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                 </button>
                 @if (openDropdown() === 'distance') {
                   <div class="fd-menu">
-                    <button class="fd-opt" [class.fd-opt--on]="filterDistance() === null"  (click)="filterDistance.set(null); closeDropdown()">Any distance</button>
+                    <button class="fd-opt" [class.fd-opt--on]="filterDistance() === null" (click)="filterDistance.set(null); closeDropdown()">Any distance</button>
                     @for (d of [5, 10, 25, 50]; track d) {
                       <button class="fd-opt" [class.fd-opt--on]="filterDistance() === d" (click)="filterDistance.set(d); closeDropdown()">Within {{ d }} km</button>
                     }
@@ -110,12 +117,11 @@ interface NearbyJob {
                 }
               </div>
 
-              <!-- Category -->
               @if (availableCategories().length > 0) {
                 <div class="fd" [class.fd--set]="filterCategory() !== null">
-                  <button class="fd-btn" (click)="toggleDropdown('category')">
+                  <button class="fd-tab" (click)="toggleDropdown('category')">
                     {{ filterCategory() ?? 'Category' }}
-                    <svg class="fd-chevron" [class.fd-chevron--open]="openDropdown() === 'category'" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                    <svg class="fd-caret" [class.fd-caret--open]="openDropdown() === 'category'" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                   </button>
                   @if (openDropdown() === 'category') {
                     <div class="fd-menu">
@@ -128,28 +134,26 @@ interface NearbyJob {
                 </div>
               }
 
-              <!-- Urgency -->
               <div class="fd" [class.fd--set]="filterUrgency() !== null">
-                <button class="fd-btn" (click)="toggleDropdown('urgency')">
+                <button class="fd-tab" (click)="toggleDropdown('urgency')">
                   {{ filterUrgency() ? urgencyLabel(filterUrgency()!) : 'Urgency' }}
-                  <svg class="fd-chevron" [class.fd-chevron--open]="openDropdown() === 'urgency'" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                  <svg class="fd-caret" [class.fd-caret--open]="openDropdown() === 'urgency'" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                 </button>
                 @if (openDropdown() === 'urgency') {
                   <div class="fd-menu">
-                    <button class="fd-opt" [class.fd-opt--on]="filterUrgency() === null"        (click)="filterUrgency.set(null);        closeDropdown()">Any urgency</button>
-                    <button class="fd-opt" [class.fd-opt--on]="filterUrgency() === 'LOW'"       (click)="filterUrgency.set('LOW');       closeDropdown()">Low priority</button>
-                    <button class="fd-opt" [class.fd-opt--on]="filterUrgency() === 'NORMAL'"    (click)="filterUrgency.set('NORMAL');    closeDropdown()">Normal</button>
-                    <button class="fd-opt fd-opt--high"      [class.fd-opt--on]="filterUrgency() === 'HIGH'"      (click)="filterUrgency.set('HIGH');      closeDropdown()">High priority</button>
+                    <button class="fd-opt" [class.fd-opt--on]="filterUrgency() === null" (click)="filterUrgency.set(null); closeDropdown()">Any urgency</button>
+                    <button class="fd-opt" [class.fd-opt--on]="filterUrgency() === 'LOW'" (click)="filterUrgency.set('LOW'); closeDropdown()">Low priority</button>
+                    <button class="fd-opt" [class.fd-opt--on]="filterUrgency() === 'NORMAL'" (click)="filterUrgency.set('NORMAL'); closeDropdown()">Normal</button>
+                    <button class="fd-opt fd-opt--high" [class.fd-opt--on]="filterUrgency() === 'HIGH'" (click)="filterUrgency.set('HIGH'); closeDropdown()">High priority</button>
                     <button class="fd-opt fd-opt--emergency" [class.fd-opt--on]="filterUrgency() === 'EMERGENCY'" (click)="filterUrgency.set('EMERGENCY'); closeDropdown()">Emergency</button>
                   </div>
                 }
               </div>
 
-              <!-- Budget -->
               <div class="fd" [class.fd--set]="filterMaxPrice() !== null">
-                <button class="fd-btn" (click)="toggleDropdown('budget')">
-                  {{ filterMaxPrice() !== null ? 'Up to €' + filterMaxPrice() : 'Budget' }}
-                  <svg class="fd-chevron" [class.fd-chevron--open]="openDropdown() === 'budget'" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                <button class="fd-tab" (click)="toggleDropdown('budget')">
+                  {{ filterMaxPrice() !== null ? '≤ €' + filterMaxPrice() : 'Budget' }}
+                  <svg class="fd-caret" [class.fd-caret--open]="openDropdown() === 'budget'" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                 </button>
                 @if (openDropdown() === 'budget') {
                   <div class="fd-menu">
@@ -161,15 +165,12 @@ interface NearbyJob {
                 }
               </div>
 
-              <!-- Clear -->
               @if (activeFilterCount() > 0) {
-                <button class="fd-clear" (click)="clearFilters()">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  Clear
-                </button>
+                <button class="fd-reset" (click)="clearFilters()">Clear</button>
               }
             </div>
           }
+
         </div>
       </div>
 
@@ -217,83 +218,81 @@ interface NearbyJob {
             } @else {
             <div class="jobs-list">
               @for (job of filteredJobs(); track job.id) {
-                <div class="job-card" [class.job-applied]="job.alreadyApplied">
+                <div class="job-card" [class.job-applied]="job.alreadyApplied" (click)="goToDetail(job.id)">
 
-                  <!-- Top row -->
-                  <div class="job-top">
-                    <div class="job-cat-chip" [style.--dot]="catColor(job.category?.name)">
-                      <span class="job-cat-dot"></span>
-                      {{ job.category?.name || 'General' }}
-                    </div>
-                    <div class="job-top-right">
+                  <!-- Header: category · urgency · date -->
+                  <div class="jc-header">
+                    <div class="jc-header-left">
+                      <span class="jc-cat" [style.--dot]="catColor(job.category?.name)">
+                        <span class="jc-cat-dot"></span>
+                        {{ (job.category?.name || 'General').toUpperCase() }}
+                      </span>
+                      <span class="jc-sep">·</span>
                       <span class="urgency-pill urgency-{{ job.urgency.toLowerCase() }}">{{ urgencyLabel(job.urgency) }}</span>
-                      @if (job.distanceKm !== null) {
-                        <span class="distance-label">
-                          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                          {{ job.distanceKm }} km
-                        </span>
-                      }
                     </div>
+                    <span class="jc-date">{{ job.createdAt | date:'d MMM' }}</span>
                   </div>
 
-                  <!-- Title + desc -->
-                  <h3 class="job-title">{{ job.title }}</h3>
-                  <p class="job-desc">{{ job.description }}</p>
-
-                  <!-- Meta row -->
-                  <div class="job-meta">
-                    @if (job.city) {
-                      <span class="meta-chip">
-                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        {{ job.city }}
-                      </span>
-                    }
-                    @if (job.client?.clientProfile) {
-                      <span class="meta-chip">
-                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        {{ job.client!.clientProfile!.firstName }} {{ job.client!.clientProfile!.lastName }}
-                      </span>
-                    }
-                    @if (!job.client?.idVerified) {
-                      <span class="unverified-tag">
-                        <svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        Client not verified
-                      </span>
-                    }
-                    <span class="meta-date">{{ job.createdAt | date:'d MMM' }}</span>
+                  <!-- Body box: title + description -->
+                  <div class="jc-body">
+                    <h3 class="jc-title">{{ job.title }}</h3>
+                    <p class="jc-desc">{{ job.description }}</p>
                   </div>
 
-                  <!-- Footer -->
-                  <div class="job-footer">
-                    <div class="job-price">
+                  <!-- Client row -->
+                  <div class="jc-client">
+                    <div class="jc-avatar" [style.background]="avatarColor(job.client?.clientProfile?.firstName)">
+                      {{ clientInitials(job) }}
+                    </div>
+                    <div class="jc-client-info">
+                      <span class="jc-client-name">{{ clientFullName(job) }}</span>
+                      <div class="jc-client-meta">
+                        @if (job.city) { <span>{{ job.city }}</span> }
+                        @if (job.distanceKm !== null) { <span>{{ job.distanceKm }} km away</span> }
+                        @if (job.client?.idVerified) {
+                          <span class="jc-verified">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="#14b8a6"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Verified
+                          </span>
+                        }
+                      </div>
+                    </div>
+                    @if (job.alreadyApplied) {
+                      <span class="status-pill status-{{ job.applicationStatus?.toLowerCase() }}">{{ statusLabel(job.applicationStatus) }}</span>
+                    } @else {
+                      <span class="jc-open-pill">Open</span>
+                    }
+                  </div>
+
+                  <!-- Footer: price + actions -->
+                  <div class="jc-footer">
+                    <div class="jc-price">
                       @if (job.priceMin) {
                         <span class="price-val">€{{ job.priceMin }}–{{ job.priceMax }}</span>
                       } @else {
                         <span class="price-neg">Negotiable</span>
                       }
                     </div>
-
-                    @if (job.latitude && job.longitude) {
-                      <button class="map-btn" [routerLink]="['/worker/map']" [queryParams]="{focus: job.id}" (click)="$event.stopPropagation()">
-                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-                        Map
-                      </button>
-                    }
-                    @if (job.alreadyApplied) {
-                      <span class="status-pill status-{{ job.applicationStatus?.toLowerCase() }}">
-                        {{ statusLabel(job.applicationStatus) }}
-                      </span>
-                    } @else if (!idVerified()) {
-                      <button class="apply-btn apply-btn--locked" disabled title="Verify your identity to apply">
-                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                        Verify to apply
-                      </button>
-                    } @else {
-                      <button class="apply-btn" (click)="openApply(job)">
-                        Apply
-                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                      </button>
-                    }
+                    <div class="jc-actions">
+                      @if (job.latitude && job.longitude) {
+                        <button class="jc-map-btn" [routerLink]="['/worker/map']" [queryParams]="{focus: job.id}" (click)="$event.stopPropagation()">
+                          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                          Map
+                        </button>
+                      }
+                      @if (!job.alreadyApplied) {
+                        @if (!idVerified()) {
+                          <button class="apply-btn apply-btn--locked" disabled>
+                            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            Verify first
+                          </button>
+                        } @else {
+                          <button class="apply-btn" (click)="$event.stopPropagation(); openApply(job)">
+                            Apply
+                          </button>
+                        }
+                      }
+                    </div>
                   </div>
                 </div>
               }
@@ -374,48 +373,52 @@ interface NearbyJob {
     /* ── Header ───────────────────────────── */
     .page-header {
       background: #fff;
-      border-bottom: 1px solid #e4e4e7;
-      padding: 2rem 0 1.5rem;
-    }
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .eyebrow {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #a1a1aa;
-      margin-bottom: 0.3rem;
-    }
-    .page-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #18181b;
-      letter-spacing: -0.025em;
-      margin: 0;
+      padding: 1.1rem 0 0;
+      border-bottom: 1px solid #f0f0f0;
     }
 
-    .count-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      background: rgba(212,255,58,0.08);
-      color: #8aa800;
-      border: 1.5px solid rgba(212,255,58,0.25);
-      padding: 0.35rem 0.875rem;
-      border-radius: 99px;
-      font-size: 0.78rem;
-      font-weight: 600;
+    /* top line */
+    .ph-topline {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.875rem;
     }
-    .count-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #d4ff3a;
+    .ph-topline-left { display: flex; align-items: center; gap: 1rem; }
+    .ph-back {
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border: none; background: none;
+      color: #9ca3af; cursor: pointer; padding: 0; flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .ph-back:hover { color: #111827; }
+    .ph-section {
+      font-size: 0.78rem; font-weight: 500; color: #9ca3af;
+      letter-spacing: 0.01em;
+    }
+    .ph-map-link {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.95rem; font-weight: 600; color: #374151;
+      text-decoration: none; transition: color 0.15s;
+    }
+    .ph-map-link:hover { color: #111827; }
+
+    /* title block */
+    .ph-title-block { margin-bottom: 1rem; }
+    .ph-title {
+      font-size: 1.65rem; font-weight: 700; color: #111827;
+      letter-spacing: -0.035em; margin: 0 0 0.3rem; line-height: 1.1;
+    }
+    .ph-sub {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.82rem; color: #9ca3af; margin: 0;
+    }
+    .ph-live-dot {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+      background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.18);
+    }
+
+    /* filter tab row — no overflow hidden so dropdowns show */
+    .ph-filters {
+      display: flex; align-items: stretch; gap: 0;
     }
 
     /* ── Body ─────────────────────────────── */
@@ -462,161 +465,128 @@ interface NearbyJob {
     .empty-sub { font-size: 0.84rem; color: #71717a; margin: 0; }
 
     /* ── Job list ─────────────────────────── */
-    .jobs-list { display: flex; flex-direction: column; gap: 0.625rem; }
+    .jobs-list { display: flex; flex-direction: column; gap: 0.75rem; }
 
     .job-card {
       background: #fff;
-      border: 1.5px solid #e4e4e7;
-      border-radius: 16px;
-      padding: 1.125rem 1.375rem;
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      border-radius: 20px;
+      padding: 1.125rem 1.125rem 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 6px 24px rgba(0,0,0,0.05);
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.15s;
     }
     .job-card:hover:not(.job-applied) {
-      border-color: #a7f3d0;
-      box-shadow: 0 4px 20px rgba(212,255,58,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 16px 40px rgba(0,0,0,0.08);
       transform: translateY(-2px);
     }
-    .job-card.job-applied { opacity: 0.6; }
+    .job-card.job-applied { opacity: 0.55; }
 
-    /* ── Card top row ─────────────────────── */
-    .job-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    /* ── Header row ───────────────────────── */
+    .jc-header {
+      display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 0.625rem;
-      gap: 0.5rem;
-      flex-wrap: wrap;
     }
-    .job-cat-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: #71717a;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    .jc-header-left { display: flex; align-items: center; gap: 0.4rem; }
+    .jc-cat {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      font-size: 0.65rem; font-weight: 700; color: #6b7280;
+      letter-spacing: 0.07em;
     }
-    .job-cat-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--dot, #a1a1aa);
-      flex-shrink: 0;
+    .jc-cat-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--dot, #a1a1aa); flex-shrink: 0;
     }
-    .job-top-right {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+    .jc-sep { font-size: 0.7rem; color: #d1d5db; }
+    .jc-date { font-size: 0.7rem; color: #9ca3af; }
 
     .urgency-pill {
-      font-size: 0.68rem;
-      font-weight: 600;
-      padding: 0.18rem 0.6rem;
-      border-radius: 99px;
+      font-size: 0.65rem; font-weight: 700;
+      padding: 0.2rem 0.55rem; border-radius: 99px;
     }
-    .urgency-normal    { background: rgba(0,0,0,0.05);      color: #71717a; }
-    .urgency-low       { background: rgba(0,0,0,0.04);      color: #a1a1aa; }
-    .urgency-high      { background: rgba(245,158,11,0.09); color: #b45309; }
-    .urgency-emergency { background: rgba(239,68,68,0.08);  color: #dc2626; }
+    .urgency-normal    { background: #f3f4f6; color: #6b7280; }
+    .urgency-low       { background: #f3f4f6; color: #9ca3af; }
+    .urgency-high      { background: rgba(245,158,11,0.1); color: #b45309; }
+    .urgency-emergency { background: rgba(239,68,68,0.09); color: #dc2626; }
 
-    .distance-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.2rem;
-      font-size: 0.72rem;
-      color: #a1a1aa;
+    /* ── Body box ─────────────────────────── */
+    .jc-body {
+      background: #f7f8fa;
+      border-radius: 13px;
+      padding: 0.875rem 1rem;
+      margin-bottom: 0.625rem;
     }
-
-    /* ── Title / desc ─────────────────────── */
-    .job-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #18181b;
-      margin: 0 0 0.35rem;
-      letter-spacing: -0.01em;
+    .jc-title {
+      font-size: 0.975rem; font-weight: 700; color: #111827;
+      margin: 0 0 0.3rem; letter-spacing: -0.015em; line-height: 1.3;
     }
-    .job-desc {
-      font-size: 0.83rem;
-      color: #71717a;
-      line-height: 1.6;
-      margin: 0 0 0.75rem;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+    .jc-desc {
+      font-size: 0.82rem; color: #6b7280; line-height: 1.6; margin: 0;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
     }
 
-    /* ── Meta chips ───────────────────────── */
-    .job-meta {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.375rem;
-      margin-bottom: 0.875rem;
+    /* ── Client row ───────────────────────── */
+    .jc-client {
+      display: flex; align-items: center; gap: 0.625rem;
+      background: #f7f8fa; border-radius: 13px;
+      padding: 0.625rem 0.875rem; margin-bottom: 0.75rem;
     }
-    .meta-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.72rem;
-      color: #71717a;
-      background: #f4f4f5;
-      padding: 0.2rem 0.55rem;
-      border-radius: 99px;
-      font-weight: 500;
+    .jc-avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      color: #fff; font-size: 0.7rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
     }
-    .meta-date {
-      font-size: 0.7rem;
-      color: #a1a1aa;
-      margin-left: auto;
+    .jc-client-info { flex: 1; min-width: 0; }
+    .jc-client-name {
+      display: block; font-size: 0.8rem; font-weight: 600;
+      color: #111827; margin-bottom: 0.15rem; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
     }
-    .unverified-tag {
-      display: inline-flex; align-items: center; gap: 0.25rem;
-      background: #fef3c7; color: #92400e;
-      font-size: 0.68rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 99px;
+    .jc-client-meta {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.7rem; color: #9ca3af; flex-wrap: wrap;
+    }
+    .jc-client-meta span + span::before { content: '·'; margin-right: 0.4rem; }
+    .jc-verified {
+      display: inline-flex; align-items: center; gap: 0.2rem;
+      color: #0d9488; font-weight: 600;
+    }
+    .jc-open-pill {
+      flex-shrink: 0; font-size: 0.68rem; font-weight: 700;
+      padding: 0.22rem 0.65rem; border-radius: 99px;
+      background: #ecfdf5; color: #059669;
     }
 
     /* ── Footer ───────────────────────────── */
-    .job-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding-top: 0.875rem;
-      border-top: 1px solid #f4f4f5;
+    .jc-footer {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 0.75rem;
     }
-    .price-val {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #18181b;
-      letter-spacing: -0.015em;
+    .jc-price { display: flex; align-items: baseline; gap: 0.4rem; }
+    .price-val { font-size: 1rem; font-weight: 800; color: #111827; letter-spacing: -0.02em; }
+    .price-neg { font-size: 0.875rem; color: #9ca3af; font-weight: 500; }
+    .jc-actions { display: flex; align-items: center; gap: 0.4rem; }
+
+    .jc-map-btn {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      background: #f3f4f6; color: #6b7280;
+      border: none; padding: 0.45rem 0.8rem; border-radius: 99px;
+      font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: background 0.12s, color 0.12s;
     }
-    .price-neg {
-      font-size: 0.82rem;
-      color: #a1a1aa;
-    }
+    .jc-map-btn:hover { background: #e5e7eb; color: #374151; }
 
     .apply-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      background: #d4ff3a;
-      color: #18181b;
-      border: none;
-      padding: 0.45rem 1rem;
-      border-radius: 99px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s, box-shadow 0.15s;
-      white-space: nowrap;
-      font-family: inherit;
+      display: inline-flex; align-items: center;
+      background: #4f46e5; color: #fff; border: none;
+      padding: 0.5rem 1.1rem; border-radius: 99px;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s; white-space: nowrap; font-family: inherit;
     }
-    .apply-btn:hover { background: #aed62e; box-shadow: 0 2px 8px rgba(212,255,58,0.25); }
+    .apply-btn:hover { background: #4338ca; box-shadow: 0 2px 10px rgba(79,70,229,0.3); }
     .apply-btn--locked {
-      background: #f4f4f5 !important; color: #a1a1aa !important;
-      cursor: not-allowed !important; opacity: 1 !important;
+      background: #f3f4f6 !important; color: #9ca3af !important;
+      cursor: not-allowed !important;
     }
 
     .verify-banner {
@@ -710,7 +680,7 @@ interface NearbyJob {
       background: #fff;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .field-input:focus { border-color: #d4ff3a; box-shadow: 0 0 0 3px rgba(212,255,58,0.12); }
+    .field-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
     .field-input::placeholder { color: #a1a1aa; }
     textarea.field-input { resize: vertical; }
 
@@ -748,8 +718,8 @@ interface NearbyJob {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      background: #d4ff3a;
-      color: #18181b;
+      background: #4f46e5;
+      color: #fff;
       border: none;
       padding: 0.6rem 1.375rem;
       border-radius: 99px;
@@ -759,7 +729,7 @@ interface NearbyJob {
       transition: background 0.15s, box-shadow 0.15s;
       font-family: inherit;
     }
-    .btn-submit:hover:not(:disabled) { background: #aed62e; box-shadow: 0 2px 8px rgba(212,255,58,0.3); }
+    .btn-submit:hover:not(:disabled) { background: #4338ca; box-shadow: 0 2px 10px rgba(79,70,229,0.3); }
     .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
     .spinner {
       width: 12px; height: 12px;
@@ -825,53 +795,23 @@ interface NearbyJob {
       .pool-pick-grid { grid-template-columns: 1fr; }
     }
 
-    /* back button + header-left */
-    .header-left { display: flex; align-items: center; gap: 0.75rem; }
-    .back-pool-btn {
-      display: flex; align-items: center; justify-content: center;
-      width: 34px; height: 34px; border-radius: 99px;
-      border: 1.5px solid #e4e4e7; background: #fff;
-      cursor: pointer; color: #52525b; flex-shrink: 0;
-      transition: border-color 0.15s, color 0.15s;
-    }
-    .back-pool-btn:hover { border-color: #d4ff3a; color: #d4ff3a; }
-
-    /* ── Filter bar ────────────────────────── */
-    .filter-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.5rem 0.625rem;
-      margin-top: 0.875rem;
-      background: #f3f4f6;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      flex-wrap: wrap;
-    }
-
+    /* ── Filter tabs ───────────────────────── */
     .fd { position: relative; flex-shrink: 0; }
 
-    .fd-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      background: #f4f4f5;
-      color: #52525b;
-      border: none;
-      padding: 0.32rem 0.7rem;
-      border-radius: 8px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.12s, color 0.12s;
-      font-family: inherit;
-      white-space: nowrap;
+    .fd-tab {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      background: none; border: none;
+      border-bottom: 2px solid transparent;
+      padding: 0.7rem 1.1rem;
+      font-size: 0.82rem; font-weight: 500; color: #9ca3af;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
     }
-    .fd-btn:hover { background: #e4e4e7; color: #18181b; }
-    .fd--set .fd-btn {
-      background: #d4ff3a;
-      color: #18181b;
-    }
+    .fd-tab:hover { color: #374151; }
+    .fd--set .fd-tab { color: #111827; font-weight: 600; border-bottom-color: #111827; }
+
+    .fd-caret { transition: transform 0.18s; flex-shrink: 0; }
+    .fd-caret--open { transform: rotate(180deg); }
 
     .fd-chevron { transition: transform 0.18s; flex-shrink: 0; opacity: 0.5; }
     .fd--set .fd-chevron { opacity: 1; }
@@ -917,24 +857,15 @@ interface NearbyJob {
 
     .fd-backdrop { position: fixed; inset: 0; z-index: 299; }
 
-    .fd-clear {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      background: none;
-      border: none;
-      color: #a1a1aa;
-      font-size: 0.72rem;
-      font-weight: 500;
-      cursor: pointer;
-      padding: 0.32rem 0.4rem;
-      font-family: inherit;
-      transition: color 0.12s;
-      white-space: nowrap;
-      flex-shrink: 0;
-      margin-left: 0.125rem;
+    .fd-reset {
+      margin-left: 0.5rem; background: none; border: none;
+      border-bottom: 2px solid transparent;
+      padding: 0.7rem 0.75rem;
+      font-size: 0.78rem; font-weight: 500; color: #d1d5db;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+      transition: color 0.15s;
     }
-    .fd-clear:hover { color: #ef4444; }
+    .fd-reset:hover { color: #ef4444; }
 
     .inline-clear {
       background: none;
@@ -997,19 +928,6 @@ interface NearbyJob {
       display: inline-block;
     }
 
-    /* ── Header right group ───────────────── */
-    .header-right-group {
-      display: flex; align-items: center; gap: 0.625rem; flex-wrap: wrap;
-    }
-
-    .map-view-btn {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      background: #fff; color: #52525b;
-      border: 1.5px solid #e4e4e7; border-radius: 99px;
-      padding: 0.35rem 0.875rem; font-size: 0.78rem; font-weight: 600;
-      cursor: pointer; text-decoration: none; transition: border-color 0.15s, color 0.15s;
-    }
-    .map-view-btn:hover { border-color: #d4ff3a; color: #d4ff3a; }
 
     @media (max-width: 640px) {
       .inner { padding: 0 1rem; }
@@ -1020,6 +938,7 @@ interface NearbyJob {
 })
 export class WorkerJobsComponent implements OnInit {
   private api = inject(ApiService);
+  private router = inject(Router);
 
   jobs = signal<NearbyJob[]>([]);
   total = signal(0);
@@ -1082,6 +1001,10 @@ export class WorkerJobsComponent implements OnInit {
   availableCategories = computed(() =>
     [...new Set(this.filteredByPool().map(j => j.category?.name).filter(Boolean))] as string[]
   );
+
+  goToDetail(id: string) {
+    this.router.navigate(['/worker/jobs', id]);
+  }
 
   clearFilters() {
     this.filterDistance.set(null);
@@ -1171,5 +1094,22 @@ export class WorkerJobsComponent implements OnInit {
   statusLabel(status: string | null): string {
     const map: Record<string, string> = { APPLIED: 'Applied', ACCEPTED: 'Accepted', REJECTED: 'Rejected' };
     return status ? (map[status] ?? status) : '';
+  }
+
+  clientInitials(job: NearbyJob): string {
+    const p = job.client?.clientProfile;
+    if (!p) return '?';
+    return `${p.firstName[0] ?? ''}${p.lastName[0] ?? ''}`.toUpperCase();
+  }
+
+  clientFullName(job: NearbyJob): string {
+    const p = job.client?.clientProfile;
+    return p ? `${p.firstName} ${p.lastName}` : 'Client';
+  }
+
+  avatarColor(firstName?: string | null): string {
+    const colors = ['#4f46e5','#0891b2','#059669','#d97706','#dc2626','#7c3aed','#db2777'];
+    const i = (firstName?.charCodeAt(0) ?? 0) % colors.length;
+    return colors[i];
   }
 }

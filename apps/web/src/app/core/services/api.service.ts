@@ -221,6 +221,19 @@ export class ApiService {
     return this.http.patch(`${this.baseUrl}/clients/me`, data);
   }
 
+  // ── Stripe Connect (worker payouts) ───────────────────────────────
+  getConnectStatus(): Observable<{ connected: boolean; onboarded: boolean; payoutsEnabled: boolean }> {
+    return this.http.get<{ connected: boolean; onboarded: boolean; payoutsEnabled: boolean }>(`${this.baseUrl}/workers/me/connect/status`);
+  }
+
+  startConnectOnboarding(): Observable<{ url: string }> {
+    return this.http.post<{ url: string }>(`${this.baseUrl}/workers/me/connect/onboard`, {});
+  }
+
+  getConnectDashboardLink(): Observable<{ url: string }> {
+    return this.http.get<{ url: string }>(`${this.baseUrl}/workers/me/connect/dashboard`);
+  }
+
   // ── Account ───────────────────────────────────────────────────────
   changePassword(currentPassword: string, newPassword: string): Observable<{ updated: boolean }> {
     return this.http.patch<{ updated: boolean }>(`${this.baseUrl}/auth/password`, { currentPassword, newPassword });

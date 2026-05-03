@@ -122,6 +122,10 @@ model WorkerProfile {
   totalJobs    Int   @default(0)
   totalReviews Int   @default(0)
 
+  // Stripe Connect (payouts)
+  stripeConnectId        String?
+  stripeConnectOnboarded Boolean @default(false)
+
   // Verification
   idVerified        Boolean @default(false)
   backgroundChecked Boolean @default(false)
@@ -151,6 +155,9 @@ model ClientProfile {
   address    String?
   city       String?
   postalCode String?
+
+  // Stripe (saved payment methods)
+  stripeCustomerId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -283,14 +290,15 @@ model Subscription {
 // ─── Messages ────────────────────────────────────────────────────────────────
 
 model Message {
-  id        String   @id @default(cuid())
-  jobId     String
-  job       Job      @relation(fields: [jobId], references: [id])
-  senderId  String
-  sender    User     @relation(fields: [senderId], references: [id])
-  content   String
-  readAt    DateTime?
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  jobId       String
+  job         Job       @relation(fields: [jobId], references: [id])
+  senderId    String
+  sender      User      @relation(fields: [senderId], references: [id])
+  content     String
+  wasFiltered Boolean   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([jobId, createdAt])
 }

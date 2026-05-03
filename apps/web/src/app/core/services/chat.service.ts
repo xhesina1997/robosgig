@@ -12,6 +12,7 @@ export interface ChatMessage {
   senderName: string;
   senderRole: string;
   content: string;
+  wasFiltered: boolean;
   readAt: string | null;
   createdAt: string;
 }

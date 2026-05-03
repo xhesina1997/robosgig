@@ -842,7 +842,7 @@ export class WorkerMapComponent implements OnInit, OnDestroy {
     const btn = wrap.querySelector('.popup-view-btn') as HTMLElement;
     btn.addEventListener('mouseenter', () => { btn.style.background = btnBgH; btn.style.borderColor = btnBdH; });
     btn.addEventListener('mouseleave', () => { btn.style.background = btnBg; btn.style.borderColor = btnBd; });
-    btn.addEventListener('click', () => this.router.navigate(['/worker/jobs', job.id]));
+    btn.addEventListener('click', () => this.router.navigate(['/worker/jobs', job.id], { queryParams: { from: 'map' } }));
 
     this.activePopup = new this.maplibreGl.Popup({
       offset: 20,

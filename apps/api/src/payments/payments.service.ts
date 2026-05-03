@@ -27,7 +27,13 @@ export class PaymentsService {
       where: { id: jobId },
       include: {
         applications: { where: { status: 'ACCEPTED' } },
-        client: { select: { email: true, subscription: true } },
+        client: {
+          select: {
+            email: true,
+            subscription: true,
+            clientProfile: { select: { id: true, stripeCustomerId: true } },
+          },
+        },
       },
     });
     if (!job) throw new NotFoundException('Job not found');
@@ -49,15 +55,33 @@ export class PaymentsService {
       throw new BadRequestException('Cannot process payment: no price set for this job');
     }
 
+    // Resolve or create the Stripe Customer for this client so their card gets saved
+    let stripeCustomerId = job.client.clientProfile?.stripeCustomerId
+      ?? job.client.subscription?.stripeCustomerId
+      ?? null;
+
+    if (!stripeCustomerId) {
+      const customer = await this.stripe.createCustomer(job.client.email);
+      stripeCustomerId = customer.id;
+      if (job.client.clientProfile?.id) {
+        await this.prisma.clientProfile.update({
+          where: { id: job.client.clientProfile.id },
+          data: { stripeCustomerId },
+        });
+      }
+    }
+
     // Stripe works in cents
     const amountCents = Math.round(totalAmount * 100);
 
-    const frontendUrl = this.config.get('FRONTEND_URL');
+    const frontendUrl = this.config.get('APP_FRONTEND_URL') ?? 'http://localhost:4200';
 
     let session: Stripe.Checkout.Session;
     try {
       session = await this.stripe.createCheckoutSession({
         mode: 'payment',
+        customer: stripeCustomerId,
+        payment_intent_data: { setup_future_usage: 'off_session' },
         line_items: [{
           price_data: {
             currency: 'eur',
@@ -109,7 +133,10 @@ export class PaymentsService {
     const job = await this.prisma.job.findUnique({
       where: { id: jobId },
       include: {
-        applications: { where: { status: 'ACCEPTED' } },
+        applications: {
+          where: { status: 'ACCEPTED' },
+          include: { worker: { select: { stripeConnectId: true, stripeConnectOnboarded: true } } },
+        },
       },
     });
     if (!job) throw new NotFoundException('Job not found');
@@ -163,40 +190,37 @@ export class PaymentsService {
 
     const platformFeeAmount = Math.round(totalAmount * feePercent) / 100;
     const workerPayout = totalAmount - platformFeeAmount;
+    const workerPayoutCents = Math.round(workerPayout * 100);
 
     // Finalize payment + complete job in a transaction
     await this.prisma.$transaction([
       this.prisma.payment.update({
         where: { jobId },
-        data: {
-          platformFeePercent: feePercent,
-          platformFeeAmount,
-          workerPayout,
-          status: 'COMPLETED',
-        },
+        data: { platformFeePercent: feePercent, platformFeeAmount, workerPayout, status: 'COMPLETED' },
       }),
       this.prisma.job.update({
         where: { id: jobId },
         data: { status: 'COMPLETED' },
       }),
       ...(acceptedApp
-        ? [
-            this.prisma.workerProfile.update({
-              where: { id: acceptedApp.workerId },
-              data: { totalJobs: { increment: 1 } },
-            }),
-          ]
+        ? [this.prisma.workerProfile.update({
+            where: { id: acceptedApp.workerId },
+            data: { totalJobs: { increment: 1 } },
+          })]
         : []),
     ]);
 
-    return {
-      jobId,
-      totalAmount,
-      platformFeePercent: feePercent,
-      platformFeeAmount,
-      workerPayout,
-      status: 'COMPLETED',
-    };
+    // Transfer payout to worker's Stripe Connect account if they have one
+    const workerConnect = (acceptedApp as any)?.worker;
+    if (workerConnect?.stripeConnectId && workerConnect?.stripeConnectOnboarded && workerPayoutCents > 0) {
+      try {
+        await this.stripe.createTransfer(workerPayoutCents, 'eur', workerConnect.stripeConnectId, { jobId });
+      } catch {
+        // Log but don't fail — payout can be retried manually from Stripe dashboard
+      }
+    }
+
+    return { jobId, totalAmount, platformFeePercent: feePercent, platformFeeAmount, workerPayout, status: 'COMPLETED' };
   }
 
   /** Returns the payment record for a job (client only). */

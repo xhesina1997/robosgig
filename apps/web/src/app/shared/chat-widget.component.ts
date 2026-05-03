@@ -106,6 +106,12 @@ import { AuthService } from '../core/services/auth.service';
                       <span class="msg-name">{{ msg.senderName.split(' ')[0] }}</span>
                     }
                     <p class="msg-text">{{ msg.content }}</p>
+                    @if (msg.wasFiltered) {
+                      <span class="msg-filtered">
+                        <svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Contact info was removed
+                      </span>
+                    }
                     <span class="msg-time">{{ msg.createdAt | date:'HH:mm' }}</span>
                   </div>
                 </div>
@@ -396,6 +402,13 @@ import { AuthService } from '../core/services/auth.service';
       color: #18181b;
     }
     .msg-bubble--mine .msg-text { color: #fff; }
+    .msg-filtered {
+      display: flex; align-items: center; gap: 0.3rem;
+      font-size: 0.64rem; color: #f59e0b; font-weight: 600;
+      margin-top: 0.25rem; opacity: 0.85;
+    }
+    .msg-bubble--mine .msg-filtered { color: rgba(251,191,36,0.85); }
+
     .msg-time {
       display: block;
       font-size: 0.6rem;

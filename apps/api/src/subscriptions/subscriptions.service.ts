@@ -70,7 +70,7 @@ export class SubscriptionsService {
       ? this.config.get('STRIPE_WORKER_PRO_PRICE_ID')
       : this.config.get('STRIPE_CLIENT_BUSINESS_PRICE_ID');
 
-    const frontendUrl = this.config.get('FRONTEND_URL');
+    const frontendUrl = this.config.get('APP_FRONTEND_URL') ?? 'http://localhost:4200';
     const priceReady = priceId && !priceId.includes('HERE');
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = priceReady
