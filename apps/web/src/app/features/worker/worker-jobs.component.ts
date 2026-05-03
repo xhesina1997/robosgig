@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -83,16 +83,10 @@ interface NearbyJob {
                   {{ filteredByPool().length }} open job{{ filteredByPool().length !== 1 ? 's' : '' }}
                 </div>
               }
-              <div class="view-toggle">
-                <button class="vt-btn" [class.vt-btn--active]="viewMode() === 'list'" (click)="setViewMode('list')">
-                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                  List
-                </button>
-                <button class="vt-btn" routerLink="/worker/map">
-                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-                  Map
-                </button>
-              </div>
+              <a class="map-view-btn" routerLink="/worker/map">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                Map view
+              </a>
             </div>
           </div>
 
@@ -185,57 +179,7 @@ interface NearbyJob {
       }
 
 
-      <!-- Map view -->
-      @if (viewMode() === 'map') {
-        <div class="map-section">
-          <div id="job-map" class="map-canvas"></div>
-          @if (selectedMapJob()) {
-            <div class="map-job-card">
-              <div class="mjc-top">
-                <div class="job-cat-chip" [style.--dot]="catColor(selectedMapJob()!.category?.name)">
-                  <span class="job-cat-dot"></span>{{ selectedMapJob()!.category?.name || 'General' }}
-                </div>
-                <span class="urgency-pill urgency-{{ selectedMapJob()!.urgency.toLowerCase() }}">{{ urgencyLabel(selectedMapJob()!.urgency) }}</span>
-                <button class="mjc-close" (click)="selectedMapJob.set(null)">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              </div>
-              <h3 class="mjc-title">{{ selectedMapJob()!.title }}</h3>
-              <p class="mjc-desc">{{ selectedMapJob()!.description }}</p>
-              <div class="mjc-meta">
-                @if (selectedMapJob()!.city) {
-                  <span class="meta-chip">
-                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    {{ selectedMapJob()!.city }}
-                  </span>
-                }
-                @if (selectedMapJob()!.distanceKm !== null) {
-                  <span class="meta-chip">{{ selectedMapJob()!.distanceKm }} km away</span>
-                }
-              </div>
-              <div class="mjc-footer">
-                <span class="price-val">
-                  @if (selectedMapJob()!.priceMin) { €{{ selectedMapJob()!.priceMin }}–{{ selectedMapJob()!.priceMax }} }
-                  @else { Negotiable }
-                </span>
-                @if (selectedMapJob()!.alreadyApplied) {
-                  <span class="status-pill status-{{ selectedMapJob()!.applicationStatus?.toLowerCase() }}">{{ statusLabel(selectedMapJob()!.applicationStatus) }}</span>
-                } @else if (idVerified()) {
-                  <button class="apply-btn" (click)="openApply(selectedMapJob()!)">Apply <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-                }
-              </div>
-            </div>
-          } @else {
-            <div class="map-hint">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              Click a pin to see job details
-            </div>
-          }
-        </div>
-      }
-
       <!-- Body (list) -->
-      @if (viewMode() === 'list') {
       <div class="page-body">
         <div class="inner">
 
@@ -369,7 +313,6 @@ interface NearbyJob {
 
         </div>
       </div>
-      }<!-- /viewMode list -->
 
       }<!-- /pool selected -->
 
@@ -461,9 +404,9 @@ interface NearbyJob {
       display: inline-flex;
       align-items: center;
       gap: 0.45rem;
-      background: rgba(20,184,166,0.08);
-      color: #0f766e;
-      border: 1.5px solid rgba(20,184,166,0.2);
+      background: rgba(212,255,58,0.08);
+      color: #8aa800;
+      border: 1.5px solid rgba(212,255,58,0.25);
       padding: 0.35rem 0.875rem;
       border-radius: 99px;
       font-size: 0.78rem;
@@ -472,7 +415,7 @@ interface NearbyJob {
     .count-dot {
       width: 6px; height: 6px;
       border-radius: 50%;
-      background: #14b8a6;
+      background: #d4ff3a;
     }
 
     /* ── Body ─────────────────────────────── */
@@ -530,7 +473,7 @@ interface NearbyJob {
     }
     .job-card:hover:not(.job-applied) {
       border-color: #a7f3d0;
-      box-shadow: 0 4px 20px rgba(45,149,128,0.1);
+      box-shadow: 0 4px 20px rgba(212,255,58,0.1);
       transform: translateY(-2px);
     }
     .job-card.job-applied { opacity: 0.6; }
@@ -658,8 +601,8 @@ interface NearbyJob {
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      background: #2d9580;
-      color: #fff;
+      background: #d4ff3a;
+      color: #18181b;
       border: none;
       padding: 0.45rem 1rem;
       border-radius: 99px;
@@ -670,7 +613,7 @@ interface NearbyJob {
       white-space: nowrap;
       font-family: inherit;
     }
-    .apply-btn:hover { background: #257a68; box-shadow: 0 2px 8px rgba(45,149,128,0.25); }
+    .apply-btn:hover { background: #aed62e; box-shadow: 0 2px 8px rgba(212,255,58,0.25); }
     .apply-btn--locked {
       background: #f4f4f5 !important; color: #a1a1aa !important;
       cursor: not-allowed !important; opacity: 1 !important;
@@ -767,7 +710,7 @@ interface NearbyJob {
       background: #fff;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .field-input:focus { border-color: #2d9580; box-shadow: 0 0 0 3px rgba(45,149,128,0.12); }
+    .field-input:focus { border-color: #d4ff3a; box-shadow: 0 0 0 3px rgba(212,255,58,0.12); }
     .field-input::placeholder { color: #a1a1aa; }
     textarea.field-input { resize: vertical; }
 
@@ -805,8 +748,8 @@ interface NearbyJob {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      background: #2d9580;
-      color: #fff;
+      background: #d4ff3a;
+      color: #18181b;
       border: none;
       padding: 0.6rem 1.375rem;
       border-radius: 99px;
@@ -816,7 +759,7 @@ interface NearbyJob {
       transition: background 0.15s, box-shadow 0.15s;
       font-family: inherit;
     }
-    .btn-submit:hover:not(:disabled) { background: #257a68; box-shadow: 0 2px 8px rgba(45,149,128,0.3); }
+    .btn-submit:hover:not(:disabled) { background: #aed62e; box-shadow: 0 2px 8px rgba(212,255,58,0.3); }
     .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
     .spinner {
       width: 12px; height: 12px;
@@ -857,8 +800,8 @@ interface NearbyJob {
       transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
     }
     .pool-card:hover {
-      border-color: #2d9580;
-      box-shadow: 0 8px 32px rgba(45,149,128,0.12);
+      border-color: #d4ff3a;
+      box-shadow: 0 8px 32px rgba(212,255,58,0.12);
       transform: translateY(-3px);
     }
     .pool-card-icon {
@@ -891,7 +834,7 @@ interface NearbyJob {
       cursor: pointer; color: #52525b; flex-shrink: 0;
       transition: border-color 0.15s, color 0.15s;
     }
-    .back-pool-btn:hover { border-color: #2d9580; color: #2d9580; }
+    .back-pool-btn:hover { border-color: #d4ff3a; color: #d4ff3a; }
 
     /* ── Filter bar ────────────────────────── */
     .filter-bar {
@@ -926,8 +869,8 @@ interface NearbyJob {
     }
     .fd-btn:hover { background: #e4e4e7; color: #18181b; }
     .fd--set .fd-btn {
-      background: #2d9580;
-      color: #fff;
+      background: #d4ff3a;
+      color: #18181b;
     }
 
     .fd-chevron { transition: transform 0.18s; flex-shrink: 0; opacity: 0.5; }
@@ -1043,7 +986,7 @@ interface NearbyJob {
       transition: border-color 0.15s, color 0.15s;
       text-decoration: none;
     }
-    .map-btn:hover { border-color: #2d9580; color: #2d9580; }
+    .map-btn:hover { border-color: #d4ff3a; color: #d4ff3a; }
 
     .load-ring-sm {
       width: 12px; height: 12px;
@@ -1059,67 +1002,14 @@ interface NearbyJob {
       display: flex; align-items: center; gap: 0.625rem; flex-wrap: wrap;
     }
 
-    /* ── View toggle ──────────────────────── */
-    .view-toggle {
-      display: flex; align-items: center;
-      background: #f4f4f5; border-radius: 10px; padding: 3px; gap: 2px;
-    }
-    .vt-btn {
+    .map-view-btn {
       display: inline-flex; align-items: center; gap: 0.35rem;
-      padding: 0.3rem 0.7rem; border-radius: 7px; border: none;
-      background: transparent; color: #71717a;
-      font-size: 0.75rem; font-weight: 600; cursor: pointer;
-      transition: background 0.15s, color 0.15s; font-family: inherit;
-      white-space: nowrap;
+      background: #fff; color: #52525b;
+      border: 1.5px solid #e4e4e7; border-radius: 99px;
+      padding: 0.35rem 0.875rem; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; text-decoration: none; transition: border-color 0.15s, color 0.15s;
     }
-    .vt-btn--active { background: #fff; color: #18181b; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-
-    /* ── Map section ──────────────────────── */
-    .map-section {
-      display: flex; flex-direction: column;
-    }
-    .map-canvas {
-      width: 100%; height: 500px;
-      border-bottom: 1.5px solid #e4e4e7;
-    }
-
-    /* ── Map job card ─────────────────────── */
-    .map-job-card {
-      background: #fff; border-bottom: 1.5px solid #e4e4e7;
-      padding: 1.125rem 1.5rem; animation: fadeUp 0.2s ease both;
-    }
-    .mjc-top {
-      display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;
-    }
-    .mjc-close {
-      margin-left: auto; width: 24px; height: 24px; border-radius: 50%;
-      background: #f4f4f5; border: none; display: flex; align-items: center;
-      justify-content: center; cursor: pointer; color: #71717a; flex-shrink: 0;
-      transition: background 0.12s;
-    }
-    .mjc-close:hover { background: #e4e4e7; color: #18181b; }
-    .mjc-title { font-size: 1rem; font-weight: 700; color: #18181b; margin: 0 0 0.3rem; letter-spacing: -0.01em; }
-    .mjc-desc {
-      font-size: 0.83rem; color: #71717a; line-height: 1.6; margin: 0 0 0.625rem;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-    }
-    .mjc-meta { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.75rem; }
-    .mjc-footer {
-      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-      padding-top: 0.75rem; border-top: 1px solid #f4f4f5;
-    }
-
-    .map-hint {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.875rem 1.5rem;
-      background: #fafafa; color: #a1a1aa; font-size: 0.83rem;
-      border-bottom: 1.5px solid #e4e4e7;
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+    .map-view-btn:hover { border-color: #d4ff3a; color: #d4ff3a; }
 
     @media (max-width: 640px) {
       .inner { padding: 0 1rem; }
@@ -1128,14 +1018,8 @@ interface NearbyJob {
     }
   `]
 })
-export class WorkerJobsComponent implements OnInit, OnDestroy {
+export class WorkerJobsComponent implements OnInit {
   private api = inject(ApiService);
-
-  // Map state
-  viewMode = signal<'list' | 'map'>('list');
-  selectedMapJob = signal<NearbyJob | null>(null);
-  private mapInstance: any = null;
-  private mapMarkers: any[] = [];
 
   jobs = signal<NearbyJob[]>([]);
   total = signal(0);
@@ -1269,87 +1153,6 @@ export class WorkerJobsComponent implements OnInit, OnDestroy {
         this.applying.set(false);
       },
     });
-  }
-
-  setViewMode(mode: 'list' | 'map') {
-    this.viewMode.set(mode);
-    if (mode === 'map') {
-      setTimeout(() => this.initMap(), 50);
-    } else {
-      this.destroyMap();
-    }
-  }
-
-  ngOnDestroy() {
-    this.destroyMap();
-  }
-
-  private destroyMap() {
-    if (this.mapInstance) {
-      this.mapInstance.remove();
-      this.mapInstance = null;
-      this.mapMarkers = [];
-    }
-  }
-
-  private async initMap() {
-    const el = document.getElementById('job-map');
-    if (!el) return;
-    this.destroyMap();
-
-    const L = await import('leaflet');
-    const lf: typeof import('leaflet') = (L as any).default ?? L;
-
-    this.mapInstance = lf.map(el, { center: [48.2082, 16.3738], zoom: 12 });
-    lf.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(this.mapInstance);
-
-    this.renderMarkers(lf);
-  }
-
-  private renderMarkers(lf: typeof import('leaflet')) {
-    this.mapMarkers.forEach(m => m.remove());
-    this.mapMarkers = [];
-
-    const jobs = this.filteredJobs().filter(j => j.latitude && j.longitude);
-    if (!jobs.length) return;
-
-    const bounds: [number, number][] = [];
-
-    jobs.forEach(job => {
-      const urgencyColor: Record<string, string> = {
-        EMERGENCY: '#ef4444', HIGH: '#f97316', NORMAL: '#2d9580', LOW: '#a1a1aa',
-      };
-      const color = job.alreadyApplied ? '#d4d4d8' : (urgencyColor[job.urgency] ?? '#2d9580');
-
-      const icon = lf.divIcon({
-        className: '',
-        html: `<div style="
-          width:36px;height:36px;border-radius:50%;
-          background:${color};border:3px solid #fff;
-          box-shadow:0 2px 8px rgba(0,0,0,0.25);
-          display:flex;align-items:center;justify-content:center;
-          font-size:14px;cursor:pointer;transition:transform 0.15s;
-        ">${job.category?.icon ?? '📍'}</div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-      });
-
-      const marker = lf.marker([job.latitude!, job.longitude!], { icon })
-        .addTo(this.mapInstance)
-        .on('click', () => this.selectedMapJob.set(job));
-
-      this.mapMarkers.push(marker);
-      bounds.push([job.latitude!, job.longitude!]);
-    });
-
-    if (bounds.length === 1) {
-      this.mapInstance.setView(bounds[0], 14);
-    } else {
-      this.mapInstance.fitBounds(bounds, { padding: [40, 40] });
-    }
   }
 
   catColor(category?: string | null): string {

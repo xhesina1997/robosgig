@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 
 interface MapJob {
@@ -76,77 +76,6 @@ interface MapJob {
           }
         </div>
 
-        <!-- ── Filters ── -->
-        <div class="filters">
-          <div class="filters-head">
-            <span class="filters-label">Filters</span>
-            @if (activeFilterCount() > 0) {
-              <button class="clear-all-btn" (click)="clearAllFilters()">
-                Clear all · {{ activeFilterCount() }}
-              </button>
-            }
-          </div>
-
-          <!-- Distance -->
-          <div class="filter-group">
-            <div class="filter-group-label">Radius</div>
-            <div class="chip-row">
-              <button class="chip" [class.chip--on]="filterDistance() === null" (click)="setDistance(null)">Any</button>
-              @for (d of [5, 10, 25, 50]; track d) {
-                <button class="chip" [class.chip--on]="filterDistance() === d" (click)="setDistance(d)">{{ d }} km</button>
-              }
-            </div>
-          </div>
-
-          <!-- Categories -->
-          @if (allCategories().length > 0) {
-            <div class="filter-group">
-              <div class="filter-group-label">Categories</div>
-              <div class="chip-row chip-row--wrap">
-                @for (cat of allCategories(); track cat) {
-                  <button
-                    class="chip"
-                    [class.chip--on]="filterCategories().includes(cat)"
-                    (click)="toggleCategory(cat)"
-                  >{{ cat }}</button>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Urgency -->
-          <div class="filter-group">
-            <div class="filter-group-label">Urgency</div>
-            <div class="chip-row">
-              <button class="chip chip--low"       [class.chip--on]="filterUrgency().includes('LOW')"       (click)="toggleUrgency('LOW')">Low</button>
-              <button class="chip chip--normal"    [class.chip--on]="filterUrgency().includes('NORMAL')"    (click)="toggleUrgency('NORMAL')">Normal</button>
-              <button class="chip chip--high"      [class.chip--on]="filterUrgency().includes('HIGH')"      (click)="toggleUrgency('HIGH')">High</button>
-              <button class="chip chip--emergency" [class.chip--on]="filterUrgency().includes('EMERGENCY')" (click)="toggleUrgency('EMERGENCY')">Emergency</button>
-            </div>
-          </div>
-
-          <!-- Budget -->
-          <div class="filter-group">
-            <div class="filter-group-label">Max budget</div>
-            <div class="chip-row">
-              <button class="chip" [class.chip--on]="filterMaxPrice() === null" (click)="filterMaxPrice.set(null)">Any</button>
-              @for (p of [50, 100, 250, 500]; track p) {
-                <button class="chip" [class.chip--on]="filterMaxPrice() === p" (click)="filterMaxPrice.set(p)">€{{ p }}</button>
-              }
-            </div>
-          </div>
-
-          <!-- Toggles -->
-          <div class="toggle-row">
-            <label class="toggle-label">
-              <input type="checkbox" [checked]="unappliedOnly()" (change)="unappliedOnly.set(!unappliedOnly())"> Unapplied only
-            </label>
-            <label class="toggle-label">
-              <input type="checkbox" [checked]="verifiedOnly()" (change)="verifiedOnly.set(!verifiedOnly())"> Verified clients only
-            </label>
-          </div>
-        </div>
-
         <!-- ── Job list ── -->
         <div class="job-list">
           @if (loading()) {
@@ -165,6 +94,7 @@ interface MapJob {
                 class="list-card"
                 [class.list-card--selected]="selectedJob()?.id === job.id"
                 [class.list-card--applied]="job.alreadyApplied"
+                [style.--urgency]="urgencyHex(job.urgency)"
                 (click)="selectJob(job)"
               >
                 <div class="lc-top">
@@ -197,44 +127,81 @@ interface MapJob {
       <div class="map-area">
         <div id="worker-job-map" class="map-canvas"></div>
 
+        <!-- ── Filter bar (floating top) ── -->
+        <div class="filter-bar">
+          <div class="fb-inner">
+
+            <!-- Radius -->
+            <div class="fb-icon-group">
+              <svg class="fb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="3 2" opacity=".5"/></svg>
+              <button class="chip chip--sm" [class.chip--on]="filterDistance() === null" (click)="setDistance(null)">Any</button>
+              @for (d of [5, 10, 25, 50]; track d) {
+                <button class="chip chip--sm" [class.chip--on]="filterDistance() === d" (click)="setDistance(d)">{{ d }}km</button>
+              }
+            </div>
+
+            <div class="fb-sep"></div>
+
+            <!-- Urgency -->
+            <div class="fb-icon-group">
+              <svg class="fb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <button class="chip chip--sm chip--low"       [class.chip--on]="filterUrgency().includes('LOW')"       (click)="toggleUrgency('LOW')">Low</button>
+              <button class="chip chip--sm chip--normal"    [class.chip--on]="filterUrgency().includes('NORMAL')"    (click)="toggleUrgency('NORMAL')">Normal</button>
+              <button class="chip chip--sm chip--high"      [class.chip--on]="filterUrgency().includes('HIGH')"      (click)="toggleUrgency('HIGH')">High</button>
+              <button class="chip chip--sm chip--emergency" [class.chip--on]="filterUrgency().includes('EMERGENCY')" (click)="toggleUrgency('EMERGENCY')">Emergency</button>
+            </div>
+
+            <div class="fb-sep"></div>
+
+            <!-- Budget -->
+            <div class="fb-icon-group">
+              <svg class="fb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5c0 2.5-5 2.5-5 5 0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5"/></svg>
+              <button class="chip chip--sm" [class.chip--on]="filterMaxPrice() === null" (click)="filterMaxPrice.set(null)">Any</button>
+              @for (p of [50, 100, 250, 500]; track p) {
+                <button class="chip chip--sm" [class.chip--on]="filterMaxPrice() === p" (click)="filterMaxPrice.set(p)">€{{ p }}</button>
+              }
+            </div>
+
+            @if (allCategories().length > 0) {
+              <div class="fb-sep"></div>
+              <!-- Categories -->
+              <div class="fb-icon-group">
+                <svg class="fb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+                @for (cat of allCategories(); track cat) {
+                  <button class="chip chip--sm" [class.chip--on]="filterCategories().includes(cat)" (click)="toggleCategory(cat)">{{ cat }}</button>
+                }
+              </div>
+            }
+
+            <div class="fb-sep"></div>
+
+            <!-- Toggles as icon buttons -->
+            <button class="fb-toggle-btn" [class.fb-toggle-btn--on]="unappliedOnly()" (click)="unappliedOnly.set(!unappliedOnly())" title="Unapplied only">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Unapplied
+            </button>
+            <button class="fb-toggle-btn" [class.fb-toggle-btn--on]="verifiedOnly()" (click)="verifiedOnly.set(!verifiedOnly())" title="Verified clients only">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              Verified
+            </button>
+
+            @if (activeFilterCount() > 0) {
+              <button class="fb-clear" (click)="clearAllFilters()">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Clear
+              </button>
+            }
+          </div>
+        </div>
+
         <!-- Map legend -->
         <div class="map-legend">
           <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Emergency</span>
           <span class="legend-item"><span class="legend-dot" style="background:#f97316"></span>High</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#2d9580"></span>Normal</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#d4ff3a"></span>Normal</span>
           <span class="legend-item"><span class="legend-dot" style="background:#a1a1aa"></span>Low / Applied</span>
         </div>
 
-        <!-- Selected job overlay -->
-        @if (selectedJob()) {
-          <div class="map-overlay-card">
-            <div class="moc-head">
-              <div>
-                <p class="moc-cat">{{ selectedJob()!.category?.name || 'General' }} · {{ selectedJob()!.city }}</p>
-                <h3 class="moc-title">{{ selectedJob()!.title }}</h3>
-              </div>
-              <button class="moc-close" (click)="selectedJob.set(null)">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <p class="moc-desc">{{ selectedJob()!.description }}</p>
-            <div class="moc-footer">
-              <span class="moc-price">
-                @if (selectedJob()!.priceMin) { €{{ selectedJob()!.priceMin }}–{{ selectedJob()!.priceMax }} } @else { Negotiable }
-              </span>
-              @if (selectedJob()!.distanceKm !== null) {
-                <span class="moc-dist">{{ selectedJob()!.distanceKm }} km away</span>
-              }
-              @if (selectedJob()!.alreadyApplied) {
-                <span class="status-pill status-{{ selectedJob()!.applicationStatus?.toLowerCase() }}">{{ statusLabel(selectedJob()!.applicationStatus) }}</span>
-              } @else if (idVerified()) {
-                <button class="apply-btn" (click)="openApply(selectedJob()!)">
-                  Apply <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                </button>
-              }
-            </div>
-          </div>
-        }
       </div>
 
     </div>
@@ -279,189 +246,201 @@ interface MapJob {
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     .map-page {
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-      background: #f8f8f8;
+      display: flex; height: 100vh; overflow: hidden;
+      background: #0d1117;
       font-family: system-ui, -apple-system, sans-serif;
     }
 
     /* ── Panel ──────────────────────────────── */
     .panel {
-      width: 380px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      background: #fff;
-      border-right: 1.5px solid #e4e4e7;
-      overflow: hidden;
+      width: 380px; flex-shrink: 0; display: flex; flex-direction: column;
+      background: #0d1117; border-right: 1px solid #21262d; overflow: hidden;
     }
 
     .panel-head {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 1rem 1.125rem;
-      border-bottom: 1px solid #f4f4f5;
-      flex-shrink: 0;
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 1rem 1.25rem; border-bottom: 1px solid #21262d; flex-shrink: 0;
+      background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
     }
     .back-btn {
       width: 32px; height: 32px; border-radius: 8px;
-      border: 1.5px solid #e4e4e7; background: #fff;
+      border: 1px solid #30363d; background: #161b22;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: #52525b; flex-shrink: 0;
-      transition: border-color 0.15s, color 0.15s;
+      cursor: pointer; color: #8b949e; flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
     }
-    .back-btn:hover { border-color: #2d9580; color: #2d9580; }
-    .panel-title { font-size: 1rem; font-weight: 700; color: #18181b; letter-spacing: -0.02em; }
-    .panel-sub { font-size: 0.72rem; color: #a1a1aa; }
+    .back-btn:hover { border-color: #d4ff3a; color: #d4ff3a; background: rgba(212,255,58,0.08); }
+    .panel-title { font-size: 0.95rem; font-weight: 700; color: #e6edf3; letter-spacing: -0.02em; }
+    .panel-sub { font-size: 0.7rem; color: #484f58; }
     .panel-spinner {
-      width: 16px; height: 16px; margin-left: auto;
-      border: 2px solid #e4e4e7; border-top-color: #2d9580;
+      width: 14px; height: 14px; margin-left: auto;
+      border: 2px solid #21262d; border-top-color: #d4ff3a;
       border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
     }
 
     /* ── AI section ─────────────────────────── */
     .ai-section {
-      padding: 0.875rem 1.125rem;
-      border-bottom: 1px solid #f4f4f5;
-      flex-shrink: 0;
-      background: linear-gradient(135deg, #f0fdf4 0%, #f0f9ff 100%);
+      padding: 0.875rem 1.25rem; border-bottom: 1px solid #21262d; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(212,255,58,0.07), rgba(59,130,246,0.04));
     }
     .ai-label {
       display: flex; align-items: center; gap: 0.35rem;
-      font-size: 0.68rem; font-weight: 700; color: #2d9580;
-      text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.5rem;
+      font-size: 0.64rem; font-weight: 700; color: #d4ff3a;
+      text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 0.5rem;
     }
     .ai-bar { display: flex; gap: 0.375rem; }
     .ai-input {
       flex: 1; padding: 0.55rem 0.75rem;
-      border: 1.5px solid #d1fae5; border-radius: 8px;
+      border: 1px solid #30363d; border-radius: 8px;
       font-size: 0.82rem; outline: none; font-family: inherit;
-      background: #fff; color: #18181b;
-      transition: border-color 0.15s;
+      background: #161b22; color: #e6edf3;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .ai-input:focus { border-color: #2d9580; }
-    .ai-input::placeholder { color: #a1a1aa; }
+    .ai-input:focus { border-color: #d4ff3a; box-shadow: 0 0 0 3px rgba(212,255,58,0.14); }
+    .ai-input::placeholder { color: #484f58; }
     .ai-btn {
       width: 34px; height: 34px; border-radius: 8px;
-      background: #2d9580; border: none; color: #fff;
+      background: linear-gradient(135deg, #d4ff3a, #aed62e); border: none; color: #0d1117;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; flex-shrink: 0;
-      transition: background 0.15s;
+      box-shadow: 0 2px 10px rgba(212,255,58,0.35);
+      transition: box-shadow 0.15s, opacity 0.15s;
     }
-    .ai-btn:hover:not(:disabled) { background: #257a68; }
-    .ai-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .ai-btn:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(212,255,58,0.55); opacity: 0.92; }
+    .ai-btn:disabled { opacity: 0.25; cursor: not-allowed; box-shadow: none; }
     .ai-spin {
       width: 13px; height: 13px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff; border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      border: 2px solid rgba(0,0,0,0.2); border-top-color: #0d1117;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
     }
     .ai-result {
-      display: flex; align-items: center; gap: 0.4rem;
-      margin-top: 0.5rem; padding: 0.4rem 0.625rem;
-      background: rgba(45,149,128,0.08); border: 1px solid rgba(45,149,128,0.2);
-      border-radius: 8px; font-size: 0.76rem; color: #0f766e; font-weight: 500;
+      display: flex; align-items: center; gap: 0.4rem; margin-top: 0.5rem;
+      padding: 0.4rem 0.625rem;
+      background: rgba(212,255,58,0.08); border: 1px solid rgba(212,255,58,0.2);
+      border-radius: 8px; font-size: 0.75rem; color: #d4ff3a; font-weight: 500;
     }
     .ai-clear {
       margin-left: auto; background: none; border: none;
-      color: #a1a1aa; cursor: pointer; font-size: 0.7rem;
-      padding: 0.1rem 0.25rem; border-radius: 4px;
-      transition: color 0.12s;
+      color: #484f58; cursor: pointer; font-size: 0.7rem;
+      padding: 0.1rem 0.25rem; border-radius: 4px; transition: color 0.12s;
     }
-    .ai-clear:hover { color: #ef4444; }
+    .ai-clear:hover { color: #f85149; }
 
-    /* ── Filters ────────────────────────────── */
-    .filters {
-      padding: 0.875rem 1.125rem;
-      border-bottom: 1.5px solid #e4e4e7;
-      flex-shrink: 0;
+    /* ── Filter Bar ─────────────────────────── */
+    .filter-bar {
+      position: absolute; top: 12px; left: 12px; right: 12px; z-index: 100;
+      background: rgba(13,17,23,0.88);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      backdrop-filter: blur(24px) saturate(1.8);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
-    .filters-head {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 0.75rem;
+    .fb-inner {
+      display: flex; align-items: center; gap: 0.375rem;
+      padding: 0.5rem 0.75rem;
+      overflow-x: auto; scrollbar-width: none;
     }
-    .filters-label { font-size: 0.72rem; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 0.07em; }
-    .clear-all-btn {
-      font-size: 0.72rem; color: #ef4444; background: none; border: none;
-      cursor: pointer; font-weight: 600; font-family: inherit;
-    }
-    .clear-all-btn:hover { text-decoration: underline; }
+    .fb-inner::-webkit-scrollbar { display: none; }
 
-    .filter-group { margin-bottom: 0.75rem; }
-    .filter-group:last-child { margin-bottom: 0; }
-    .filter-group-label { font-size: 0.72rem; font-weight: 600; color: #52525b; margin-bottom: 0.375rem; }
+    .fb-icon-group { display: flex; align-items: center; gap: 0.2rem; flex-shrink: 0; }
+    .fb-icon { color: #484f58; flex-shrink: 0; }
 
-    .chip-row { display: flex; gap: 0.3rem; flex-wrap: nowrap; }
+    .fb-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.08); flex-shrink: 0; margin: 0 0.125rem; }
+
+    .fb-toggle-btn {
+      display: inline-flex; align-items: center; gap: 0.3rem; flex-shrink: 0;
+      padding: 0.22rem 0.6rem; border-radius: 99px;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
+      color: #6e7681; font-size: 0.72rem; font-weight: 500;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .fb-toggle-btn:hover { color: #e6edf3; border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); }
+    .fb-toggle-btn--on { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: #c9d1d9; }
+
+    .fb-clear {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      margin-left: auto; flex-shrink: 0; background: rgba(248,81,73,0.08);
+      border: 1px solid rgba(248,81,73,0.18); border-radius: 99px;
+      color: #ff7b72; font-size: 0.7rem; font-weight: 500;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+      padding: 0.22rem 0.55rem; transition: background 0.12s, border-color 0.12s;
+    }
+    .fb-clear:hover { background: rgba(248,81,73,0.15); border-color: rgba(248,81,73,0.3); }
+
+    .chip-row { display: flex; gap: 0.25rem; flex-wrap: nowrap; }
     .chip-row--wrap { flex-wrap: wrap; }
 
     .chip {
-      padding: 0.28rem 0.65rem; border-radius: 99px;
-      border: 1.5px solid #e4e4e7; background: #fff;
-      font-size: 0.73rem; font-weight: 500; color: #52525b;
+      padding: 0.25rem 0.625rem; border-radius: 99px;
+      border: 1px solid #30363d; background: transparent;
+      font-size: 0.72rem; font-weight: 500; color: #8b949e;
       cursor: pointer; white-space: nowrap; font-family: inherit;
       transition: all 0.12s;
     }
-    .chip:hover { border-color: #a1a1aa; color: #18181b; }
-    .chip--on { background: #18181b; border-color: #18181b; color: #fff; }
-    .chip--high.chip--on      { background: #f97316; border-color: #f97316; }
-    .chip--emergency.chip--on { background: #ef4444; border-color: #ef4444; }
-    .chip--low.chip--on       { background: #a1a1aa; border-color: #a1a1aa; }
-    .chip--normal.chip--on    { background: #2d9580; border-color: #2d9580; }
+    .chip--sm { padding: 0.18rem 0.5rem; font-size: 0.7rem; }
+    .chip:hover { border-color: #6e7681; color: #e6edf3; background: rgba(255,255,255,0.04); }
+    .chip--on { background: rgba(212,255,58,0.15); border-color: #d4ff3a; color: #d4ff3a; }
+    .chip--high.chip--on      { background: rgba(210,153,34,0.12); border-color: #d29922; color: #e3b341; }
+    .chip--emergency.chip--on { background: rgba(248,81,73,0.12);  border-color: #f85149; color: #ff7b72; }
+    .chip--low.chip--on       { background: rgba(110,118,129,0.12); border-color: #6e7681; color: #8b949e; }
+    .chip--normal.chip--on    { background: rgba(212,255,58,0.15);  border-color: #d4ff3a; color: #d4ff3a; }
 
-    .toggle-row { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.75rem; }
+    .toggle-row { display: flex; flex-direction: column; gap: 0.375rem; margin-top: 0.625rem; }
     .toggle-label {
       display: flex; align-items: center; gap: 0.5rem;
-      font-size: 0.78rem; color: #3f3f46; cursor: pointer;
+      font-size: 0.76rem; color: #8b949e; cursor: pointer; transition: color 0.12s;
     }
-    .toggle-label input { accent-color: #2d9580; width: 14px; height: 14px; }
+    .toggle-label:hover { color: #e6edf3; }
+    .toggle-label input { accent-color: #d4ff3a; width: 14px; height: 14px; }
 
     /* ── Job list ───────────────────────────── */
-    .job-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0.625rem;
-    }
+    .job-list { flex: 1; overflow-y: auto; padding: 0.5rem; scrollbar-color: #30363d transparent; }
     .list-loading, .list-empty {
       display: flex; flex-direction: column; align-items: center;
-      gap: 0.625rem; padding: 3rem 1rem;
-      color: #a1a1aa; font-size: 0.84rem; text-align: center;
+      gap: 0.625rem; padding: 3rem 1rem; color: #484f58; font-size: 0.83rem; text-align: center;
     }
     .load-ring {
       width: 24px; height: 24px;
-      border: 2.5px solid #e4e4e7; border-top-color: #2d9580;
+      border: 2px solid #21262d; border-top-color: #d4ff3a;
       border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .list-card {
-      padding: 0.75rem 0.875rem;
-      border: 1.5px solid #e4e4e7; border-radius: 12px;
-      margin-bottom: 0.4rem;
-      cursor: pointer; transition: all 0.15s;
-      background: #fff;
+      padding: 0.75rem 0.875rem 0.75rem 1.125rem;
+      border: 1px solid #21262d; border-radius: 12px;
+      margin-bottom: 0.35rem; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+      background: #161b22; position: relative; overflow: hidden;
     }
-    .list-card:hover { border-color: #a7f3d0; box-shadow: 0 2px 10px rgba(45,149,128,0.08); }
-    .list-card--selected { border-color: #2d9580; box-shadow: 0 0 0 3px rgba(45,149,128,0.12); }
-    .list-card--applied { opacity: 0.55; }
+    .list-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: var(--urgency, #30363d); border-radius: 12px 0 0 12px;
+      transition: width 0.15s;
+    }
+    .list-card:hover { border-color: #30363d; background: #1e252e; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+    .list-card:hover::before { width: 4px; }
+    .list-card--selected {
+      border-color: #d4ff3a; background: rgba(212,255,58,0.05);
+      box-shadow: 0 0 0 1px rgba(212,255,58,0.2);
+    }
+    .list-card--selected::before { width: 4px; background: #d4ff3a; }
+    .list-card--applied { opacity: 0.4; }
 
-    .lc-top { display: flex; align-items: center; gap: 0.375rem; margin-bottom: 0.35rem; flex-wrap: wrap; }
+    .lc-top { display: flex; align-items: center; gap: 0.375rem; margin-bottom: 0.3rem; flex-wrap: wrap; }
     .lc-cat {
       display: inline-flex; align-items: center; gap: 0.3rem;
-      font-size: 0.68rem; font-weight: 600; color: #71717a;
-      text-transform: uppercase; letter-spacing: 0.05em;
+      font-size: 0.65rem; font-weight: 600; color: #6e7681;
+      text-transform: uppercase; letter-spacing: 0.06em;
     }
-    .lc-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--dot, #a1a1aa); flex-shrink: 0;
-    }
-    .lc-title { font-size: 0.84rem; font-weight: 600; color: #18181b; margin-bottom: 0.25rem; }
-    .lc-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
-    .lc-meta-item { font-size: 0.7rem; color: #71717a; }
+    .lc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dot, #6e7681); flex-shrink: 0; }
+    .lc-title { font-size: 0.84rem; font-weight: 600; color: #e6edf3; margin-bottom: 0.2rem; }
+    .lc-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.3rem; }
+    .lc-meta-item { font-size: 0.7rem; color: #6e7681; }
     .lc-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-    .lc-price { font-size: 0.8rem; font-weight: 700; color: #18181b; }
-    .lc-no-loc { font-size: 0.68rem; color: #a1a1aa; background: #f4f4f5; padding: 0.15rem 0.45rem; border-radius: 99px; }
+    .lc-price { font-size: 0.79rem; font-weight: 700; color: #e6edf3; }
+    .lc-no-loc { font-size: 0.67rem; color: #484f58; background: #1e252e; padding: 0.12rem 0.4rem; border-radius: 99px; }
 
     /* ── Map area ───────────────────────────── */
     .map-area { flex: 1; position: relative; }
@@ -469,136 +448,114 @@ interface MapJob {
 
     /* ── Legend ─────────────────────────────── */
     .map-legend {
-      position: absolute; bottom: 24px; left: 16px;
-      background: rgba(255,255,255,0.95); border: 1px solid #e4e4e7;
-      border-radius: 10px; padding: 0.5rem 0.75rem;
+      position: absolute; bottom: 20px; right: 16px;
+      background: rgba(13,17,23,0.88); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 0.5rem 0.8rem;
       display: flex; flex-direction: column; gap: 0.3rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      backdrop-filter: blur(16px) saturate(1.6);
       pointer-events: none;
     }
-    .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: #3f3f46; }
-    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-item { display: flex; align-items: center; gap: 0.45rem; font-size: 0.69rem; color: #8b949e; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
 
-    /* ── Selected job overlay card ──────────── */
-    .map-overlay-card {
-      position: absolute; bottom: 24px; right: 16px;
-      width: 340px; background: #fff;
-      border: 1.5px solid #e4e4e7; border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-      padding: 1rem 1.125rem;
-      animation: slideUp 0.2s ease both;
-    }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .moc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .moc-cat { font-size: 0.7rem; color: #a1a1aa; margin-bottom: 0.15rem; }
-    .moc-title { font-size: 0.95rem; font-weight: 700; color: #18181b; letter-spacing: -0.01em; }
-    .moc-close {
-      width: 26px; height: 26px; border-radius: 50%;
-      background: #f4f4f5; border: none; display: flex;
-      align-items: center; justify-content: center;
-      cursor: pointer; color: #71717a; flex-shrink: 0;
-    }
-    .moc-close:hover { background: #e4e4e7; }
-    .moc-desc {
-      font-size: 0.8rem; color: #71717a; line-height: 1.55; margin-bottom: 0.75rem;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-    }
-    .moc-footer { display: flex; align-items: center; gap: 0.625rem; flex-wrap: wrap; }
-    .moc-price { font-size: 0.9rem; font-weight: 700; color: #18181b; }
-    .moc-dist { font-size: 0.75rem; color: #71717a; }
 
     /* ── Urgency badges ─────────────────────── */
-    .urgency-badge {
-      font-size: 0.65rem; font-weight: 600;
-      padding: 0.15rem 0.5rem; border-radius: 99px; white-space: nowrap;
-    }
-    .urgency-normal    { background: rgba(0,0,0,0.05); color: #71717a; }
-    .urgency-low       { background: rgba(0,0,0,0.04); color: #a1a1aa; }
-    .urgency-high      { background: rgba(245,158,11,0.1); color: #b45309; }
-    .urgency-emergency { background: rgba(239,68,68,0.08); color: #dc2626; }
+    .urgency-badge { font-size: 0.64rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 99px; white-space: nowrap; }
+    .urgency-normal    { background: rgba(212,255,58,0.12);  color: #d4ff3a; }
+    .urgency-low       { background: rgba(110,118,129,0.12); color: #6e7681; }
+    .urgency-high      { background: rgba(210,153,34,0.12);  color: #e3b341; }
+    .urgency-emergency { background: rgba(248,81,73,0.14);   color: #ff7b72; }
 
     .apply-btn {
       display: inline-flex; align-items: center; gap: 0.35rem;
-      background: #2d9580; color: #fff; border: none;
-      padding: 0.45rem 1rem; border-radius: 99px;
-      font-size: 0.78rem; font-weight: 600; cursor: pointer;
-      transition: background 0.15s; font-family: inherit; margin-left: auto;
+      background: linear-gradient(135deg, #d4ff3a, #aed62e); color: #0d1117; border: none;
+      padding: 0.4rem 0.875rem; border-radius: 99px;
+      font-size: 0.76rem; font-weight: 600; cursor: pointer; font-family: inherit; margin-left: auto;
+      box-shadow: 0 2px 10px rgba(212,255,58,0.4);
+      transition: box-shadow 0.15s, opacity 0.15s;
     }
-    .apply-btn:hover { background: #257a68; }
+    .apply-btn:hover { box-shadow: 0 4px 16px rgba(212,255,58,0.55); opacity: 0.92; }
 
-    .status-pill { font-size: 0.68rem; font-weight: 600; padding: 0.2rem 0.65rem; border-radius: 99px; margin-left: auto; }
-    .status-applied  { background: rgba(37,99,235,0.08); color: #1d4ed8; }
-    .status-accepted { background: rgba(20,184,166,0.1); color: #0f766e; }
-    .status-rejected { background: rgba(239,68,68,0.08); color: #dc2626; }
+    .status-pill { font-size: 0.68rem; font-weight: 600; padding: 0.2rem 0.625rem; border-radius: 99px; margin-left: auto; }
+    .status-applied  { background: rgba(37,99,235,0.15);  color: #79b8ff; }
+    .status-accepted { background: rgba(212,255,58,0.15); color: #d4ff3a; }
+    .status-rejected { background: rgba(248,81,73,0.12);  color: #ff7b72; }
 
     /* ── Apply modal ────────────────────────── */
     .overlay {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.45); backdrop-filter: blur(6px);
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
       display: flex; align-items: center; justify-content: center;
       z-index: 2000; padding: 1rem;
     }
     .modal {
-      background: #fff; border-radius: 20px;
-      width: 100%; max-width: 480px;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.18); overflow: hidden;
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 20px; width: 100%; max-width: 480px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7); overflow: hidden;
     }
     .modal-head {
       display: flex; align-items: flex-start; gap: 0.875rem;
-      padding: 1.25rem 1.375rem 1rem; border-bottom: 1px solid #f4f4f5;
+      padding: 1.25rem 1.375rem 1rem; border-bottom: 1px solid #21262d;
     }
-    .modal-title { font-size: 0.975rem; font-weight: 700; color: #18181b; margin: 0 0 0.2rem; }
-    .modal-sub   { font-size: 0.78rem; color: #a1a1aa; }
+    .modal-title { font-size: 0.975rem; font-weight: 700; color: #e6edf3; margin: 0 0 0.2rem; }
+    .modal-sub   { font-size: 0.78rem; color: #6e7681; }
     .modal-close {
-      width: 28px; height: 28px; border-radius: 50%; background: #f4f4f5;
-      border: none; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: #71717a; flex-shrink: 0; margin-left: auto;
+      width: 28px; height: 28px; border-radius: 50%; background: #21262d;
+      border: 1px solid #30363d; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #6e7681; flex-shrink: 0; margin-left: auto;
+      transition: background 0.12s, color 0.12s;
     }
+    .modal-close:hover { background: #30363d; color: #e6edf3; }
     .modal-body { padding: 1rem 1.375rem; }
     .field { margin-bottom: 0.875rem; }
-    label { display: block; font-size: 0.78rem; font-weight: 600; color: #18181b; margin-bottom: 0.3rem; }
-    .opt { font-weight: 400; color: #a1a1aa; font-size: 0.74rem; }
+    label { display: block; font-size: 0.78rem; font-weight: 600; color: #c9d1d9; margin-bottom: 0.3rem; }
+    .opt { font-weight: 400; color: #484f58; font-size: 0.74rem; }
     .field-input {
       width: 100%; padding: 0.65rem 0.875rem;
-      border: 1.5px solid #e4e4e7; border-radius: 10px;
+      border: 1px solid #30363d; border-radius: 10px;
       font-size: 0.875rem; outline: none; font-family: inherit;
-      color: #18181b; background: #fff; transition: border-color 0.15s;
+      color: #e6edf3; background: #0d1117;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .field-input:focus { border-color: #2d9580; }
+    .field-input:focus { border-color: #d4ff3a; box-shadow: 0 0 0 3px rgba(212,255,58,0.15); }
+    .field-input::placeholder { color: #484f58; }
     textarea.field-input { resize: vertical; }
     .modal-err {
       margin: 0 1.375rem 0.75rem;
-      background: rgba(239,68,68,0.07); color: #dc2626;
-      border: 1px solid rgba(239,68,68,0.15);
+      background: rgba(248,81,73,0.08); color: #ff7b72;
+      border: 1px solid rgba(248,81,73,0.2);
       padding: 0.6rem 0.875rem; border-radius: 9px; font-size: 0.82rem;
     }
     .modal-actions {
       display: flex; gap: 0.5rem; justify-content: flex-end;
-      padding: 0.875rem 1.375rem 1.375rem; border-top: 1px solid #f4f4f5;
+      padding: 0.875rem 1.375rem 1.375rem; border-top: 1px solid #21262d;
     }
     .btn-cancel {
-      background: transparent; color: #71717a; border: 1.5px solid #e4e4e7;
+      background: transparent; color: #6e7681; border: 1px solid #30363d;
       padding: 0.6rem 1.125rem; border-radius: 99px; font-size: 0.875rem;
       font-weight: 500; cursor: pointer; font-family: inherit;
+      transition: background 0.12s, color 0.12s;
     }
+    .btn-cancel:hover { background: #1e252e; color: #e6edf3; }
     .btn-submit {
       display: inline-flex; align-items: center; gap: 0.4rem;
-      background: #2d9580; color: #fff; border: none;
+      background: linear-gradient(135deg, #d4ff3a, #aed62e); color: #0d1117; border: none;
       padding: 0.6rem 1.375rem; border-radius: 99px; font-size: 0.875rem;
       font-weight: 600; cursor: pointer; font-family: inherit;
+      box-shadow: 0 2px 10px rgba(212,255,58,0.35);
+      transition: box-shadow 0.15s, opacity 0.15s;
     }
-    .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-submit:hover:not(:disabled) { box-shadow: 0 4px 20px rgba(212,255,58,0.5); opacity: 0.9; }
+    .btn-submit:disabled { opacity: 0.3; cursor: not-allowed; }
     .spinner {
-      width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.35);
-      border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+      width: 12px; height: 12px; border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: #0d1117; border-radius: 50%; animation: spin 0.7s linear infinite;
     }
 
     @media (max-width: 768px) {
       .map-page { flex-direction: column; height: auto; }
-      .panel { width: 100%; height: auto; border-right: none; border-bottom: 1.5px solid #e4e4e7; }
+      .panel { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #21262d; }
       .map-area { height: 60vh; }
       .map-overlay-card { width: calc(100% - 32px); }
     }
@@ -607,6 +564,7 @@ interface MapJob {
 export class WorkerMapComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   // Data
   allJobs = signal<MapJob[]>([]);
@@ -639,10 +597,11 @@ export class WorkerMapComponent implements OnInit, OnDestroy {
 
   // Map internals
   private mapInstance: any = null;
-  private mapMarkers: any[] = [];
-  private radiusCircle: any = null;
-  private workerMarker: any = null;
+  private maplibreGl: any = null;
+  private mapLoaded = false;
+  private mapMarkers: { remove: () => void }[] = [];
   private focusJobId: string | null = null;
+  private activePopup: any = null;
 
   // Derived
   allCategories = computed(() =>
@@ -772,10 +731,81 @@ export class WorkerMapComponent implements OnInit, OnDestroy {
   selectJob(job: MapJob) {
     this.selectedJob.set(job);
     if (job.latitude && job.longitude && this.mapInstance) {
-      this.mapInstance.flyTo([job.latitude, job.longitude], 15, { duration: 0.7 });
-      // Highlight the marker
+      this.mapInstance.flyTo({ center: [job.longitude, job.latitude], zoom: 15, duration: 700 });
       this.renderMarkers(this.filteredJobs(), job.id);
+      this.showJobPopup(job);
     }
+  }
+
+  private showJobPopup(job: MapJob) {
+    if (!this.maplibreGl || !this.mapInstance || !job.latitude || !job.longitude) return;
+    if (this.activePopup) { this.activePopup.remove(); this.activePopup = null; }
+
+    const urgencyColors: Record<string, string> = {
+      EMERGENCY: '#ff7b72', HIGH: '#e3b341', NORMAL: '#d4ff3a', LOW: '#8b949e',
+    };
+    const uc = urgencyColors[job.urgency] ?? '#8b949e';
+    const price = job.priceMin ? `€${job.priceMin}–${job.priceMax}` : 'Negotiable';
+    const dist = job.distanceKm !== null ? `${job.distanceKm} km away` : '';
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = [
+      'font-family:system-ui,-apple-system,sans-serif',
+      'width:280px',
+      'background:rgba(13,17,23,0.97)',
+      'border:1px solid rgba(255,255,255,0.1)',
+      'border-radius:16px',
+      'padding:14px 16px 12px',
+      'box-shadow:0 20px 60px rgba(0,0,0,0.7),0 1px 0 rgba(255,255,255,0.05) inset',
+      'color:#e6edf3',
+      'animation:popup-in 0.2s cubic-bezier(0.25,0.46,0.45,0.94) both',
+    ].join(';');
+
+    wrap.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:0.65rem;color:#6e7681;font-weight:500">${job.category?.name ?? 'General'} · ${job.city ?? ''}</span>
+        <span style="font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:99px;background:${uc}18;color:${uc}">${this.urgencyLabel(job.urgency)}</span>
+      </div>
+      <p style="font-size:0.95rem;font-weight:700;margin:0 0 5px;letter-spacing:-0.01em;line-height:1.3">${job.title}</p>
+      <p style="font-size:0.76rem;color:#8b949e;margin:0 0 10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${job.description}</p>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:0.88rem;font-weight:700;color:#e6edf3">${price}</span>
+        ${dist ? `<span style="font-size:0.72rem;color:#6e7681">·</span><span style="font-size:0.72rem;color:#6e7681">${dist}</span>` : ''}
+      </div>
+      <button class="popup-view-btn" style="
+        width:100%;padding:8px 14px;border-radius:10px;border:none;cursor:pointer;
+        background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+        color:#e6edf3;font-size:0.8rem;font-weight:600;
+        font-family:system-ui,-apple-system,sans-serif;
+        display:flex;align-items:center;justify-content:center;gap:6px;
+        transition:background 0.15s,border-color 0.15s;
+      ">
+        View full job
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    `;
+
+    const btn = wrap.querySelector('.popup-view-btn') as HTMLElement;
+    btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(255,255,255,0.13)'; btn.style.borderColor = 'rgba(255,255,255,0.22)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(255,255,255,0.08)'; btn.style.borderColor = 'rgba(255,255,255,0.12)'; });
+    btn.addEventListener('click', () => this.router.navigate(['/worker/jobs', job.id]));
+
+    this.activePopup = new this.maplibreGl.Popup({
+      offset: 20,
+      anchor: 'bottom',
+      closeButton: false,
+      closeOnClick: true,
+      maxWidth: 'none',
+    })
+      .setLngLat([job.longitude, job.latitude])
+      .setDOMContent(wrap)
+      .addTo(this.mapInstance);
+
+    this.activePopup.on('close', () => {
+      this.activePopup = null;
+      this.selectedJob.set(null);
+      this.renderMarkers(this.filteredJobs());
+    });
   }
 
   // ── Apply modal ──────────────────────────────────────────────────
@@ -816,6 +846,10 @@ export class WorkerMapComponent implements OnInit, OnDestroy {
 
   // ── Helpers ──────────────────────────────────────────────────────
 
+  urgencyHex(u: string): string {
+    return ({ EMERGENCY: '#f85149', HIGH: '#d29922', NORMAL: '#d4ff3a', LOW: '#6e7681' } as Record<string, string>)[u] ?? '#6e7681';
+  }
+
   catColor(category?: string | null): string {
     const map: Record<string, string> = {
       'Cleaning': '#14b8a6', 'Plumbing': '#2563eb', 'Electrical': '#f59e0b',
@@ -832,138 +866,210 @@ export class WorkerMapComponent implements OnInit, OnDestroy {
     return { APPLIED: 'Applied', ACCEPTED: 'Accepted', REJECTED: 'Rejected' }[s ?? ''] ?? (s ?? '');
   }
 
-  // ── Leaflet ──────────────────────────────────────────────────────
+  // ── MapLibre ─────────────────────────────────────────────────────
 
   private async initMap() {
     const el = document.getElementById('worker-job-map');
     if (!el) return;
     this.destroyMap();
 
-    const L = await import('leaflet');
-    const lf: typeof import('leaflet') = (L as any).default ?? L;
+    const ml = (await import('maplibre-gl')).default;
+    this.maplibreGl = ml;
 
-    const center: [number, number] = this.workerLocation()
-      ? [this.workerLocation()!.lat, this.workerLocation()!.lng]
-      : [48.2082, 16.3738];
+    const wloc = this.workerLocation();
+    const center: [number, number] = wloc ? [wloc.lng, wloc.lat] : [16.3738, 48.2082];
 
-    this.mapInstance = lf.map(el, { center, zoom: 12, zoomControl: true });
+    this.mapInstance = new ml.Map({
+      container: el,
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center,
+      zoom: 12,
+    });
 
-    lf.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(this.mapInstance);
+    this.mapInstance.on('load', () => {
+      this.mapLoaded = true;
 
-    // Worker location marker
-    if (this.workerLocation()) {
-      const wloc = this.workerLocation()!;
-      const workerIcon = lf.divIcon({
-        className: '',
-        html: `<div style="width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 0 4px rgba(59,130,246,0.25),0 2px 8px rgba(0,0,0,0.2)"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
+      this.mapInstance.addSource('radius', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
       });
-      this.workerMarker = lf.marker([wloc.lat, wloc.lng], { icon: workerIcon }).addTo(this.mapInstance);
-      this.workerMarker.bindTooltip('Your location', { permanent: false });
-    }
+      this.mapInstance.addLayer({
+        id: 'radius-fill',
+        type: 'fill',
+        source: 'radius',
+        paint: { 'fill-color': '#d4ff3a', 'fill-opacity': 0.05 },
+      });
+      this.mapInstance.addLayer({
+        id: 'radius-border',
+        type: 'line',
+        source: 'radius',
+        paint: { 'line-color': '#d4ff3a', 'line-width': 1.5, 'line-dasharray': [4, 3] },
+      });
 
-    const jobs = this.filteredJobs();
-    this.renderMarkers(jobs);
-
-    // Focus on a specific job if requested
-    if (this.focusJobId) {
-      const job = jobs.find(j => j.id === this.focusJobId);
-      if (job?.latitude && job?.longitude) {
-        setTimeout(() => {
-          this.mapInstance.flyTo([job.latitude!, job.longitude!], 15, { duration: 0.7 });
-          this.selectedJob.set(job);
-          this.renderMarkers(jobs, job.id);
-        }, 300);
+      if (wloc) {
+        const dot = document.createElement('div');
+        dot.style.cssText = [
+          'width:16px', 'height:16px', 'border-radius:50%',
+          'background:#60a5fa', 'border:2.5px solid rgba(255,255,255,0.9)',
+          'box-shadow:0 0 0 6px rgba(96,165,250,0.2),0 0 16px rgba(96,165,250,0.5),0 2px 6px rgba(0,0,0,0.5)',
+        ].join(';');
+        new ml.Marker({ element: dot, anchor: 'center' })
+          .setLngLat([wloc.lng, wloc.lat])
+          .addTo(this.mapInstance);
       }
-    }
+
+      const jobs = this.filteredJobs();
+      this.renderMarkers(jobs);
+      this.updateRadiusCircle(this.filterDistance());
+
+      if (this.focusJobId) {
+        const job = jobs.find(j => j.id === this.focusJobId);
+        const focusLng = job?.longitude ?? null;
+        const focusLat = job?.latitude ?? null;
+        if (job && focusLng !== null && focusLat !== null) {
+          setTimeout(() => {
+            this.mapInstance.flyTo({ center: [focusLng, focusLat], zoom: 15, duration: 700 });
+            this.selectedJob.set(job);
+            this.renderMarkers(jobs, job.id);
+          }, 300);
+        }
+      }
+    });
   }
 
   private renderMarkers(jobs: MapJob[], highlightId?: string) {
     this.mapMarkers.forEach(m => m.remove());
     this.mapMarkers = [];
 
-    if (!this.mapInstance) return;
+    if (!this.mapInstance || !this.mapLoaded || !this.maplibreGl) return;
 
-    import('leaflet').then((L) => {
-      const lf: typeof import('leaflet') = (L as any).default ?? L;
-      const bounds: [number, number][] = [];
+    const ml = this.maplibreGl;
+    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+    let hasBounds = false;
 
-      jobs.forEach(job => {
-        if (!job.latitude || !job.longitude) return;
+    jobs.forEach(job => {
+      const lng = job.longitude;
+      const lat = job.latitude;
+      if (!lat || !lng) return;
 
-        const urgencyColor: Record<string, string> = {
-          EMERGENCY: '#ef4444', HIGH: '#f97316', NORMAL: '#2d9580', LOW: '#a1a1aa',
-        };
-        const isHighlighted = highlightId === job.id;
-        const baseColor = job.alreadyApplied ? '#d4d4d8' : (urgencyColor[job.urgency] ?? '#2d9580');
-        const size = isHighlighted ? 44 : 34;
+      const urgencyColor: Record<string, string> = {
+        EMERGENCY: '#ef4444', HIGH: '#f97316', NORMAL: '#d4ff3a', LOW: '#6e7681',
+      };
+      const isHighlighted = highlightId === job.id;
+      const isEmergency = job.urgency === 'EMERGENCY' && !job.alreadyApplied;
+      const baseColor = job.alreadyApplied ? '#d4d4d8' : (urgencyColor[job.urgency] ?? '#d4ff3a');
+      const size = isHighlighted ? 46 : 36;
 
-        const icon = lf.divIcon({
-          className: '',
-          html: `<div style="
-            width:${size}px;height:${size}px;border-radius:50%;
-            background:${baseColor};
-            border:${isHighlighted ? '3px solid #18181b' : '3px solid #fff'};
-            box-shadow:${isHighlighted ? '0 0 0 3px rgba(24,24,27,0.2),' : ''}0 2px 8px rgba(0,0,0,0.2);
-            display:flex;align-items:center;justify-content:center;
-            font-size:${isHighlighted ? 16 : 13}px;
-            cursor:pointer;
-            transition:transform 0.15s;
-          ">${job.category?.icon ?? '📍'}</div>`,
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
-        });
+      const glowColor = job.alreadyApplied ? '#6e7681' : baseColor;
+      const baseShadow = `0 4px 20px ${glowColor}99,0 2px 6px rgba(0,0,0,0.6)`;
+      const hoverShadow = `0 0 0 5px ${glowColor}33,0 10px 28px ${glowColor}bb,0 4px 8px rgba(0,0,0,0.6)`;
+      const highlightShadow = `0 0 0 6px ${glowColor}44,0 8px 28px ${glowColor}cc,0 3px 8px rgba(0,0,0,0.7)`;
 
-        const marker = lf.marker([job.latitude!, job.longitude!], { icon })
-          .addTo(this.mapInstance)
-          .on('click', () => this.selectJob(job));
+      // Wrapper handles events and stays fixed — visual el transforms inside it
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = [
+        `width:${size}px`, `height:${size}px`,
+        'cursor:pointer', 'user-select:none',
+        'display:flex', 'align-items:center', 'justify-content:center',
+      ].join(';');
 
-        this.mapMarkers.push(marker);
-        bounds.push([job.latitude!, job.longitude!]);
+      const el = document.createElement('div');
+      el.style.cssText = [
+        `width:${size}px`, `height:${size}px`, 'border-radius:50%',
+        `background:${baseColor}`,
+        `border:${isHighlighted ? `3px solid #fff` : '2.5px solid rgba(255,255,255,0.18)'}`,
+        `box-shadow:${isHighlighted ? highlightShadow : baseShadow}`,
+        'display:flex', 'align-items:center', 'justify-content:center',
+        `font-size:${isHighlighted ? 20 : 14}px`,
+        'pointer-events:none',
+        'transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.2s',
+      ].join(';');
+      el.innerHTML = job.category?.icon ?? '📍';
+
+      if (isEmergency) el.classList.add('marker-pulse');
+      wrapper.appendChild(el);
+
+      wrapper.addEventListener('mouseenter', () => {
+        if (!isHighlighted) {
+          el.style.transform = 'scale(1.2) translateY(-3px)';
+          el.style.boxShadow = hoverShadow;
+        }
+      });
+      wrapper.addEventListener('mouseleave', () => {
+        if (!isHighlighted) {
+          el.style.transform = '';
+          el.style.boxShadow = baseShadow;
+        }
+      });
+      wrapper.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.selectJob(job);
       });
 
-      if (!highlightId && bounds.length > 0) {
-        if (bounds.length === 1) {
-          this.mapInstance.setView(bounds[0], 14);
-        } else {
-          this.mapInstance.fitBounds(bounds, { padding: [40, 40] });
-        }
-      }
+      const marker = new ml.Marker({ element: wrapper, anchor: 'center' })
+        .setLngLat([lng, lat])
+        .addTo(this.mapInstance);
+
+      this.mapMarkers.push(marker);
+
+      minLng = Math.min(minLng, lng);
+      minLat = Math.min(minLat, lat);
+      maxLng = Math.max(maxLng, lng);
+      maxLat = Math.max(maxLat, lat);
+      hasBounds = true;
     });
+
+    if (!highlightId && hasBounds) {
+      if (this.mapMarkers.length === 1) {
+        this.mapInstance.flyTo({ center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2], zoom: 14 });
+      } else {
+        this.mapInstance.fitBounds(
+          [[minLng, minLat], [maxLng, maxLat]],
+          { padding: 70, maxZoom: 14 },
+        );
+      }
+    }
   }
 
   private updateRadiusCircle(distKm: number | null) {
-    if (this.radiusCircle) {
-      this.radiusCircle.remove();
-      this.radiusCircle = null;
-    }
-    if (!distKm || !this.workerLocation() || !this.mapInstance) return;
+    if (!this.mapInstance || !this.mapLoaded) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const src = this.mapInstance.getSource('radius') as any;
+    if (!src) return;
 
-    import('leaflet').then((L) => {
-      const lf: typeof import('leaflet') = (L as any).default ?? L;
-      const wloc = this.workerLocation()!;
-      this.radiusCircle = lf.circle([wloc.lat, wloc.lng], {
-        radius: distKm * 1000,
-        color: '#2d9580',
-        fillColor: '#2d9580',
-        fillOpacity: 0.04,
-        weight: 1.5,
-        dashArray: '6 4',
-      }).addTo(this.mapInstance);
+    const wloc = this.workerLocation();
+    if (!distKm || !wloc) {
+      src.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
+
+    const pts = 64;
+    const dLat = (distKm / 6371) * (180 / Math.PI);
+    const dLng = dLat / Math.cos(wloc.lat * Math.PI / 180);
+    const coords: number[][] = [];
+    for (let i = 0; i <= pts; i++) {
+      const a = (i / pts) * 2 * Math.PI;
+      coords.push([wloc.lng + dLng * Math.sin(a), wloc.lat + dLat * Math.cos(a)]);
+    }
+
+    src.setData({
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [coords] },
+        properties: {},
+      }],
     });
   }
 
   private destroyMap() {
+    if (this.activePopup) { this.activePopup.remove(); this.activePopup = null; }
     if (this.mapInstance) {
       this.mapInstance.remove();
       this.mapInstance = null;
+      this.mapLoaded = false;
+      this.maplibreGl = null;
       this.mapMarkers = [];
-      this.radiusCircle = null;
-      this.workerMarker = null;
     }
   }
 }

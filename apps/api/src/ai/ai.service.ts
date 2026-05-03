@@ -146,10 +146,12 @@ Respond ONLY with a JSON object (no markdown):
 Only include fields clearly implied. "summary" max 60 chars describes what was extracted.`,
       messages: [{ role: 'user', content: query }],
     });
-    const text = (response.content[0] as { type: string; text: string }).text;
+    const raw = (response.content[0] as { type: string; text: string }).text;
+    const text = raw.replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
     try {
       return JSON.parse(text) as MapFilters;
     } catch {
+      this.logger.error('Failed to parse map filter response', raw);
       return { summary: 'Could not parse query' };
     }
   }
