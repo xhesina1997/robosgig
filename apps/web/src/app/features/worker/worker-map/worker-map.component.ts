@@ -191,6 +191,19 @@ interface MapJob {
                 Clear
               </button>
             }
+
+            <!-- spacer -->
+            <div style="flex:1;min-width:4px"></div>
+            <div class="fb-sep"></div>
+
+            <!-- Theme toggle -->
+            <button class="fb-theme-btn" (click)="toggleMapTheme()" [title]="mapTheme() === 'dark' ? 'Switch to light map' : 'Switch to dark map'">
+              @if (mapTheme() === 'dark') {
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              } @else {
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              }
+            </button>
           </div>
         </div>
 
@@ -357,6 +370,15 @@ interface MapJob {
     }
     .fb-toggle-btn:hover { color: #e6edf3; border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); }
     .fb-toggle-btn--on { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: #c9d1d9; }
+
+    .fb-theme-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
+      color: #6e7681; cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .fb-theme-btn:hover { color: #e6edf3; background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); }
 
     .fb-clear {
       display: inline-flex; align-items: center; gap: 0.25rem;
@@ -584,6 +606,9 @@ export class WorkerMapComponent implements OnInit, OnDestroy {
   aiQuery = '';
   aiLoading = signal(false);
   aiApplied = signal<string | null>(null);
+
+  // Map theme
+  mapTheme = signal<'dark' | 'light'>('dark');
 
   // Map interaction
   selectedJob = signal<MapJob | null>(null);
@@ -888,23 +913,7 @@ export class WorkerMapComponent implements OnInit, OnDestroy {
 
     this.mapInstance.on('load', () => {
       this.mapLoaded = true;
-
-      this.mapInstance.addSource('radius', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      this.mapInstance.addLayer({
-        id: 'radius-fill',
-        type: 'fill',
-        source: 'radius',
-        paint: { 'fill-color': '#d4ff3a', 'fill-opacity': 0.05 },
-      });
-      this.mapInstance.addLayer({
-        id: 'radius-border',
-        type: 'line',
-        source: 'radius',
-        paint: { 'line-color': '#d4ff3a', 'line-width': 1.5, 'line-dasharray': [4, 3] },
-      });
+      this.addRadiusLayer();
 
       if (wloc) {
         const dot = document.createElement('div');
@@ -1059,6 +1068,37 @@ export class WorkerMapComponent implements OnInit, OnDestroy {
         geometry: { type: 'Polygon', coordinates: [coords] },
         properties: {},
       }],
+    });
+  }
+
+  toggleMapTheme() {
+    const newTheme = this.mapTheme() === 'dark' ? 'light' : 'dark';
+    this.mapTheme.set(newTheme);
+    if (!this.mapInstance) return;
+    const styleUrl = newTheme === 'dark'
+      ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+      : 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+    this.mapInstance.setStyle(styleUrl);
+    this.mapInstance.once('style.load', () => {
+      this.addRadiusLayer();
+      this.updateRadiusCircle(this.filterDistance());
+      this.renderMarkers(this.filteredJobs(), this.selectedJob()?.id);
+    });
+  }
+
+  private addRadiusLayer() {
+    if (!this.mapInstance) return;
+    this.mapInstance.addSource('radius', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    });
+    this.mapInstance.addLayer({
+      id: 'radius-fill', type: 'fill', source: 'radius',
+      paint: { 'fill-color': '#d4ff3a', 'fill-opacity': 0.05 },
+    });
+    this.mapInstance.addLayer({
+      id: 'radius-border', type: 'line', source: 'radius',
+      paint: { 'line-color': '#d4ff3a', 'line-width': 1.5, 'line-dasharray': [4, 3] },
     });
   }
 
