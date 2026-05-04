@@ -38,6 +38,11 @@ export class WorkersService {
     dateOfBirth?: string;
     profession?: string;
     customSkills?: string[];
+    bankAccountName?: string;
+    bankIban?: string;
+    bankBic?: string;
+    paypalEmail?: string;
+    revolutContact?: string;
   }) {
     const profile = await this.prisma.workerProfile.findUnique({ where: { userId } });
     if (!profile) throw new NotFoundException('Worker profile not found');

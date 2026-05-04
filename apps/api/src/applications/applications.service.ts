@@ -1,10 +1,15 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { StripeService } from '../stripe/stripe.service';
 
 @Injectable()
 export class ApplicationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private stripe: StripeService,
+    private config: ConfigService,
+  ) {}
 
   async apply(userId: string, jobId: string, dto: { proposedPrice?: number; message?: string }) {
     const workerProfile = await this.prisma.workerProfile.findUnique({
@@ -166,52 +171,67 @@ export class ApplicationsService {
     const job = await this.prisma.job.findUnique({
       where: { id: jobId },
       include: {
-        applications: { where: { status: 'ACCEPTED' } },
+        applications: {
+          where: { status: 'ACCEPTED' },
+          include: { worker: { select: { stripeConnectId: true, stripeConnectOnboarded: true } as any } },
+        },
       },
     });
     if (!job) throw new NotFoundException('Job not found');
     if (job.clientId !== userId) throw new ForbiddenException('Not your job');
+    if (!['IN_PROGRESS', 'ASSIGNED'].includes(job.status)) {
+      throw new BadRequestException('Job cannot be completed at this stage');
+    }
 
     const acceptedApp = job.applications[0];
-    const totalAmount = acceptedApp?.proposedPrice ?? job.priceMax ?? job.priceMin ?? 0;
+    const payment = await this.prisma.payment.findUnique({ where: { jobId } });
 
-    if (totalAmount > 0) {
-      // Fetch subscriptions to determine platform fee rate
-      const [workerSub, clientSub] = await Promise.all([
-        acceptedApp
-          ? this.prisma.subscription.findUnique({
-              where: { userId: (await this.prisma.workerProfile.findUnique({ where: { id: acceptedApp.workerId }, select: { userId: true } }))!.userId },
-            })
-          : Promise.resolve(null),
-        this.prisma.subscription.findUnique({ where: { userId: job.clientId } }),
+    if (payment && (payment.status as string) === 'ESCROWED') {
+      // Release escrow: mark payment COMPLETED, job COMPLETED, increment worker stats
+      await this.prisma.$transaction([
+        this.prisma.payment.update({
+          where: { jobId },
+          data: { status: 'COMPLETED' },
+        }),
+        this.prisma.job.update({ where: { id: jobId }, data: { status: 'COMPLETED' } }),
+        ...(acceptedApp
+          ? [this.prisma.workerProfile.update({
+              where: { id: acceptedApp.workerId },
+              data: { totalJobs: { increment: 1 } },
+            })]
+          : []),
       ]);
 
-      // Worker PRO: 12% fee, Client BUSINESS: 10% fee, default: 15%
-      let feePercent = 15;
-      if (workerSub?.isActive && workerSub.planType === 'WORKER_PRO') feePercent = 12;
-      else if (clientSub?.isActive && clientSub.planType === 'CLIENT_BUSINESS') feePercent = 10;
-
-      const platformFeeAmount = Math.round(totalAmount * feePercent) / 100;
-      const workerPayout = totalAmount - platformFeeAmount;
-
-      await this.prisma.payment.upsert({
-        where: { jobId },
-        create: { jobId, totalAmount, platformFeePercent: feePercent, platformFeeAmount, workerPayout, status: 'COMPLETED' },
-        update: { totalAmount, platformFeePercent: feePercent, platformFeeAmount, workerPayout, status: 'COMPLETED' },
-      });
+      // Transfer to worker via Stripe Connect if configured
+      const workerConnect = (acceptedApp as any)?.worker;
+      const workerPayoutCents = Math.round(payment.workerPayout * 100);
+      const stripeKey = this.config.get<string>('STRIPE_SECRET_KEY') ?? '';
+      if (
+        workerConnect?.stripeConnectId &&
+        workerConnect?.stripeConnectOnboarded &&
+        workerPayoutCents > 0 &&
+        stripeKey && !stripeKey.includes('placeholder')
+      ) {
+        try {
+          await this.stripe.createTransfer(workerPayoutCents, 'eur', workerConnect.stripeConnectId, { jobId });
+          await this.prisma.payment.update({
+            where: { jobId },
+            data: { payoutSent: true, payoutSentAt: new Date() },
+          });
+        } catch { /* payout can be sent manually from admin panel */ }
+      }
+    } else {
+      // No escrowed payment (old flow / admin override) — just mark complete
+      await this.prisma.job.update({ where: { id: jobId }, data: { status: 'COMPLETED' } });
+      if (acceptedApp) {
+        await this.prisma.workerProfile.update({
+          where: { id: acceptedApp.workerId },
+          data: { totalJobs: { increment: 1 } },
+        });
+      }
     }
 
-    if (acceptedApp) {
-      await this.prisma.workerProfile.update({
-        where: { id: acceptedApp.workerId },
-        data: { totalJobs: { increment: 1 } },
-      });
-    }
-
-    return this.prisma.job.update({
-      where: { id: jobId },
-      data: { status: 'COMPLETED' },
-    });
+    return { jobId, status: 'COMPLETED' };
   }
 
   async leaveReview(userId: string, jobId: string, dto: { rating: number; comment?: string }) {

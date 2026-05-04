@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Query, Param, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -51,5 +51,25 @@ export class DashboardController {
   @Get('admin/conversations/:jobId/messages')
   getAdminConversationMessages(@Param('jobId') jobId: string) {
     return this.dashboardService.getAdminConversationMessages(jobId);
+  }
+
+  @Get('admin/payouts')
+  getAdminPayouts() {
+    return this.dashboardService.getAdminPayouts();
+  }
+
+  @Post('admin/payouts/:paymentId/mark-sent')
+  markPayoutSent(@Param('paymentId') paymentId: string) {
+    return this.dashboardService.markPayoutSent(paymentId);
+  }
+
+  @Get('admin/settings')
+  getAdminSettings() {
+    return this.dashboardService.getAdminSettings();
+  }
+
+  @Patch('admin/settings')
+  updateAdminSettings(@Body() body: { feeDefault?: number; feeWorkerPro?: number; feeClientBusiness?: number }) {
+    return this.dashboardService.updateAdminSettings(body);
   }
 }

@@ -24,6 +24,7 @@ import { AuthService } from '../../core/services/auth.service';
             <a class="nav-link" routerLink="/admin/subscriptions">Subscriptions</a>
             <a class="nav-link" routerLink="/admin/chats">Chats</a>
             <a class="nav-link" routerLink="/admin/verifications">Verifications</a>
+            <a class="nav-link" routerLink="/admin/payouts">Payouts</a>
             <a class="nav-link" routerLink="/admin/reports">
               Reports
               @if (data()?.reports?.open > 0) {

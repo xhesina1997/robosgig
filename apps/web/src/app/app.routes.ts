@@ -106,6 +106,12 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('./features/admin/admin-reports.component').then((m) => m.AdminReportsComponent),
   },
+  {
+    path: 'admin/payouts',
+    canActivate: [adminOnlyGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-payouts.component').then((m) => m.AdminPayoutsComponent),
+  },
   // Public routes
   {
     path: 'auth/callback',

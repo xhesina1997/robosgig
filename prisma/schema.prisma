@@ -49,6 +49,7 @@ enum PlanType {
 
 enum PaymentStatus {
   PENDING
+  ESCROWED
   COMPLETED
   REFUNDED
 }
@@ -121,6 +122,13 @@ model WorkerProfile {
   rating       Float @default(0)
   totalJobs    Int   @default(0)
   totalReviews Int   @default(0)
+
+  // Payout methods
+  bankAccountName String?
+  bankIban        String?
+  bankBic         String?
+  paypalEmail     String?
+  revolutContact  String?
 
   // Stripe Connect (payouts)
   stripeConnectId        String?
@@ -342,5 +350,13 @@ model Payment {
   workerPayout       Float
   status             PaymentStatus @default(PENDING)
   stripeSessionId    String?
+  payoutSent         Boolean       @default(false)
+  payoutSentAt       DateTime?
   createdAt          DateTime      @default(now())
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }

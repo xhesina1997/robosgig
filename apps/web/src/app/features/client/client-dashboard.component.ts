@@ -15,6 +15,7 @@ interface Job {
   urgency: string; city: string | null; createdAt: string; scheduledDate: string | null;
   category: { name: string; icon: string } | null;
   applications: Application[];
+  payment: { status: string; totalAmount: number; workerPayout: number } | null;
 }
 interface ClientDashboard {
   stats: { total: number; posted: number; inProgress: number; completed: number };
@@ -216,15 +217,35 @@ interface ClientDashboard {
                           </div>
                         }
 
-                        <!-- Pay & Complete -->
-                        @if (job.status === 'ASSIGNED' || job.status === 'IN_PROGRESS') {
+                        <!-- Escrow actions -->
+                        @if (job.status === 'ASSIGNED') {
                           <div class="job-action-row">
-                            <button class="btn-complete" (click)="payAndComplete(job.id)" [disabled]="payingJob() === job.id">
+                            <div class="escrow-prompt">
+                              <svg width="14" height="14" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                              <span>Fund escrow to start the job — the worker gets paid once you mark it complete.</span>
+                            </div>
+                            <button class="btn-fund" (click)="fundJob(job.id)" [disabled]="payingJob() === job.id">
                               @if (payingJob() === job.id) {
                                 <span class="load-ring-sm"></span> Redirecting…
                               } @else {
-                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
-                                Pay & complete job
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                Fund job{{ jobPrice(job) ? ' (€' + jobPrice(job) + ')' : '' }}
+                              }
+                            </button>
+                          </div>
+                        }
+                        @if (job.status === 'IN_PROGRESS') {
+                          <div class="job-action-row">
+                            <div class="escrow-held">
+                              <svg width="14" height="14" fill="none" stroke="#15803d" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                              <span>Payment secured in escrow — release it when the work is done.</span>
+                            </div>
+                            <button class="btn-complete" (click)="releasePayment(job.id)" [disabled]="releasingJob() === job.id">
+                              @if (releasingJob() === job.id) {
+                                <span class="load-ring-sm"></span> Processing…
+                              } @else {
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                Mark complete & release payment
                               }
                             </button>
                           </div>
@@ -537,10 +558,10 @@ interface ClientDashboard {
       border-radius: 99px;
       white-space: nowrap;
     }
-    .status-posted     { background: rgba(37,99,235,0.08);  color: #1d4ed8; }
-    .status-assigned,
-    .status-in_progress { background: rgba(245,158,11,0.1); color: #b45309; }
-    .status-completed  { background: rgba(20,184,166,0.1);  color: #0f766e; }
+    .status-posted      { background: rgba(37,99,235,0.08);  color: #1d4ed8; }
+    .status-assigned    { background: rgba(245,158,11,0.1);  color: #b45309; }
+    .status-in_progress { background: rgba(20,184,166,0.1);  color: #0f766e; }
+    .status-completed   { background: rgba(0,0,0,0.05);      color: #71717a; }
     .status-cancelled,
     .status-draft      { background: rgba(0,0,0,0.05);      color: #71717a; }
 
@@ -890,6 +911,31 @@ interface ClientDashboard {
       font-size: 0.78rem; color: #a1a1aa; margin-top: 0.5rem;
     }
 
+    /* ── Escrow prompts ───────────────────────── */
+    .escrow-prompt {
+      display: flex; align-items: flex-start; gap: 0.5rem;
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px;
+      padding: 0.6rem 0.875rem; font-size: 0.78rem; color: #92400e;
+      line-height: 1.5; margin-bottom: 0.625rem;
+    }
+    .escrow-prompt svg { flex-shrink: 0; margin-top: 1px; }
+    .escrow-held {
+      display: flex; align-items: flex-start; gap: 0.5rem;
+      background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;
+      padding: 0.6rem 0.875rem; font-size: 0.78rem; color: #166534;
+      line-height: 1.5; margin-bottom: 0.625rem;
+    }
+    .escrow-held svg { flex-shrink: 0; margin-top: 1px; }
+    .btn-fund {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: #f59e0b; color: #fff; border: none;
+      padding: 0.55rem 1.25rem; border-radius: 99px;
+      font-size: 0.84rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s; font-family: inherit;
+    }
+    .btn-fund:hover:not(:disabled) { background: #d97706; box-shadow: 0 2px 8px rgba(245,158,11,0.3); }
+    .btn-fund:disabled { opacity: 0.5; cursor: not-allowed; }
+
     .header-actions { display: flex; align-items: center; gap: 0.75rem; }
     .btn-ghost {
       padding: 0.5rem 1rem; border-radius: 10px; font-size: 0.875rem; font-weight: 500;
@@ -921,6 +967,7 @@ export class ClientDashboardComponent implements OnInit {
   selectedApp = signal<Application | null>(null);
   selectedJobCompleted = signal(false);
   payingJob = signal<string | null>(null);
+  releasingJob = signal<string | null>(null);
   confirmDeleteId = signal<string | null>(null);
 
   hasActiveApplication(job: Job): boolean {
@@ -1019,13 +1066,30 @@ export class ClientDashboardComponent implements OnInit {
     this.api.rejectApplication(appId).subscribe({ next: () => this.load() });
   }
 
-  payAndComplete(jobId: string) {
+  fundJob(jobId: string) {
     if (this.payingJob()) return;
     this.payingJob.set(jobId);
     this.api.createJobPaymentSession(jobId).subscribe({
       next: ({ url }) => { window.location.href = url!; },
       error: () => this.payingJob.set(null),
     });
+  }
+
+  releasePayment(jobId: string) {
+    if (this.releasingJob()) return;
+    this.releasingJob.set(jobId);
+    this.api.completeJob(jobId).subscribe({
+      next: () => { this.releasingJob.set(null); this.load(); },
+      error: (err: any) => {
+        alert(err?.error?.message ?? 'Could not complete job');
+        this.releasingJob.set(null);
+      },
+    });
+  }
+
+  jobPrice(job: Job): number | null {
+    const accepted = job.applications.find(a => a.status === 'ACCEPTED');
+    return accepted?.proposedPrice ?? job.priceMax ?? job.priceMin ?? null;
   }
 
   setRating(jobId: string, rating: number) {
@@ -1050,7 +1114,7 @@ export class ClientDashboardComponent implements OnInit {
 
   statusLabel(status: string): string {
     const map: Record<string, string> = {
-      POSTED: 'Open', ASSIGNED: 'Assigned', IN_PROGRESS: 'In Progress',
+      POSTED: 'Open', ASSIGNED: 'Awaiting payment', IN_PROGRESS: 'In Progress',
       COMPLETED: 'Completed', CANCELLED: 'Cancelled', DRAFT: 'Draft',
       APPLIED: 'Applied', ACCEPTED: 'Accepted', REJECTED: 'Declined',
     };

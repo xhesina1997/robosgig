@@ -38,8 +38,8 @@ export class PaymentsService {
     });
     if (!job) throw new NotFoundException('Job not found');
     if (job.clientId !== userId) throw new ForbiddenException('Not your job');
-    if (!['ASSIGNED', 'IN_PROGRESS'].includes(job.status)) {
-      throw new BadRequestException('Job must be ASSIGNED or IN_PROGRESS to pay');
+    if (job.status !== 'ASSIGNED') {
+      throw new BadRequestException('Job must be ASSIGNED (worker accepted) before funding escrow');
     }
 
     // Verify Stripe is configured
@@ -184,43 +184,31 @@ export class PaymentsService {
       this.prisma.subscription.findUnique({ where: { userId: job.clientId } }),
     ]);
 
-    let feePercent = 15;
-    if (workerSub?.isActive && workerSub.planType === 'WORKER_PRO') feePercent = 12;
-    else if (clientSub?.isActive && clientSub.planType === 'CLIENT_BUSINESS') feePercent = 10;
+    const [feeDefault, feeWorkerPro, feeClientBusiness] = await Promise.all([
+      this.prisma.platformSetting.findUnique({ where: { key: 'fee.default' } }),
+      this.prisma.platformSetting.findUnique({ where: { key: 'fee.workerPro' } }),
+      this.prisma.platformSetting.findUnique({ where: { key: 'fee.clientBusiness' } }),
+    ]);
+    let feePercent = parseInt(feeDefault?.value ?? '15');
+    if (workerSub?.isActive && workerSub.planType === 'WORKER_PRO') feePercent = parseInt(feeWorkerPro?.value ?? '12');
+    else if (clientSub?.isActive && clientSub.planType === 'CLIENT_BUSINESS') feePercent = parseInt(feeClientBusiness?.value ?? '10');
 
     const platformFeeAmount = Math.round(totalAmount * feePercent) / 100;
     const workerPayout = totalAmount - platformFeeAmount;
-    const workerPayoutCents = Math.round(workerPayout * 100);
 
-    // Finalize payment + complete job in a transaction
+    // Escrow the payment and move job to IN_PROGRESS — payout releases when client marks complete
     await this.prisma.$transaction([
       this.prisma.payment.update({
         where: { jobId },
-        data: { platformFeePercent: feePercent, platformFeeAmount, workerPayout, status: 'COMPLETED' },
+        data: { platformFeePercent: feePercent, platformFeeAmount, workerPayout, status: 'ESCROWED' },
       }),
       this.prisma.job.update({
         where: { id: jobId },
-        data: { status: 'COMPLETED' },
+        data: { status: 'IN_PROGRESS' },
       }),
-      ...(acceptedApp
-        ? [this.prisma.workerProfile.update({
-            where: { id: acceptedApp.workerId },
-            data: { totalJobs: { increment: 1 } },
-          })]
-        : []),
     ]);
 
-    // Transfer payout to worker's Stripe Connect account if they have one
-    const workerConnect = (acceptedApp as any)?.worker;
-    if (workerConnect?.stripeConnectId && workerConnect?.stripeConnectOnboarded && workerPayoutCents > 0) {
-      try {
-        await this.stripe.createTransfer(workerPayoutCents, 'eur', workerConnect.stripeConnectId, { jobId });
-      } catch {
-        // Log but don't fail — payout can be retried manually from Stripe dashboard
-      }
-    }
-
-    return { jobId, totalAmount, platformFeePercent: feePercent, platformFeeAmount, workerPayout, status: 'COMPLETED' };
+    return { jobId, totalAmount, platformFeePercent: feePercent, platformFeeAmount, workerPayout, status: 'ESCROWED' };
   }
 
   /** Returns the payment record for a job (client only). */
@@ -230,5 +218,53 @@ export class PaymentsService {
     if (job.clientId !== userId) throw new ForbiddenException('Not your job');
 
     return this.prisma.payment.findUnique({ where: { jobId } });
+  }
+
+  /** Returns saved payment methods for the authenticated client. */
+  async getSavedPaymentMethods(userId: string) {
+    const profile = await this.prisma.clientProfile.findUnique({
+      where: { userId },
+      select: { stripeCustomerId: true },
+    });
+    if (!profile?.stripeCustomerId) return [];
+
+    const stripeKey = this.config.get<string>('STRIPE_SECRET_KEY') ?? '';
+    if (!stripeKey || stripeKey.includes('placeholder')) return [];
+
+    try {
+      const methods = await this.stripe.listPaymentMethods(profile.stripeCustomerId);
+      return methods.data.map(m => ({
+        id: m.id,
+        brand: m.card?.brand ?? 'card',
+        last4: m.card?.last4 ?? '????',
+        expMonth: m.card?.exp_month,
+        expYear: m.card?.exp_year,
+        funding: m.card?.funding,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /** Detaches a saved payment method from the client's Stripe customer. */
+  async removePaymentMethod(userId: string, methodId: string) {
+    const profile = await this.prisma.clientProfile.findUnique({
+      where: { userId },
+      select: { stripeCustomerId: true },
+    });
+    if (!profile?.stripeCustomerId) throw new ForbiddenException('No saved payment methods');
+
+    const stripeKey = this.config.get<string>('STRIPE_SECRET_KEY') ?? '';
+    if (!stripeKey || stripeKey.includes('placeholder')) {
+      throw new ServiceUnavailableException('Stripe is not configured');
+    }
+
+    const method = await this.stripe.client.paymentMethods.retrieve(methodId);
+    if (method.customer !== profile.stripeCustomerId) {
+      throw new ForbiddenException('Not your payment method');
+    }
+
+    await this.stripe.detachPaymentMethod(methodId);
+    return { removed: true };
   }
 }

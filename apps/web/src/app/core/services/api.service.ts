@@ -181,6 +181,14 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/payments/jobs/${jobId}`);
   }
 
+  getSavedPaymentMethods(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/payments/me/payment-methods`);
+  }
+
+  removePaymentMethod(id: string): Observable<{ removed: boolean }> {
+    return this.http.delete<{ removed: boolean }>(`${this.baseUrl}/payments/me/payment-methods/${id}`);
+  }
+
   // ── Chat ──────────────────────────────────────────────────────────
   getChatConversations(): Observable<unknown[]> {
     return this.http.get<unknown[]>(`${this.baseUrl}/chat/conversations`);
@@ -241,6 +249,23 @@ export class ApiService {
 
   deleteAccount(): Observable<{ deleted: boolean }> {
     return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/auth/me`);
+  }
+
+  // ── Admin Payouts & Settings ──────────────────────────────────────
+  getAdminPayouts(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/dashboard/admin/payouts`);
+  }
+
+  markPayoutSent(paymentId: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/dashboard/admin/payouts/${paymentId}/mark-sent`, {});
+  }
+
+  getAdminSettings(): Observable<{ feeDefault: number; feeWorkerPro: number; feeClientBusiness: number }> {
+    return this.http.get<any>(`${this.baseUrl}/dashboard/admin/settings`);
+  }
+
+  updateAdminSettings(data: { feeDefault?: number; feeWorkerPro?: number; feeClientBusiness?: number }): Observable<any> {
+    return this.http.patch(`${this.baseUrl}/dashboard/admin/settings`, data);
   }
 
   // ── Admin ─────────────────────────────────────────────────────────

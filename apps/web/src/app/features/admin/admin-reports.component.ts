@@ -41,6 +41,7 @@ interface ReportEntry {
             <a class="nav-link" routerLink="/admin/subscriptions">Subscriptions</a>
             <a class="nav-link" routerLink="/admin/chats">Chats</a>
             <a class="nav-link" routerLink="/admin/verifications">Verifications</a>
+            <a class="nav-link" routerLink="/admin/payouts">Payouts</a>
             <a class="nav-link active" routerLink="/admin/reports">Reports</a>
           </nav>
           <button class="nav-logout" (click)="auth.logout()">

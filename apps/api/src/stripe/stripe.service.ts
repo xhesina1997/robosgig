@@ -55,4 +55,8 @@ export class StripeService {
   createTransfer(amountCents: number, currency: string, destination: string, metadata: Record<string, string> = {}) {
     return this.client.transfers.create({ amount: amountCents, currency, destination, metadata });
   }
+
+  detachPaymentMethod(methodId: string) {
+    return this.client.paymentMethods.detach(methodId);
+  }
 }

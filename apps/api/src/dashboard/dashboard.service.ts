@@ -236,6 +236,92 @@ export class DashboardService {
     });
   }
 
+  async getAdminPayouts() {
+    const payments = await this.prisma.payment.findMany({
+      where: { status: { in: ['ESCROWED', 'COMPLETED'] as any } },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        job: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true,
+            applications: {
+              where: { status: 'ACCEPTED' },
+              include: {
+                worker: {
+                  select: {
+                    firstName: true, lastName: true,
+                    bankAccountName: true, bankIban: true, bankBic: true,
+                    paypalEmail: true, revolutContact: true,
+                    user: { select: { email: true } },
+                  },
+                },
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    return payments.map(p => {
+      const worker = p.job.applications[0]?.worker ?? null;
+      return {
+        id: p.id,
+        jobId: p.job.id,
+        jobTitle: p.job.title,
+        completedAt: p.createdAt,
+        totalAmount: p.totalAmount,
+        platformFeePercent: p.platformFeePercent,
+        platformFeeAmount: p.platformFeeAmount,
+        workerPayout: p.workerPayout,
+        status: p.status,
+        payoutSent: (p as any).payoutSent,
+        payoutSentAt: (p as any).payoutSentAt,
+        worker: worker ? {
+          name: `${worker.firstName} ${worker.lastName}`,
+          email: worker.user.email,
+          bankAccountName: worker.bankAccountName,
+          bankIban: worker.bankIban,
+          bankBic: worker.bankBic,
+          paypalEmail: (worker as any).paypalEmail ?? null,
+          revolutContact: (worker as any).revolutContact ?? null,
+        } : null,
+      };
+    });
+  }
+
+  async markPayoutSent(paymentId: string) {
+    return this.prisma.payment.update({
+      where: { id: paymentId },
+      data: { payoutSent: true, payoutSentAt: new Date() },
+    });
+  }
+
+  async getAdminSettings() {
+    const rows = await this.prisma.platformSetting.findMany();
+    const map: Record<string, string> = {};
+    for (const r of rows) map[r.key] = r.value;
+    return {
+      feeDefault: parseInt(map['fee.default'] ?? '15'),
+      feeWorkerPro: parseInt(map['fee.workerPro'] ?? '12'),
+      feeClientBusiness: parseInt(map['fee.clientBusiness'] ?? '10'),
+    };
+  }
+
+  async updateAdminSettings(data: { feeDefault?: number; feeWorkerPro?: number; feeClientBusiness?: number }) {
+    const ops: Promise<any>[] = [];
+    if (data.feeDefault !== undefined)
+      ops.push(this.prisma.platformSetting.upsert({ where: { key: 'fee.default' }, create: { key: 'fee.default', value: String(data.feeDefault) }, update: { value: String(data.feeDefault) } }));
+    if (data.feeWorkerPro !== undefined)
+      ops.push(this.prisma.platformSetting.upsert({ where: { key: 'fee.workerPro' }, create: { key: 'fee.workerPro', value: String(data.feeWorkerPro) }, update: { value: String(data.feeWorkerPro) } }));
+    if (data.feeClientBusiness !== undefined)
+      ops.push(this.prisma.platformSetting.upsert({ where: { key: 'fee.clientBusiness' }, create: { key: 'fee.clientBusiness', value: String(data.feeClientBusiness) }, update: { value: String(data.feeClientBusiness) } }));
+    await Promise.all(ops);
+    return this.getAdminSettings();
+  }
+
   async getAdminConversationMessages(jobId: string) {
     return this.prisma.message.findMany({
       where: { jobId },

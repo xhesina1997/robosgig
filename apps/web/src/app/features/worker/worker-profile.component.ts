@@ -333,41 +333,120 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
               <div class="page-body">
                 <div class="inner inner--narrow">
 
-                  <!-- Payouts (Stripe Connect) -->
-                  <div class="card" style="margin-bottom:1.25rem">
-                    <p class="section-label">Payouts</p>
-                    @if (connectStatus() === null) {
-                      <div class="connect-loading">
-                        <div class="mini-ring"></div> Checking payout status…
+                  <!-- Payout methods -->
+                  <div class="payout-methods-header">
+                    <p class="section-label" style="margin:0">Payout Methods</p>
+                    <p class="payout-hint">Add at least one — admin will send your earnings here after each job.</p>
+                  </div>
+
+                  <!-- Bank Transfer -->
+                  <div class="card payout-card" style="margin-bottom:0.875rem">
+                    <div class="payout-card-head">
+                      <div class="payout-icon bank-icon">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l9-6 9 6"/><line x1="9" y1="21" x2="9" y2="9"/><line x1="15" y1="21" x2="15" y2="9"/></svg>
                       </div>
-                    } @else if (!connectStatus()!.connected) {
-                      <p class="connect-desc">Connect your bank account to receive payments directly after completing jobs.</p>
-                      <button class="btn-connect" (click)="startConnectOnboarding()" [disabled]="connectLoading()">
-                        @if (connectLoading()) { <span class="mini-ring"></span> Redirecting… }
-                        @else {
-                          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                          Set up payouts
-                        }
-                      </button>
-                    } @else if (!connectStatus()!.onboarded) {
-                      <p class="connect-desc">Your Stripe account was created but onboarding isn't complete. Finish setup to start receiving payments.</p>
-                      <button class="btn-connect" (click)="startConnectOnboarding()" [disabled]="connectLoading()">
-                        @if (connectLoading()) { <span class="mini-ring"></span> Redirecting… }
-                        @else { Continue onboarding }
+                      <div>
+                        <p class="payout-method-name">Bank Transfer (IBAN)</p>
+                        <p class="payout-method-sub">Works in 30+ countries · Standard in Europe</p>
+                      </div>
+                      @if (bankEdit.iban) { <span class="payout-set-badge">✓ Set</span> }
+                    </div>
+                    <div class="field-row">
+                      <label class="field-label">Account holder name</label>
+                      <input class="field-input" [(ngModel)]="bankEdit.accountName" placeholder="Full name as on your bank account" />
+                    </div>
+                    <div class="field-row">
+                      <label class="field-label">IBAN</label>
+                      <input class="field-input" [(ngModel)]="bankEdit.iban" placeholder="e.g. AT61 1904 3002 3457 3201" autocomplete="off" />
+                    </div>
+                    <div class="field-row">
+                      <label class="field-label">BIC / SWIFT <span class="opt">optional</span></label>
+                      <input class="field-input" [(ngModel)]="bankEdit.bic" placeholder="e.g. RLNWATWW" autocomplete="off" />
+                    </div>
+                    @if (bankSaved()) { <p class="pw-success">Saved!</p> }
+                    @if (bankError()) { <p class="connect-error">{{ bankError() }}</p> }
+                    <button class="btn-payout-save" (click)="saveBankDetails()" [disabled]="bankSaving()">
+                      @if (bankSaving()) { <span class="mini-ring"></span> Saving… } @else { Save bank details }
+                    </button>
+                  </div>
+
+                  <!-- PayPal -->
+                  <div class="card payout-card" style="margin-bottom:0.875rem">
+                    <div class="payout-card-head">
+                      <div class="payout-icon paypal-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7.144 19.532l1.049-5.751c.11-.606.691-1.002 1.304-.862 2.493.57 6.284.233 7.94-3.299 1.91-4.048-.957-6.582-5.058-6.584H6.01c-.56 0-1.038.404-1.137.957L2.532 19.37c-.088.485.285.942.781.942h3.048c.38 0 .703-.272.783-.64v-.14z"/><path d="M17.222 8.072c.332 2.015-.354 3.734-1.737 4.948-1.31 1.149-3.197 1.64-5.457 1.64H8.55l-1.017 5.568a.8.8 0 01-.783.641H3.703c-.496 0-.87-.457-.782-.943l2.342-13.27c.1-.553.577-.957 1.137-.957h6.37c1.97.001 3.648.456 4.704 1.362.25.214.47.447.657.697"/></svg>
+                      </div>
+                      <div>
+                        <p class="payout-method-name">PayPal</p>
+                        <p class="payout-method-sub">Instant transfers · Available worldwide</p>
+                      </div>
+                      @if (paypalEdit) { <span class="payout-set-badge">✓ Set</span> }
+                    </div>
+                    <div class="field-row">
+                      <label class="field-label">PayPal email address</label>
+                      <input class="field-input" type="email" [(ngModel)]="paypalEdit" placeholder="your@email.com" autocomplete="off" />
+                    </div>
+                    @if (paypalSaved()) { <p class="pw-success">Saved!</p> }
+                    @if (paypalError()) { <p class="connect-error">{{ paypalError() }}</p> }
+                    <button class="btn-payout-save" (click)="savePaypal()" [disabled]="paypalSaving()">
+                      @if (paypalSaving()) { <span class="mini-ring"></span> Saving… } @else { Save PayPal }
+                    </button>
+                  </div>
+
+                  <!-- Revolut -->
+                  <div class="card payout-card" style="margin-bottom:0.875rem">
+                    <div class="payout-card-head">
+                      <div class="payout-icon revolut-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3H7.5C5.015 3 3 5.015 3 7.5v9c0 2.485 2.015 4.5 4.5 4.5h9c2.485 0 4.5-2.015 4.5-4.5v-9C21 5.015 18.985 3 16.5 3zm-2.1 12.3l-2.55-3.75H9.9v3.75H7.95V8.7H12c1.8 0 3 .9 3 2.625 0 1.2-.675 2.1-1.725 2.4L16.05 15.3h-1.65z"/></svg>
+                      </div>
+                      <div>
+                        <p class="payout-method-name">Revolut</p>
+                        <p class="payout-method-sub">Popular in Europe · Email or phone</p>
+                      </div>
+                      @if (revolutEdit) { <span class="payout-set-badge">✓ Set</span> }
+                    </div>
+                    <div class="field-row">
+                      <label class="field-label">Revolut email or phone</label>
+                      <input class="field-input" [(ngModel)]="revolutEdit" placeholder="+43 123 456 789 or you@email.com" autocomplete="off" />
+                    </div>
+                    @if (revolutSaved()) { <p class="pw-success">Saved!</p> }
+                    @if (revolutError()) { <p class="connect-error">{{ revolutError() }}</p> }
+                    <button class="btn-payout-save" (click)="saveRevolut()" [disabled]="revolutSaving()">
+                      @if (revolutSaving()) { <span class="mini-ring"></span> Saving… } @else { Save Revolut }
+                    </button>
+                  </div>
+
+                  <!-- Stripe Connect -->
+                  <div class="card payout-card" style="margin-bottom:1.25rem">
+                    <div class="payout-card-head">
+                      <div class="payout-icon stripe-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/></svg>
+                      </div>
+                      <div>
+                        <p class="payout-method-name">Stripe Connect</p>
+                        <p class="payout-method-sub">Automatic instant payouts · Requires platform approval</p>
+                      </div>
+                      @if (connectStatus()?.payoutsEnabled) { <span class="payout-set-badge">✓ Active</span> }
+                    </div>
+                    @if (!connectStatus()) {
+                      <div class="connect-loading"><span class="mini-ring"></span> Checking status…</div>
+                    } @else if (connectStatus()!.payoutsEnabled) {
+                      <div class="connect-ok">
+                        <p class="connect-ok-title">Payouts enabled</p>
+                        <p class="connect-ok-sub">Earnings are transferred automatically to your bank after each job.</p>
+                        <button class="btn-payout-save" (click)="openConnectDashboard()" [disabled]="connectLoading()" style="margin-top:0.75rem">
+                          Open Stripe dashboard
+                        </button>
+                      </div>
+                    } @else if (connectStatus()!.connected) {
+                      <p class="connect-desc">Your Stripe account is connected but onboarding isn't complete yet.</p>
+                      <button class="btn-payout-save" (click)="startConnectOnboarding()" [disabled]="connectLoading()">
+                        @if (connectLoading()) { <span class="mini-ring"></span> Loading… } @else { Continue onboarding }
                       </button>
                     } @else {
-                      <div class="connect-ok">
-                        <div class="connect-ok-icon">
-                          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                        </div>
-                        <div>
-                          <p class="connect-ok-title">Payouts enabled</p>
-                          <p class="connect-ok-sub">Your bank account is connected. You'll receive payments automatically.</p>
-                        </div>
-                      </div>
-                      <button class="btn-connect-dashboard" (click)="openConnectDashboard()" [disabled]="connectLoading()">
-                        @if (connectLoading()) { <span class="mini-ring"></span> }
-                        @else { View Stripe dashboard }
+                      <p class="connect-desc">Connect your Stripe account to receive automatic instant payouts directly to your bank.</p>
+                      <button class="btn-payout-save" (click)="startConnectOnboarding()" [disabled]="connectLoading()">
+                        @if (connectLoading()) { <span class="mini-ring"></span> Loading… } @else { Connect with Stripe }
                       </button>
                     }
                     @if (connectError()) { <p class="connect-error">{{ connectError() }}</p> }
@@ -926,6 +1005,36 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .pw-error { font-size: 0.8rem; color: #dc2626; margin: 0.5rem 0 0; }
     .pw-success { font-size: 0.8rem; color: #16a34a; margin: 0.5rem 0 0; }
     /* ── Stripe Connect ─────────────────────── */
+    /* ── Payout methods ───────────────────────── */
+    .payout-methods-header { margin-bottom: 0.875rem; }
+    .payout-hint { font-size: 0.78rem; color: #a1a1aa; margin: 0.2rem 0 0; }
+    .payout-card { padding: 1.125rem 1.25rem; }
+    .payout-card-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .payout-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .bank-icon    { background: #eff6ff; color: #2563eb; }
+    .paypal-icon  { background: #eff6ff; color: #003087; }
+    .revolut-icon { background: #f5f3ff; color: #5b21b6; }
+    .stripe-icon  { background: #faf5ff; color: #7c3aed; }
+    .payout-method-name { font-size: 0.875rem; font-weight: 600; color: #18181b; margin: 0 0 0.15rem; }
+    .payout-method-sub  { font-size: 0.72rem; color: #a1a1aa; margin: 0; }
+    .payout-set-badge {
+      margin-left: auto; font-size: 0.7rem; font-weight: 700;
+      color: #16a34a; background: #dcfce7; padding: 0.2rem 0.6rem;
+      border-radius: 99px; white-space: nowrap;
+    }
+    .btn-payout-save {
+      margin-top: 0.875rem;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: #4f46e5; color: #fff; border: none;
+      padding: 0.5rem 1.25rem; border-radius: 99px;
+      font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: background 0.15s;
+    }
+    .btn-payout-save:hover:not(:disabled) { background: #4338ca; }
+    .btn-payout-save:disabled { opacity: 0.5; cursor: not-allowed; }
     .connect-desc { font-size: 0.875rem; color: #71717a; margin: 0.25rem 0 1rem; line-height: 1.6; }
     .connect-loading { display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; color: #a1a1aa; }
     .connect-error { font-size: 0.8rem; color: #dc2626; margin-top: 0.75rem; }
@@ -1052,6 +1161,21 @@ export class WorkerProfileComponent implements OnInit {
   connectLoading = signal(false);
   connectError = signal<string | null>(null);
 
+  bankEdit = { accountName: '', iban: '', bic: '' };
+  bankSaving = signal(false);
+  bankSaved = signal(false);
+  bankError = signal<string | null>(null);
+
+  paypalEdit = '';
+  paypalSaving = signal(false);
+  paypalSaved = signal(false);
+  paypalError = signal<string | null>(null);
+
+  revolutEdit = '';
+  revolutSaving = signal(false);
+  revolutSaved = signal(false);
+  revolutError = signal<string | null>(null);
+
   ngOnInit() {
     this.api.getMyWorkerProfile().subscribe({ next: (p) => this.setProfile(p as WorkerProfile) });
     this.api.getAllSkills().subscribe({ next: (skills) => this.buildSkillGroups(skills as Skill[]) });
@@ -1082,6 +1206,40 @@ export class WorkerProfileComponent implements OnInit {
     });
   }
 
+  saveBankDetails() {
+    this.bankSaving.set(true);
+    this.bankSaved.set(false);
+    this.bankError.set(null);
+    this.api.updateWorkerProfile({
+      bankAccountName: this.bankEdit.accountName || undefined,
+      bankIban: this.bankEdit.iban.replace(/\s/g, '').toUpperCase() || undefined,
+      bankBic: this.bankEdit.bic.toUpperCase() || undefined,
+    }).subscribe({
+      next: () => { this.bankSaving.set(false); this.bankSaved.set(true); },
+      error: (err: any) => { this.bankError.set(err?.error?.message ?? 'Failed to save'); this.bankSaving.set(false); },
+    });
+  }
+
+  savePaypal() {
+    this.paypalSaving.set(true);
+    this.paypalSaved.set(false);
+    this.paypalError.set(null);
+    this.api.updateWorkerProfile({ paypalEmail: this.paypalEdit.trim() || undefined }).subscribe({
+      next: () => { this.paypalSaving.set(false); this.paypalSaved.set(true); },
+      error: (err: any) => { this.paypalError.set(err?.error?.message ?? 'Failed to save'); this.paypalSaving.set(false); },
+    });
+  }
+
+  saveRevolut() {
+    this.revolutSaving.set(true);
+    this.revolutSaved.set(false);
+    this.revolutError.set(null);
+    this.api.updateWorkerProfile({ revolutContact: this.revolutEdit.trim() || undefined }).subscribe({
+      next: () => { this.revolutSaving.set(false); this.revolutSaved.set(true); },
+      error: (err: any) => { this.revolutError.set(err?.error?.message ?? 'Failed to save'); this.revolutSaving.set(false); },
+    });
+  }
+
   private setProfile(p: WorkerProfile) {
     this.profile.set(p);
     this.edit = {
@@ -1096,6 +1254,11 @@ export class WorkerProfileComponent implements OnInit {
       professionOther: p.profession && !['Plumbing','Electrical','Carpentry','Painting','Cleaning','Moving','Mechanical','Handyman','Delivery','Caregiving','General Tasks'].includes(p.profession) ? p.profession : '',
     };
     this.customSkills.set(p.customSkills ?? []);
+    this.bankEdit.accountName = (p as any).bankAccountName ?? '';
+    this.bankEdit.iban = (p as any).bankIban ?? '';
+    this.bankEdit.bic = (p as any).bankBic ?? '';
+    this.paypalEdit = (p as any).paypalEmail ?? '';
+    this.revolutEdit = (p as any).revolutContact ?? '';
     if (p.city || p.address) {
       this.locationQuery = [p.address, p.city].filter(Boolean).join(', ');
       this.locationConfirmed.set(p.latitude != null);

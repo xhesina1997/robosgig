@@ -760,7 +760,7 @@ export class WorkerJobDetailComponent implements OnInit {
   }
 
   statusLabel(s: string): string {
-    return { POSTED: 'Open', ASSIGNED: 'Assigned', COMPLETED: 'Completed', CANCELLED: 'Cancelled', DRAFT: 'Draft' }[s] ?? s;
+    return { POSTED: 'Open', ASSIGNED: 'Awaiting payment', IN_PROGRESS: 'In Progress', COMPLETED: 'Completed', CANCELLED: 'Cancelled', DRAFT: 'Draft' }[s] ?? s;
   }
 
   appStatusLabel(s: string | null): string {

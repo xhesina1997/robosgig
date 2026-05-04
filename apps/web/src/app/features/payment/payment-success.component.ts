@@ -25,8 +25,8 @@ import { ApiService } from '../../core/services/api.service';
               <polyline points="9 12 11 14 15 10"/>
             </svg>
           </div>
-          <h1 class="title">Payment confirmed!</h1>
-          <p class="sub">The job has been marked as completed and the worker will be paid out shortly.</p>
+          <h1 class="title">Payment secured!</h1>
+          <p class="sub">Funds are held in escrow — the worker gets paid once you mark the job complete.</p>
           <div class="detail-row">
             <span class="detail-label">Amount paid</span>
             <span class="detail-val">€{{ result()?.totalAmount?.toFixed(2) }}</span>
@@ -36,10 +36,10 @@ import { ApiService } from '../../core/services/api.service';
             <span class="detail-val">€{{ result()?.platformFeeAmount?.toFixed(2) }}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Worker payout</span>
+            <span class="detail-label">Held in escrow for worker</span>
             <span class="detail-val">€{{ result()?.workerPayout?.toFixed(2) }}</span>
           </div>
-          <a routerLink="/dashboard/client" class="btn-primary">Back to my jobs</a>
+          <a routerLink="/dashboard/client" class="btn-primary">Go to my jobs</a>
         }
 
         @if (state() === 'error') {

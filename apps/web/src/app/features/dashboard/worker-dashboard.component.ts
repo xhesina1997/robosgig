@@ -5,7 +5,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ChatService } from '../../core/services/chat.service';
 
 interface WorkerStats { totalJobs: number; rating: number; totalReviews: number; applied: number; accepted: number; completed: number; }
-interface Application { id: string; status: string; proposedPrice: number | null; createdAt: string; job: { id: string; title: string; description: string | null; priceMin: number | null; priceMax: number | null; urgency: string; city: string | null; category: { name: string; icon: string } | null; }; }
+interface Application { id: string; status: string; proposedPrice: number | null; createdAt: string; job: { id: string; title: string; description: string | null; priceMin: number | null; priceMax: number | null; urgency: string; city: string | null; status: string; category: { name: string; icon: string } | null; }; }
 interface WorkerDashboard { stats: WorkerStats; applications: Application[]; profile: { firstName: string; lastName: string; rating: number; isAvailable: boolean; } | null; }
 
 @Component({
@@ -133,6 +133,12 @@ interface WorkerDashboard { stats: WorkerStats; applications: Application[]; pro
                         </span>
                       }
                       <span class="status-pill status-{{ app.status.toLowerCase() }}">{{ statusLabel(app.status) }}</span>
+                      @if (app.status === 'ACCEPTED' && app.job.status === 'IN_PROGRESS') {
+                        <span class="escrow-badge">
+                          <svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                          Payment secured
+                        </span>
+                      }
                     </div>
 
                     <!-- Title -->
@@ -566,6 +572,12 @@ interface WorkerDashboard { stats: WorkerStats; applications: Application[]; pro
     .status-suggested { background: rgba(245,158,11,0.1);   color: #b45309; }
     .status-notified  { background: rgba(99,102,241,0.1);   color: #4f46e5; }
     .status-withdrawn { background: rgba(0,0,0,0.05);       color: #a1a1aa; }
+    .escrow-badge {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      background: #f0fdf4; color: #15803d;
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.03em;
+      padding: 0.15rem 0.5rem; border-radius: 99px; border: 1px solid #bbf7d0;
+    }
     .direct-badge {
       display: inline-flex; align-items: center; gap: 0.3rem;
       font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em;

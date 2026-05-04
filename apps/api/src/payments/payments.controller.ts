@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaymentsService } from './payments.service';
@@ -39,5 +39,22 @@ export class PaymentsController {
     @Param('jobId') jobId: string,
   ) {
     return this.paymentsService.getJobPayment(req.user.sub, jobId);
+  }
+
+  /** Client: list saved payment methods */
+  @Get('me/payment-methods')
+  @ApiOperation({ summary: 'Client: list saved cards' })
+  getSavedPaymentMethods(@Request() req: { user: { sub: string } }) {
+    return this.paymentsService.getSavedPaymentMethods(req.user.sub);
+  }
+
+  /** Client: remove a saved payment method */
+  @Delete('me/payment-methods/:id')
+  @ApiOperation({ summary: 'Client: remove a saved card' })
+  removePaymentMethod(
+    @Request() req: { user: { sub: string } },
+    @Param('id') id: string,
+  ) {
+    return this.paymentsService.removePaymentMethod(req.user.sub, id);
   }
 }
