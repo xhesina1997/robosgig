@@ -129,7 +129,7 @@ export class PaymentsService {
    * Called after Stripe redirects to /payment/success.
    * Verifies the session was paid, calculates fees, marks job COMPLETED.
    */
-  async confirmJobPayment(userId: string, jobId: string, sessionId: string) {
+  async confirmJobPayment(userId: string, jobId: string, sessionId?: string) {
     const job = await this.prisma.job.findUnique({
       where: { id: jobId },
       include: {
@@ -142,20 +142,27 @@ export class PaymentsService {
     if (!job) throw new NotFoundException('Job not found');
     if (job.clientId !== userId) throw new ForbiddenException('Not your job');
 
-    // Check payment record matches session
+    // Look up payment; if sessionId provided, verify it matches
     const payment = await this.prisma.payment.findUnique({ where: { jobId } });
-    if (!payment || payment.stripeSessionId !== sessionId) {
+    if (!payment) throw new BadRequestException('No payment record found for this job');
+    if (sessionId && payment.stripeSessionId !== sessionId) {
       throw new BadRequestException('Payment session mismatch');
     }
-    if (payment.status === 'COMPLETED') {
-      // Already processed — just return current job state
+    const resolvedSessionId = sessionId ?? payment.stripeSessionId;
+    if (!resolvedSessionId) throw new BadRequestException('No Stripe session found for this payment');
+
+    if ((payment.status as string) === 'ESCROWED' || payment.status === 'COMPLETED') {
+      // Already escrowed/completed — ensure job is IN_PROGRESS/COMPLETED
+      if (job.status === 'ASSIGNED') {
+        await this.prisma.job.update({ where: { id: jobId }, data: { status: 'IN_PROGRESS' } });
+      }
       return this.prisma.job.findUnique({ where: { id: jobId } });
     }
 
     // Verify with Stripe that the session was actually paid
     let stripeSession: Stripe.Checkout.Session;
     try {
-      stripeSession = await this.stripe.client.checkout.sessions.retrieve(sessionId);
+      stripeSession = await this.stripe.client.checkout.sessions.retrieve(resolvedSessionId);
     } catch (err: unknown) {
       throw new ServiceUnavailableException(
         `Stripe error: ${(err as { message?: string }).message ?? 'Could not verify payment'}`,

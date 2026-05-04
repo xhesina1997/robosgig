@@ -177,6 +177,10 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/payments/jobs/${jobId}/confirm`, { sessionId });
   }
 
+  reconfirmJobPayment(jobId: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/payments/jobs/${jobId}/confirm`, {});
+  }
+
   getJobPayment(jobId: string): Observable<unknown> {
     return this.http.get(`${this.baseUrl}/payments/jobs/${jobId}`);
   }

@@ -220,18 +220,33 @@ interface ClientDashboard {
                         <!-- Escrow actions -->
                         @if (job.status === 'ASSIGNED') {
                           <div class="job-action-row">
-                            <div class="escrow-prompt">
-                              <svg width="14" height="14" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                              <span>Fund escrow to start the job — the worker gets paid once you mark it complete.</span>
-                            </div>
-                            <button class="btn-fund" (click)="fundJob(job.id)" [disabled]="payingJob() === job.id">
-                              @if (payingJob() === job.id) {
-                                <span class="load-ring-sm"></span> Redirecting…
-                              } @else {
-                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                                Fund job{{ jobPrice(job) ? ' (€' + jobPrice(job) + ')' : '' }}
-                              }
-                            </button>
+                            @if (job.payment?.status === 'PENDING') {
+                              <div class="escrow-prompt">
+                                <svg width="14" height="14" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                <span>Payment was submitted — click to confirm it's been received.</span>
+                              </div>
+                              <button class="btn-fund" (click)="verifyPayment(job.id)" [disabled]="verifyingPayment() === job.id">
+                                @if (verifyingPayment() === job.id) {
+                                  <span class="load-ring-sm"></span> Verifying…
+                                } @else {
+                                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                  Confirm payment received
+                                }
+                              </button>
+                            } @else {
+                              <div class="escrow-prompt">
+                                <svg width="14" height="14" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                                <span>Fund escrow to start the job — the worker gets paid once you mark it complete.</span>
+                              </div>
+                              <button class="btn-fund" (click)="fundJob(job.id)" [disabled]="payingJob() === job.id">
+                                @if (payingJob() === job.id) {
+                                  <span class="load-ring-sm"></span> Redirecting…
+                                } @else {
+                                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                  Fund job{{ jobPrice(job) ? ' (€' + jobPrice(job) + ')' : '' }}
+                                }
+                              </button>
+                            }
                           </div>
                         }
                         @if (job.status === 'IN_PROGRESS') {
@@ -968,6 +983,7 @@ export class ClientDashboardComponent implements OnInit {
   selectedJobCompleted = signal(false);
   payingJob = signal<string | null>(null);
   releasingJob = signal<string | null>(null);
+  verifyingPayment = signal<string | null>(null);
   confirmDeleteId = signal<string | null>(null);
 
   hasActiveApplication(job: Job): boolean {
@@ -1083,6 +1099,18 @@ export class ClientDashboardComponent implements OnInit {
       error: (err: any) => {
         alert(err?.error?.message ?? 'Could not complete job');
         this.releasingJob.set(null);
+      },
+    });
+  }
+
+  verifyPayment(jobId: string) {
+    if (this.verifyingPayment()) return;
+    this.verifyingPayment.set(jobId);
+    this.api.reconfirmJobPayment(jobId).subscribe({
+      next: () => { this.verifyingPayment.set(null); this.load(); },
+      error: (err: any) => {
+        alert(err?.error?.message ?? 'Could not verify payment');
+        this.verifyingPayment.set(null);
       },
     });
   }

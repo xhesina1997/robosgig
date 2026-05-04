@@ -26,7 +26,7 @@ export class PaymentsController {
   confirm(
     @Request() req: { user: { sub: string } },
     @Param('jobId') jobId: string,
-    @Body() body: { sessionId: string },
+    @Body() body: { sessionId?: string },
   ) {
     return this.paymentsService.confirmJobPayment(req.user.sub, jobId, body.sessionId);
   }
