@@ -116,6 +116,39 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                 </div>
               </div>
 
+              <!-- Financial Stats -->
+              @if (stats()) {
+                <div class="card stats-card">
+                  <div class="section-label">Activity & Spending</div>
+                  <div class="stats-grid">
+                    <div class="stat-box">
+                      <span class="stat-val">€{{ stats().totalSpent.toFixed(2) }}</span>
+                      <span class="stat-lbl">Total spent</span>
+                    </div>
+                    <div class="stat-box">
+                      <span class="stat-val">€{{ stats().inEscrow.toFixed(2) }}</span>
+                      <span class="stat-lbl">In escrow</span>
+                    </div>
+                    <div class="stat-box">
+                      <span class="stat-val">{{ stats().jobsPosted }}</span>
+                      <span class="stat-lbl">Jobs posted</span>
+                    </div>
+                    <div class="stat-box">
+                      <span class="stat-val">{{ stats().jobsCompleted }}</span>
+                      <span class="stat-lbl">Completed</span>
+                    </div>
+                    <div class="stat-box">
+                      <span class="stat-val">{{ stats().jobsActive }}</span>
+                      <span class="stat-lbl">Active</span>
+                    </div>
+                    <div class="stat-box">
+                      <span class="stat-val">€{{ stats().totalFeesPaid.toFixed(2) }}</span>
+                      <span class="stat-lbl">Platform fees</span>
+                    </div>
+                  </div>
+                </div>
+              }
+
           </div>
         </div>
             </div><!-- /slide-0 -->
@@ -342,6 +375,12 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .btn-remove-card:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
     .btn-remove-card:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    .stats-card { margin-top: 1rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 0.75rem; }
+    .stat-box { background: #f4f4f5; border-radius: 10px; padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; }
+    .stat-val { font-size: 1.25rem; font-weight: 700; color: #18181b; }
+    .stat-lbl { font-size: 0.72rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.04em; }
+
     .loading { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem 0; color: #a1a1aa; font-size: 0.875rem; }
     .load-ring { width: 30px; height: 30px; border: 2.5px solid #e4e4e7; border-top-color: #18181b; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -372,6 +411,8 @@ export class ClientProfileComponent implements OnInit {
   pwError = signal<string | null>(null);
   pw = { current: '', next: '', confirm: '' };
 
+  stats = signal<any | null>(null);
+
   paymentMethods = signal<any[]>([]);
   cardLoading = signal(false);
   removingCard = signal<string | null>(null);
@@ -396,6 +437,7 @@ export class ClientProfileComponent implements OnInit {
     this.api.getClientProfile().subscribe({
       next: (p) => this.setProfile(p as ClientProfile),
     });
+    this.api.getClientStats().subscribe({ next: (s) => this.stats.set(s) });
     this.cardLoading.set(true);
     this.api.getSavedPaymentMethods().subscribe({
       next: (methods) => { this.paymentMethods.set(methods); this.cardLoading.set(false); },

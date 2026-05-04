@@ -85,6 +85,14 @@ export class WorkersController {
     return this.workersService.removeSkill(req.user.sub, skillId);
   }
 
+  @Get('me/stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get worker financial stats' })
+  getStats(@Request() req: { user: { sub: string } }) {
+    return this.workersService.getStats(req.user.sub);
+  }
+
   @Get('me/connect/status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

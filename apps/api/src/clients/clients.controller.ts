@@ -16,6 +16,12 @@ export class ClientsController {
     return this.clientsService.getProfile(req.user.sub);
   }
 
+  @Get('me/stats')
+  @ApiOperation({ summary: 'Get client financial stats' })
+  getStats(@Request() req: { user: { sub: string } }) {
+    return this.clientsService.getStats(req.user.sub);
+  }
+
   @Patch('me')
   @ApiOperation({ summary: 'Update own client profile' })
   updateProfile(

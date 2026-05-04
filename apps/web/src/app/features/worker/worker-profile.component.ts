@@ -312,6 +312,40 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
               </div><!-- /right-col -->
 
                   </div><!-- /profile-grid -->
+
+                  <!-- Earnings Stats -->
+                  @if (stats()) {
+                    <div class="card stats-card">
+                      <div class="section-label">Earnings & Activity</div>
+                      <div class="stats-grid">
+                        <div class="stat-box stat-box--green">
+                          <span class="stat-val">€{{ stats().totalEarned.toFixed(2) }}</span>
+                          <span class="stat-lbl">Total earned</span>
+                        </div>
+                        <div class="stat-box stat-box--amber">
+                          <span class="stat-val">€{{ stats().pendingPayout.toFixed(2) }}</span>
+                          <span class="stat-lbl">In escrow</span>
+                        </div>
+                        <div class="stat-box">
+                          <span class="stat-val">{{ stats().jobsCompleted }}</span>
+                          <span class="stat-lbl">Jobs done</span>
+                        </div>
+                        <div class="stat-box">
+                          <span class="stat-val">{{ stats().rating > 0 ? stats().rating.toFixed(1) : '—' }} ★</span>
+                          <span class="stat-lbl">Rating ({{ stats().totalReviews }} reviews)</span>
+                        </div>
+                        <div class="stat-box">
+                          <span class="stat-val">{{ stats().totalApplications }}</span>
+                          <span class="stat-lbl">Applications sent</span>
+                        </div>
+                        <div class="stat-box">
+                          <span class="stat-val">{{ stats().acceptanceRate }}%</span>
+                          <span class="stat-lbl">Acceptance rate</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+
                 </div>
               </div>
             </div><!-- /slide-0 -->
@@ -1035,6 +1069,14 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .btn-payout-save:hover:not(:disabled) { background: #4338ca; }
     .btn-payout-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .stats-card { margin-top: 1.25rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.875rem; margin-top: 0.75rem; }
+    .stat-box { background: #f4f4f5; border-radius: 10px; padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; }
+    .stat-box--green .stat-val { color: #15803d; }
+    .stat-box--amber .stat-val { color: #b45309; }
+    .stat-val { font-size: 1.2rem; font-weight: 700; color: #18181b; }
+    .stat-lbl { font-size: 0.72rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.04em; }
     .connect-desc { font-size: 0.875rem; color: #71717a; margin: 0.25rem 0 1rem; line-height: 1.6; }
     .connect-loading { display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; color: #a1a1aa; }
     .connect-error { font-size: 0.8rem; color: #dc2626; margin-top: 0.75rem; }
@@ -1116,6 +1158,7 @@ export class WorkerProfileComponent implements OnInit {
   private router = inject(Router);
 
   profile = signal<WorkerProfile | null>(null);
+  stats = signal<any | null>(null);
   profileComplete = computed(() => { const p = this.profile(); return !!(p?.city && p?.profession); });
   activeTab = signal<'profile' | 'identity' | 'security'>('profile');
   tabIndex = computed(() => (['profile', 'identity', 'security'] as const).indexOf(this.activeTab()));
@@ -1178,6 +1221,7 @@ export class WorkerProfileComponent implements OnInit {
 
   ngOnInit() {
     this.api.getMyWorkerProfile().subscribe({ next: (p) => this.setProfile(p as WorkerProfile) });
+    this.api.getWorkerStats().subscribe({ next: (s) => this.stats.set(s) });
     this.api.getAllSkills().subscribe({ next: (skills) => this.buildSkillGroups(skills as Skill[]) });
     this.api.getConnectStatus().subscribe({ next: (s) => this.connectStatus.set(s), error: () => this.connectStatus.set({ connected: false, onboarded: false, payoutsEnabled: false }) });
 

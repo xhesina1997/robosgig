@@ -229,6 +229,14 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/clients/me`);
   }
 
+  getClientStats(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/clients/me/stats`);
+  }
+
+  getWorkerStats(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/workers/me/stats`);
+  }
+
   updateClientProfile(data: unknown): Observable<unknown> {
     return this.http.patch(`${this.baseUrl}/clients/me`, data);
   }

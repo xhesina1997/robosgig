@@ -84,6 +84,42 @@ export class WorkersService {
     });
   }
 
+  async getStats(userId: string) {
+    const profile = await this.prisma.workerProfile.findUnique({
+      where: { userId },
+      select: { id: true, totalJobs: true, rating: true, totalReviews: true, createdAt: true },
+    });
+    if (!profile) throw new NotFoundException('Worker profile not found');
+
+    const [completedPayments, escrowedPayments, applications] = await Promise.all([
+      this.prisma.payment.findMany({
+        where: { status: 'COMPLETED', job: { applications: { some: { workerId: profile.id, status: 'ACCEPTED' } } } },
+        select: { workerPayout: true },
+      }),
+      this.prisma.payment.findMany({
+        where: { status: 'ESCROWED' as any, job: { applications: { some: { workerId: profile.id, status: 'ACCEPTED' } } } },
+        select: { workerPayout: true },
+      }),
+      this.prisma.jobApplication.findMany({
+        where: { workerId: profile.id },
+        select: { status: true },
+      }),
+    ]);
+
+    return {
+      totalEarned: completedPayments.reduce((s, p) => s + p.workerPayout, 0),
+      pendingPayout: escrowedPayments.reduce((s, p) => s + p.workerPayout, 0),
+      jobsCompleted: profile.totalJobs,
+      rating: profile.rating,
+      totalReviews: profile.totalReviews,
+      totalApplications: applications.length,
+      acceptanceRate: applications.length
+        ? Math.round((applications.filter(a => a.status === 'ACCEPTED').length / applications.length) * 100)
+        : 0,
+      memberSince: profile.createdAt,
+    };
+  }
+
   async getNearbyJobs(userId: string, skip = 0, take = 10) {
     const profile = await this.prisma.workerProfile.findUnique({
       where: { userId },

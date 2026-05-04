@@ -18,6 +18,37 @@ export class ClientsService {
     return { ...user.clientProfile, email: user.email, idVerified: user.idVerified };
   }
 
+  async getStats(userId: string) {
+    const profile = await this.prisma.clientProfile.findUnique({ where: { userId }, select: { id: true } });
+    if (!profile) throw new NotFoundException('Client profile not found');
+
+    const [jobs, payments, escrowedPayments] = await Promise.all([
+      this.prisma.job.findMany({ where: { clientId: userId }, select: { status: true, createdAt: true } }),
+      this.prisma.payment.findMany({
+        where: { status: 'COMPLETED', job: { clientId: userId } },
+        select: { totalAmount: true, platformFeeAmount: true, createdAt: true },
+      }),
+      this.prisma.payment.findMany({
+        where: { status: 'ESCROWED' as any, job: { clientId: userId } },
+        select: { totalAmount: true },
+      }),
+    ]);
+
+    const totalSpent = payments.reduce((s, p) => s + p.totalAmount, 0);
+    const totalFeesPaid = payments.reduce((s, p) => s + p.platformFeeAmount, 0);
+    const inEscrow = escrowedPayments.reduce((s, p) => s + p.totalAmount, 0);
+
+    return {
+      totalSpent,
+      totalFeesPaid,
+      inEscrow,
+      jobsPosted: jobs.length,
+      jobsCompleted: jobs.filter(j => j.status === 'COMPLETED').length,
+      jobsActive: jobs.filter(j => ['ASSIGNED', 'IN_PROGRESS'].includes(j.status)).length,
+      memberSince: jobs.length ? jobs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0].createdAt : null,
+    };
+  }
+
   async updateProfile(userId: string, dto: {
     firstName?: string;
     lastName?: string;
