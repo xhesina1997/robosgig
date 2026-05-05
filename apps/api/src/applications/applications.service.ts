@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
+import { RevolutService } from '../revolut/revolut.service';
 
 @Injectable()
 export class ApplicationsService {
   constructor(
     private prisma: PrismaService,
     private stripe: StripeService,
+    private revolut: RevolutService,
     private config: ConfigService,
   ) {}
 
@@ -173,7 +175,15 @@ export class ApplicationsService {
       include: {
         applications: {
           where: { status: 'ACCEPTED' },
-          include: { worker: { select: { stripeConnectId: true, stripeConnectOnboarded: true } as any } },
+          include: {
+            worker: {
+              select: {
+                stripeConnectId: true, stripeConnectOnboarded: true,
+                firstName: true, lastName: true,
+                revolutContact: true, bankIban: true, bankBic: true,
+              } as any,
+            },
+          },
         },
       },
     });
@@ -202,23 +212,43 @@ export class ApplicationsService {
           : []),
       ]);
 
-      // Transfer to worker via Stripe Connect if configured
-      const workerConnect = (acceptedApp as any)?.worker;
+      // Attempt automatic payout — try Stripe Connect, then Revolut, else manual
+      const worker = (acceptedApp as any)?.worker;
       const workerPayoutCents = Math.round(payment.workerPayout * 100);
       const stripeKey = this.config.get<string>('STRIPE_SECRET_KEY') ?? '';
+      let payoutSent = false;
+
       if (
-        workerConnect?.stripeConnectId &&
-        workerConnect?.stripeConnectOnboarded &&
-        workerPayoutCents > 0 &&
-        stripeKey && !stripeKey.includes('placeholder')
+        worker?.stripeConnectId && worker?.stripeConnectOnboarded &&
+        workerPayoutCents > 0 && stripeKey && !stripeKey.includes('placeholder')
       ) {
         try {
-          await this.stripe.createTransfer(workerPayoutCents, 'eur', workerConnect.stripeConnectId, { jobId });
-          await this.prisma.payment.update({
-            where: { jobId },
-            data: { payoutSent: true, payoutSentAt: new Date() },
+          await this.stripe.createTransfer(workerPayoutCents, 'eur', worker.stripeConnectId, { jobId });
+          payoutSent = true;
+        } catch { /* fall through to Revolut */ }
+      }
+
+      if (!payoutSent && this.revolut.isConfigured() && payment.workerPayout > 0) {
+        try {
+          await this.revolut.sendPayout({
+            requestId: `job-${jobId}`,
+            amount: payment.workerPayout,
+            currency: 'EUR',
+            workerName: worker ? `${worker.firstName} ${worker.lastName}` : 'Worker',
+            revolutContact: worker?.revolutContact,
+            bankIban: worker?.bankIban,
+            bankBic: worker?.bankBic,
+            reference: `Job payment ${jobId}`,
           });
+          payoutSent = true;
         } catch { /* payout can be sent manually from admin panel */ }
+      }
+
+      if (payoutSent) {
+        await this.prisma.payment.update({
+          where: { jobId },
+          data: { payoutSent: true, payoutSentAt: new Date() },
+        });
       }
     } else {
       // No escrowed payment (old flow / admin override) — just mark complete
