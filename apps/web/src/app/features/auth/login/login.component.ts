@@ -437,7 +437,15 @@ export class LoginComponent {
         }
       },
       error: (err) => {
-        this.error.set(err?.error?.message ?? 'Invalid email or password');
+        const msg = err?.error?.message ?? '';
+        try {
+          const parsed = JSON.parse(msg);
+          if (parsed.requiresVerification) {
+            this.router.navigate(['/register'], { queryParams: { verify: parsed.email } });
+            return;
+          }
+        } catch { /* not JSON */ }
+        this.error.set(msg || 'Invalid email or password');
         this.loading.set(false);
       },
     });

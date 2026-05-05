@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 import { RevolutService } from '../revolut/revolut.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class ApplicationsService {
@@ -11,6 +12,7 @@ export class ApplicationsService {
     private stripe: StripeService,
     private revolut: RevolutService,
     private config: ConfigService,
+    private email: EmailService,
   ) {}
 
   async apply(userId: string, jobId: string, dto: { proposedPrice?: number; message?: string }) {
@@ -23,7 +25,17 @@ export class ApplicationsService {
       throw new ForbiddenException('You must verify your identity before applying to jobs');
     }
 
-    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    const job = await this.prisma.job.findUnique({
+      where: { id: jobId },
+      include: {
+        client: {
+          select: {
+            email: true,
+            clientProfile: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
     if (!job) throw new NotFoundException('Job not found');
     if (job.status !== 'POSTED') throw new BadRequestException('This job is no longer accepting applications');
 
@@ -32,7 +44,7 @@ export class ApplicationsService {
     });
     if (existing) throw new BadRequestException('You have already applied to this job');
 
-    return this.prisma.jobApplication.create({
+    const application = await this.prisma.jobApplication.create({
       data: {
         jobId,
         workerId: workerProfile.id,
@@ -45,6 +57,20 @@ export class ApplicationsService {
         job: { select: { title: true } },
       },
     });
+
+    // Notify client by email
+    const clientProfile = job.client.clientProfile;
+    if (clientProfile) {
+      this.email.sendApplicationReceived({
+        clientEmail: job.client.email,
+        clientName: clientProfile.firstName,
+        jobTitle: job.title,
+        workerName: `${workerProfile.firstName} ${workerProfile.lastName}`,
+        jobId: job.id,
+      });
+    }
+
+    return application;
   }
 
   async getJobApplications(userId: string, jobId: string) {
@@ -68,7 +94,12 @@ export class ApplicationsService {
   async acceptApplication(userId: string, applicationId: string) {
     const application = await this.prisma.jobApplication.findUnique({
       where: { id: applicationId },
-      include: { job: true },
+      include: {
+        job: true,
+        worker: {
+          include: { user: { select: { email: true } } },
+        },
+      },
     });
     if (!application) throw new NotFoundException('Application not found');
     if (application.job.clientId !== userId) throw new ForbiddenException('Not your job');
@@ -88,6 +119,18 @@ export class ApplicationsService {
     await this.prisma.job.update({
       where: { id: application.jobId },
       data: { status: 'ASSIGNED' },
+    });
+
+    // Notify worker by email
+    const client = await this.prisma.clientProfile.findUnique({
+      where: { userId },
+      select: { firstName: true, lastName: true },
+    });
+    this.email.sendApplicationAccepted({
+      workerEmail: (application.worker as any).user.email,
+      workerName: application.worker.firstName,
+      jobTitle: application.job.title,
+      clientName: client ? `${client.firstName} ${client.lastName}` : 'A client',
     });
 
     return updated;

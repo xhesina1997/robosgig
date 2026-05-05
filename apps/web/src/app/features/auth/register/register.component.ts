@@ -1,7 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { environment } from '../../../../environments/environment';
 
@@ -231,6 +231,34 @@ type Role = 'CLIENT' | 'WORKER';
 
         </div>
       </div>
+
+      <!-- Email verification overlay -->
+      @if (verificationStep()) {
+        <div class="verify-overlay">
+          <div class="verify-card">
+            <div class="verify-icon">
+              <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </div>
+            <h2 class="verify-title">Check your email</h2>
+            <p class="verify-sub">We sent a 6-digit code to <strong>{{ pendingEmail() }}</strong></p>
+
+            @if (verifyError()) {
+              <div class="verify-error">{{ verifyError() }}</div>
+            }
+
+            <div class="code-row">
+              <input class="code-input" [(ngModel)]="verifyCode" placeholder="000000" maxlength="6" inputmode="numeric" (keyup.enter)="submitVerify()" />
+              <button class="btn-verify" [disabled]="verifyCode.length < 6 || verifying()" (click)="submitVerify()">
+                @if (verifying()) { <span class="spinner"></span> } @else { Verify }
+              </button>
+            </div>
+
+            <button class="resend-btn" [disabled]="resendCooldown() > 0" (click)="resendCode()">
+              @if (resendCooldown() > 0) { Resend in {{ resendCooldown() }}s } @else { Resend code }
+            </button>
+          </div>
+        </div>
+      }
 
     </div>
   `,
@@ -658,11 +686,76 @@ type Role = 'CLIENT' | 'WORKER';
       .mobile-logo { display: flex; }
       .field-row   { grid-template-columns: 1fr; }
     }
+
+    /* ── Email verification overlay ─────────── */
+    .verify-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem;
+    }
+    .verify-card {
+      background: #fff; border-radius: 20px;
+      padding: 2rem 2rem 1.75rem;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.75rem;
+    }
+    .verify-icon {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: #f0fdf4; color: #16a34a;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .verify-title { font-size: 1.2rem; font-weight: 700; color: #18181b; margin: 0; }
+    .verify-sub { font-size: 0.88rem; color: #71717a; margin: 0; line-height: 1.5; }
+    .verify-error {
+      width: 100%; background: #fef2f2; border: 1px solid #fecaca;
+      color: #dc2626; font-size: 0.82rem; font-weight: 500;
+      padding: 0.6rem 0.875rem; border-radius: 8px;
+    }
+    .code-row { display: flex; gap: 0.5rem; width: 100%; }
+    .code-input {
+      flex: 1; padding: 0.7rem 0.875rem; border: 1.5px solid #e4e4e7;
+      border-radius: 10px; font-size: 1.1rem; font-weight: 700;
+      letter-spacing: 0.15em; text-align: center; outline: none;
+      font-family: inherit; transition: border-color 0.15s;
+    }
+    .code-input:focus { border-color: #18181b; }
+    .btn-verify {
+      background: #18181b; color: #fff; border: none;
+      padding: 0.7rem 1.25rem; border-radius: 10px;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      font-family: inherit; white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-verify:hover:not(:disabled) { background: #27272a; }
+    .btn-verify:disabled { opacity: 0.5; cursor: not-allowed; }
+    .resend-btn {
+      background: none; border: none; color: #6b7280;
+      font-size: 0.82rem; cursor: pointer; font-family: inherit;
+      text-decoration: underline; padding: 0; margin-top: 0.25rem;
+    }
+    .resend-btn:disabled { opacity: 0.5; cursor: not-allowed; text-decoration: none; }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 0.3rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   `]
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  ngOnInit() {
+    const verify = this.route.snapshot.queryParamMap.get('verify');
+    if (verify) {
+      this.pendingEmail.set(verify);
+      this.verificationStep.set(true);
+    }
+  }
 
   role = signal<Role>('CLIENT');
   firstName = '';
@@ -673,6 +766,15 @@ export class RegisterComponent {
   error = signal<string | null>(null);
   showPassword = signal(false);
   termsAccepted = false;
+
+  // Email verification step
+  verificationStep = signal(false);
+  pendingEmail = signal('');
+  verifyCode = '';
+  verifying = signal(false);
+  verifyError = signal<string | null>(null);
+  resendCooldown = signal(0);
+  private cooldownTimer: ReturnType<typeof setInterval> | null = null;
 
   canSubmit() {
     return this.firstName && this.lastName && this.email && this.password.length >= 8 && this.termsAccepted;
@@ -690,15 +792,46 @@ export class RegisterComponent {
       password: this.password,
       role: this.role(),
     }).subscribe({
-      next: (res) => {
-        const role = (res as { role: string }).role;
-        this.router.navigate([role === 'WORKER' ? '/worker/profile' : '/dashboard/client']);
+      next: (res: any) => {
+        if (res.requiresVerification) {
+          this.pendingEmail.set(res.email);
+          this.verificationStep.set(true);
+          this.loading.set(false);
+        } else {
+          this.router.navigate([res.role === 'WORKER' ? '/worker/profile' : '/dashboard/client']);
+        }
       },
       error: (err) => {
         this.error.set(err?.error?.message ?? 'Something went wrong. Please try again.');
         this.loading.set(false);
       },
     });
+  }
+
+  submitVerify() {
+    if (this.verifyCode.length < 6) return;
+    this.verifying.set(true);
+    this.verifyError.set(null);
+    this.auth.verifyEmail(this.pendingEmail(), this.verifyCode).subscribe({
+      next: (res) => {
+        this.router.navigate([res.role === 'WORKER' ? '/worker/profile' : '/dashboard/client']);
+      },
+      error: (err) => {
+        this.verifyError.set(err?.error?.message ?? 'Invalid code. Please try again.');
+        this.verifying.set(false);
+      },
+    });
+  }
+
+  resendCode() {
+    this.auth.resendVerification(this.pendingEmail()).subscribe();
+    this.resendCooldown.set(30);
+    this.cooldownTimer = setInterval(() => {
+      this.resendCooldown.update(n => {
+        if (n <= 1) { clearInterval(this.cooldownTimer!); this.cooldownTimer = null; return 0; }
+        return n - 1;
+      });
+    }, 1000);
   }
 
   loginWithGoogle() {

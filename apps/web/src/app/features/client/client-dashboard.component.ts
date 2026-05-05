@@ -361,7 +361,7 @@ interface ClientDashboard {
   styles: [`
     * { box-sizing: border-box; }
     .page { min-height: 100vh; background: #f8f8f8; }
-    .inner { max-width: 860px; margin: 0 auto; padding: 0 2rem; }
+    .inner { max-width: 1100px; margin: 0 auto; padding: 0 1.25rem; }
 
     /* ── Header ───────────────────────────── */
     .page-header {

@@ -288,7 +288,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
   styles: [`
     * { box-sizing: border-box; }
     .page { min-height: 100vh; background: #f8f8f8; }
-    .inner { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+    .inner { max-width: 1100px; margin: 0 auto; padding: 0 1.25rem; }
 
     .page-header { background: #fff; border-bottom: 1px solid #e4e4e7; padding: 2rem 0 0; }
     .header-top { padding-bottom: 1.5rem; }

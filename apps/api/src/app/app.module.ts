@@ -15,6 +15,7 @@ import { PaymentsModule } from '../payments/payments.module';
 import { ClientsModule } from '../clients/clients.module';
 import { ReportsModule } from '../reports/reports.module';
 import { RevolutModule } from '../revolut/revolut.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { RevolutModule } from '../revolut/revolut.module';
     PaymentsModule,
     ReportsModule,
     RevolutModule,
+    EmailModule,
   ],
 })
 export class AppModule {}

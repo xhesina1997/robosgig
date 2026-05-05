@@ -14,14 +14,15 @@ export class WorkersService {
   ) {}
 
   async getProfile(userId: string) {
-    const profile = await this.prisma.workerProfile.findUnique({
-      where: { userId },
-      include: {
-        skills: { include: { skill: { include: { category: true } } } },
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        workerProfile: { include: { skills: { include: { skill: { include: { category: true } } } } } },
       },
     });
-    if (!profile) throw new NotFoundException('Worker profile not found');
-    return profile;
+    if (!user?.workerProfile) throw new NotFoundException('Worker profile not found');
+    return { ...user.workerProfile, email: user.email };
   }
 
   async updateProfile(userId: string, dto: {
@@ -329,6 +330,42 @@ export class WorkersService {
 
     const link = await this.stripe.createLoginLink(profile.stripeConnectId);
     return { url: link.url };
+  }
+
+  async getSavedJobs(userId: string) {
+    const profile = await this.prisma.workerProfile.findUnique({ where: { userId }, select: { id: true } });
+    if (!profile) throw new NotFoundException('Worker profile not found');
+    return this.prisma.savedJob.findMany({
+      where: { workerId: profile.id },
+      include: {
+        job: {
+          include: {
+            category: true,
+            client: { select: { clientProfile: { select: { firstName: true, lastName: true } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async saveJob(userId: string, jobId: string) {
+    const profile = await this.prisma.workerProfile.findUnique({ where: { userId }, select: { id: true } });
+    if (!profile) throw new NotFoundException('Worker profile not found');
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Job not found');
+    return this.prisma.savedJob.upsert({
+      where: { workerId_jobId: { workerId: profile.id, jobId } },
+      create: { workerId: profile.id, jobId },
+      update: {},
+    });
+  }
+
+  async unsaveJob(userId: string, jobId: string) {
+    const profile = await this.prisma.workerProfile.findUnique({ where: { userId }, select: { id: true } });
+    if (!profile) throw new NotFoundException('Worker profile not found');
+    await this.prisma.savedJob.deleteMany({ where: { workerId: profile.id, jobId } });
+    return { success: true };
   }
 }
 

@@ -53,6 +53,20 @@ export class AuthController {
     return this.authService.deleteAccount(req.user.sub);
   }
 
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email with code sent on registration' })
+  verifyEmail(@Body() dto: { email: string; code: string }) {
+    return this.authService.verifyEmail(dto.email, dto.code);
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend email verification code' })
+  resendVerification(@Body() dto: { email: string }) {
+    return this.authService.resendVerification(dto.email);
+  }
+
   @Patch('password')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

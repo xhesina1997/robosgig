@@ -37,8 +37,20 @@ export class AuthService {
 
   register(data: Record<string, unknown>) {
     return this.api.register(data).pipe(
+      tap((res: any) => {
+        if (!res.requiresVerification) this.setUser(res as AuthUser);
+      })
+    );
+  }
+
+  verifyEmail(email: string, code: string) {
+    return this.api.verifyEmail(email, code).pipe(
       tap((res) => this.setUser(res as AuthUser))
     );
+  }
+
+  resendVerification(email: string) {
+    return this.api.resendVerification(email);
   }
 
   logout() {

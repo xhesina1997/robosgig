@@ -86,6 +86,10 @@ model User {
   reports       Report[]
 
   idVerified Boolean @default(false)
+
+  emailVerified           Boolean   @default(false)
+  emailVerificationCode   String?
+  emailVerificationExpiry DateTime?
 }
 
 // ─── Worker Profile ───────────────────────────────────────────────────────────
@@ -140,6 +144,7 @@ model WorkerProfile {
 
   skills       WorkerSkill[]
   applications JobApplication[]
+  savedJobs    SavedJob[]
   reviews      Review[]        @relation("WorkerReviews")
 
   createdAt DateTime @default(now())
@@ -237,8 +242,24 @@ model Job {
   payment      Payment?
   messages     Message[]
 
+  savedBy   SavedJob[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── Saved Jobs ───────────────────────────────────────────────────────────────
+
+model SavedJob {
+  id       String        @id @default(cuid())
+  workerId String
+  worker   WorkerProfile @relation(fields: [workerId], references: [id])
+  jobId    String
+  job      Job           @relation(fields: [jobId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([workerId, jobId])
 }
 
 // ─── Job Applications ─────────────────────────────────────────────────────────

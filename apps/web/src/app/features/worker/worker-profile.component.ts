@@ -10,7 +10,7 @@ import { ReportProblemComponent } from '../../shared/report-problem.component';
 interface Skill { id: string; name: string; category: { name: string; icon: string } }
 interface WorkerSkill { skill: Skill }
 interface WorkerProfile {
-  id: string; firstName: string; lastName: string; bio: string | null;
+  id: string; firstName: string; lastName: string; email: string; bio: string | null;
   phone: string | null; hourlyRate: number | null; city: string;
   address: string; latitude: number | null; longitude: number | null;
   isAvailable: boolean; rating: number; totalJobs: number;
@@ -112,6 +112,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                   <div class="avatar-circle">{{ profile()!.firstName[0] }}{{ profile()!.lastName[0] }}</div>
                   <div>
                     <p class="avatar-name">{{ profile()!.firstName }} {{ profile()!.lastName }}</p>
+                    <p class="avatar-email">{{ profile()!.email }}</p>
                     @if (profile()!.idVerified) {
                       <span class="badge-verified">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -554,7 +555,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
   styles: [`
     * { box-sizing: border-box; }
     .page { min-height: 100vh; background: #f8f8f8; }
-    .inner { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+    .inner { max-width: 1100px; margin: 0 auto; padding: 0 1.25rem; }
 
     /* ── Header ───────────────────────────── */
     .page-header {
@@ -705,7 +706,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       flex-shrink: 0;
       letter-spacing: 0.02em;
     }
-    .avatar-name { font-size: 0.95rem; font-weight: 600; color: #18181b; margin: 0 0 0.3rem; }
+    .avatar-name { font-size: 0.95rem; font-weight: 600; color: #18181b; margin: 0 0 0.15rem; }
+    .avatar-email { font-size: 0.8rem; color: #a1a1aa; margin: 0 0 0.3rem; }
     .badge-verified {
       display: inline-flex;
       align-items: center;

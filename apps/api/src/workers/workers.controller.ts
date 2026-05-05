@@ -117,6 +117,30 @@ export class WorkersController {
     return this.workersService.getConnectDashboardLink(req.user.sub);
   }
 
+  @Get('me/saved-jobs')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get saved jobs' })
+  getSavedJobs(@Request() req: { user: { sub: string } }) {
+    return this.workersService.getSavedJobs(req.user.sub);
+  }
+
+  @Post('me/saved-jobs/:jobId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Save a job' })
+  saveJob(@Request() req: { user: { sub: string } }, @Param('jobId') jobId: string) {
+    return this.workersService.saveJob(req.user.sub, jobId);
+  }
+
+  @Delete('me/saved-jobs/:jobId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unsave a job' })
+  unsaveJob(@Request() req: { user: { sub: string } }, @Param('jobId') jobId: string) {
+    return this.workersService.unsaveJob(req.user.sub, jobId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get public worker profile by id' })
   getPublicProfile(@Param('id') id: string) {

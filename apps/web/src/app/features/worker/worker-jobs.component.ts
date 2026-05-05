@@ -30,7 +30,7 @@ interface NearbyJob {
     <div class="page">
 
       <!-- Pool picker (fullscreen) -->
-      @if (pool() === null) {
+      @if (pool() === null && tab() !== 'saved') {
         <div class="pool-pick">
           <div class="pool-pick-inner">
             <p class="pool-pick-eyebrow">Job Board</p>
@@ -58,6 +58,81 @@ interface NearbyJob {
                 }
               </button>
             </div>
+            <button class="saved-tab-btn" (click)="openSaved()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+              Saved jobs
+              @if (savedJobIds().size > 0) {
+                <span class="saved-tab-count">{{ savedJobIds().size }}</span>
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Saved jobs view -->
+      @if (tab() === 'saved') {
+        <div class="page-header">
+          <div class="inner">
+            <div class="ph-topline">
+              <div class="ph-topline-left">
+                <button class="ph-back" (click)="tab.set('browse')">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                </button>
+                <span class="ph-section">Saved Jobs</span>
+              </div>
+            </div>
+            <div class="ph-title-block">
+              <h1 class="ph-title">Saved Jobs</h1>
+              <p class="ph-sub">{{ savedJobs().length }} saved</p>
+            </div>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="inner">
+            @if (savedJobs().length === 0) {
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+                </div>
+                <p class="empty-title">No saved jobs yet</p>
+                <p class="empty-sub">Bookmark jobs you're interested in to find them here.</p>
+              </div>
+            } @else {
+              <div class="jobs-list">
+                @for (saved of savedJobs(); track saved.id) {
+                  <div class="job-card" (click)="goToDetail(saved.job.id)">
+                    <div class="jc-header">
+                      <div class="jc-header-left">
+                        <span class="jc-cat" [style.--dot]="catColor(saved.job.category?.name)">
+                          <span class="jc-cat-dot"></span>
+                          {{ (saved.job.category?.name || 'General').toUpperCase() }}
+                        </span>
+                        <span class="jc-sep">·</span>
+                        <span class="urgency-pill urgency-{{ saved.job.urgency?.toLowerCase() }}">{{ urgencyLabel(saved.job.urgency) }}</span>
+                      </div>
+                      <span class="jc-date">{{ saved.job.createdAt | date:'d MMM' }}</span>
+                    </div>
+                    <div class="jc-body">
+                      <h3 class="jc-title">{{ saved.job.title }}</h3>
+                      <p class="jc-desc">{{ saved.job.description }}</p>
+                    </div>
+                    <div class="jc-footer">
+                      <div class="jc-price">
+                        @if (saved.job.priceMin) {
+                          <span class="price-val">€{{ saved.job.priceMin }}–{{ saved.job.priceMax }}</span>
+                        } @else {
+                          <span class="price-neg">Negotiable</span>
+                        }
+                      </div>
+                      <button class="save-btn save-btn--saved" (click)="$event.stopPropagation(); toggleSave(saved.job.id)">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+                        Saved
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           </div>
         </div>
       }
@@ -67,7 +142,7 @@ interface NearbyJob {
       <div class="page-header">
         <div class="inner">
 
-          <!-- Top line: back + section label + map link -->
+          <!-- Top line: back + section label + saved + map link -->
           <div class="ph-topline">
             <div class="ph-topline-left">
               <button class="ph-back" (click)="pool.set(null)">
@@ -75,6 +150,14 @@ interface NearbyJob {
               </button>
               <span class="ph-section">{{ pool() === 'trades' ? 'Trades & Skills' : 'Everyday Tasks' }}</span>
             </div>
+            <div style="display:flex;align-items:center;gap:0.5rem">
+              <button class="saved-tab-btn" (click)="openSaved()" style="margin-top:0">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+                Saved
+                @if (savedJobIds().size > 0) {
+                  <span class="saved-tab-count">{{ savedJobIds().size }}</span>
+                }
+              </button>
             <a class="ph-map-link" routerLink="/worker/map">
               <!-- Compass icon -->
               <svg class="ph-compass" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -85,6 +168,7 @@ interface NearbyJob {
               </svg>
               Map view
             </a>
+            </div>
           </div>
 
           <!-- Title + count -->
@@ -274,6 +358,9 @@ interface NearbyJob {
                       }
                     </div>
                     <div class="jc-actions">
+                      <button class="save-btn" [class.save-btn--saved]="savedJobIds().has(job.id)" (click)="$event.stopPropagation(); toggleSave(job.id)" [title]="savedJobIds().has(job.id) ? 'Remove from saved' : 'Save job'">
+                        <svg width="12" height="12" [attr.fill]="savedJobIds().has(job.id) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+                      </button>
                       @if (job.latitude && job.longitude) {
                         <button class="jc-map-btn" [routerLink]="['/worker/map']" [queryParams]="{focus: job.id}" (click)="$event.stopPropagation()">
                           <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
@@ -368,7 +455,7 @@ interface NearbyJob {
   styles: [`
     * { box-sizing: border-box; }
     .page { min-height: 100vh; background: #f8f8f8; }
-    .inner { max-width: 860px; margin: 0 auto; padding: 0 2rem; }
+    .inner { max-width: 1100px; margin: 0 auto; padding: 0 1.25rem; }
 
     /* ── Header ───────────────────────────── */
     .page-header {
@@ -575,6 +662,31 @@ interface NearbyJob {
       font-family: inherit; transition: background 0.12s, color 0.12s;
     }
     .jc-map-btn:hover { background: #e5e7eb; color: #374151; }
+
+    .save-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem;
+      background: #f3f4f6; color: #9ca3af; border: none;
+      width: 30px; height: 30px; border-radius: 50%;
+      cursor: pointer; font-family: inherit; transition: background 0.12s, color 0.12s;
+    }
+    .save-btn:hover { background: #e5e7eb; color: #4f46e5; }
+    .save-btn--saved { background: #ede9fe; color: #4f46e5; }
+    .save-btn--saved:hover { background: #ddd6fe; }
+
+    .saved-tab-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: transparent; border: 1px solid #e5e7eb; color: #6b7280;
+      padding: 0.55rem 1.1rem; border-radius: 99px;
+      font-size: 0.82rem; font-weight: 500; cursor: pointer;
+      font-family: inherit; transition: border-color 0.12s, color 0.12s;
+      margin-top: 1rem;
+    }
+    .saved-tab-btn:hover { border-color: #4f46e5; color: #4f46e5; }
+    .saved-tab-count {
+      background: #4f46e5; color: #fff;
+      font-size: 0.68rem; font-weight: 700;
+      padding: 0.1rem 0.45rem; border-radius: 99px;
+    }
 
     .apply-btn {
       display: inline-flex; align-items: center;
@@ -965,6 +1077,26 @@ export class WorkerJobsComponent implements OnInit {
 
 
   pool = signal<'tasks' | 'trades' | null>(null);
+  tab = signal<'browse' | 'saved'>('browse');
+  savedJobs = signal<any[]>([]);
+  savedJobIds = computed(() => new Set(this.savedJobs().map((s: any) => s.jobId)));
+
+  openSaved() {
+    this.tab.set('saved');
+    this.api.getSavedJobs().subscribe({ next: (s) => this.savedJobs.set(s) });
+  }
+
+  toggleSave(jobId: string) {
+    if (this.savedJobIds().has(jobId)) {
+      this.api.unsaveJob(jobId).subscribe({
+        next: () => this.savedJobs.update(s => s.filter((x: any) => x.jobId !== jobId)),
+      });
+    } else {
+      this.api.saveJob(jobId).subscribe({
+        next: (saved: any) => this.savedJobs.update(s => [...s, saved]),
+      });
+    }
+  }
 
   private readonly TRADE_CATEGORIES = new Set([
     'Plumbing', 'Electrical', 'Carpentry', 'Painting', 'Mechanical', 'Handyman', 'HVAC',
@@ -1023,6 +1155,7 @@ export class WorkerJobsComponent implements OnInit {
     this.api.getVerifyStatus().subscribe({
       next: (s) => this.idVerified.set(s.idVerified),
     });
+    this.api.getSavedJobs().subscribe({ next: (s) => this.savedJobs.set(s) });
     this.api.getNearbyJobs(0).subscribe({
       next: (res: any) => {
         this.jobs.set(res.jobs);

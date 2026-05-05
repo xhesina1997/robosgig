@@ -56,8 +56,16 @@ export class ApiService {
     return this.http.post<{ accessToken: string; role: string }>(`${this.baseUrl}/auth/login`, { email, password });
   }
 
-  register(data: unknown): Observable<{ accessToken: string; role: string }> {
-    return this.http.post<{ accessToken: string; role: string }>(`${this.baseUrl}/auth/register`, data);
+  register(data: unknown): Observable<{ accessToken: string; role: string } | { requiresVerification: boolean; email: string }> {
+    return this.http.post<{ accessToken: string; role: string } | { requiresVerification: boolean; email: string }>(`${this.baseUrl}/auth/register`, data);
+  }
+
+  verifyEmail(email: string, code: string): Observable<{ accessToken: string; role: string }> {
+    return this.http.post<{ accessToken: string; role: string }>(`${this.baseUrl}/auth/verify-email`, { email, code });
+  }
+
+  resendVerification(email: string): Observable<{ sent: boolean }> {
+    return this.http.post<{ sent: boolean }>(`${this.baseUrl}/auth/resend-verification`, { email });
   }
 
   // ── Jobs ──────────────────────────────────────────────────────────
@@ -235,6 +243,18 @@ export class ApiService {
 
   getWorkerStats(): Observable<any> {
     return this.http.get(`${this.baseUrl}/workers/me/stats`);
+  }
+
+  getSavedJobs(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/workers/me/saved-jobs`);
+  }
+
+  saveJob(jobId: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/workers/me/saved-jobs/${jobId}`, {});
+  }
+
+  unsaveJob(jobId: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/workers/me/saved-jobs/${jobId}`);
   }
 
   updateClientProfile(data: unknown): Observable<unknown> {

@@ -1,6 +1,7 @@
 import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
@@ -9,20 +10,30 @@ import * as bcrypt from 'bcryptjs';
 export class AuthService {
   constructor(
     private prisma: PrismaService,
-    private jwt: JwtService
+    private jwt: JwtService,
+    private email: EmailService,
   ) {}
+
+  private generateCode(): string {
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
 
   async register(dto: RegisterDto) {
     const exists = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (exists) throw new ConflictException('Email already registered');
 
     const hash = await bcrypt.hash(dto.password, 12);
+    const code = this.generateCode();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-    const user = await this.prisma.user.create({
+    await this.prisma.user.create({
       data: {
         email: dto.email,
         password: hash,
         role: dto.role,
+        emailVerified: false,
+        emailVerificationCode: code,
+        emailVerificationExpiry: expiry,
         ...(dto.role === 'WORKER'
           ? {
               workerProfile: {
@@ -52,7 +63,48 @@ export class AuthService {
       },
     });
 
+    await this.email.sendEmailVerification({ email: dto.email, name: dto.firstName, code });
+    return { requiresVerification: true, email: dto.email };
+  }
+
+  async verifyEmail(email: string, code: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } }) as any;
+    if (!user) throw new BadRequestException('Invalid code');
+    if (user.emailVerified) return this.signToken(user.id, user.email, user.role);
+
+    if (
+      user.emailVerificationCode !== code ||
+      !user.emailVerificationExpiry ||
+      user.emailVerificationExpiry < new Date()
+    ) {
+      throw new BadRequestException('Invalid or expired code');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true, emailVerificationCode: null, emailVerificationExpiry: null } as any,
+    });
+
     return this.signToken(user.id, user.email, user.role);
+  }
+
+  async resendVerification(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } }) as any;
+    if (!user || user.emailVerified) return { sent: false };
+
+    const code = this.generateCode();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerificationCode: code, emailVerificationExpiry: expiry },
+    });
+
+    const name = (await this.prisma.workerProfile.findUnique({ where: { userId: user.id }, select: { firstName: true } }))?.firstName
+      ?? (await this.prisma.clientProfile.findUnique({ where: { userId: user.id }, select: { firstName: true } }))?.firstName
+      ?? 'there';
+
+    await this.email.sendEmailVerification({ email, name, code });
+    return { sent: true };
   }
 
   async login(dto: LoginDto) {
@@ -61,6 +113,21 @@ export class AuthService {
 
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
+
+    if (!(user as any).emailVerified) {
+      // Resend a fresh code so they can verify
+      const code = this.generateCode();
+      const expiry = new Date(Date.now() + 15 * 60 * 1000);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerificationCode: code, emailVerificationExpiry: expiry } as any,
+      });
+      const name = (await this.prisma.workerProfile.findUnique({ where: { userId: user.id }, select: { firstName: true } }))?.firstName
+        ?? (await this.prisma.clientProfile.findUnique({ where: { userId: user.id }, select: { firstName: true } }))?.firstName
+        ?? 'there';
+      await this.email.sendEmailVerification({ email: user.email, name, code });
+      throw new UnauthorizedException(JSON.stringify({ requiresVerification: true, email: user.email }));
+    }
 
     return this.signToken(user.id, user.email, user.role);
   }

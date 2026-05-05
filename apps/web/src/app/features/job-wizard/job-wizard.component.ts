@@ -1047,9 +1047,9 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 
     /* ── Preview view ─────────────────────── */
     .preview-view {
-      max-width: 900px;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 2rem 1.5rem;
+      padding: 2rem 1.25rem;
       animation: fadeIn 280ms ease-out both;
     }
     .preview-top { margin-bottom: 1.75rem; }
