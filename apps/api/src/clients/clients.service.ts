@@ -49,6 +49,46 @@ export class ClientsService {
     };
   }
 
+  async getTransactions(userId: string) {
+    const payments = await this.prisma.payment.findMany({
+      where: { job: { clientId: userId } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        totalAmount: true,
+        platformFeeAmount: true,
+        workerPayout: true,
+        status: true,
+        createdAt: true,
+        job: {
+          select: {
+            title: true,
+            category: { select: { name: true } },
+            applications: {
+              where: { status: 'ACCEPTED' },
+              select: { worker: { select: { firstName: true, lastName: true } } },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    return payments.map((p) => ({
+      id: p.id,
+      date: p.createdAt,
+      jobTitle: p.job.title,
+      category: p.job.category?.name ?? '',
+      worker: p.job.applications[0]
+        ? `${p.job.applications[0].worker.firstName} ${p.job.applications[0].worker.lastName}`
+        : '',
+      totalAmount: p.totalAmount,
+      platformFee: p.platformFeeAmount,
+      workerPayout: p.workerPayout,
+      status: p.status,
+    }));
+  }
+
   async updateProfile(userId: string, dto: {
     firstName?: string;
     lastName?: string;

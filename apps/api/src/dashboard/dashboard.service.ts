@@ -8,7 +8,7 @@ export class DashboardService {
   async getClientDashboard(userId: string, skip = 0, take = 10) {
     const [jobs, allJobs, profile] = await Promise.all([
       this.prisma.job.findMany({
-        where: { clientId: userId },
+        where: { clientId: userId, status: { not: 'DRAFT' } },
         include: {
           category: true,
           applications: {
@@ -34,7 +34,7 @@ export class DashboardService {
         skip,
         take,
       }),
-      this.prisma.job.findMany({ where: { clientId: userId }, select: { status: true } }),
+      this.prisma.job.findMany({ where: { clientId: userId, status: { not: 'DRAFT' } }, select: { status: true } }),
       this.prisma.clientProfile.findUnique({ where: { userId } }),
     ]);
 

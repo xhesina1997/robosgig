@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
 import { AnalyzeJobDto } from './dto/analyze-job.dto';
 import { CreateJobDto } from './dto/create-job.dto';
+import { SaveDraftDto } from './dto/save-draft.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('jobs')
@@ -41,6 +42,39 @@ export class JobsController {
   @ApiOperation({ summary: 'Post a job (after AI preview is confirmed)' })
   create(@Body() dto: CreateJobDto, @Request() req: { user: { sub: string } }) {
     return this.jobsService.createJob(dto, req.user.sub);
+  }
+
+  // ── Draft endpoints ─────────────────────────────────────────────────────
+  @Post('drafts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Save a draft (create new or update existing by id)' })
+  saveDraft(@Body() dto: SaveDraftDto, @Request() req: { user: { sub: string } }) {
+    return this.jobsService.saveDraft(dto, req.user.sub);
+  }
+
+  @Get('drafts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all drafts for the current client' })
+  listDrafts(@Request() req: { user: { sub: string } }) {
+    return this.jobsService.listDrafts(req.user.sub);
+  }
+
+  @Delete('drafts/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a draft by id' })
+  deleteDraft(@Param('id') id: string, @Request() req: { user: { sub: string } }) {
+    return this.jobsService.deleteDraft(id, req.user.sub);
+  }
+
+  @Post('drafts/:id/publish')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Publish a draft as a posted job' })
+  publishDraft(@Param('id') id: string, @Request() req: { user: { sub: string } }) {
+    return this.jobsService.publishDraft(id, req.user.sub);
   }
 
   @Get()

@@ -28,109 +28,149 @@ interface ClientDashboard {
   imports: [CommonModule, RouterModule, WorkerProfileModalComponent, VerifyIdentityComponent],
   template: `
     <div class="page">
+      <div class="inner">
 
-      <!-- Header -->
-      <div class="page-header">
-        <div class="inner">
-          <div class="header-top">
-            <div>
-              <p class="eyebrow">Client Dashboard</p>
-              <h1 class="page-title">My Jobs</h1>
-            </div>
-            <div class="header-actions">
-              <a routerLink="/client/profile" class="btn-ghost">My profile</a>
-              <a routerLink="/post" class="btn-primary">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Post new job
-              </a>
+        <!-- Hero -->
+        <header class="hero">
+          <div class="hero-left">
+            <p class="eyebrow">Client dashboard</p>
+            <h1 class="title">My jobs</h1>
+            <div class="hero-meta">
+              @if (idVerified()) {
+                <span class="verified-pill">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                  ID Verified
+                </span>
+                <span class="hero-meta-sep">·</span>
+              }
+              <span class="hero-meta-text">{{ data()?.stats?.total ?? 0 }} jobs lifetime</span>
             </div>
           </div>
+          <div class="hero-actions">
+            <a routerLink="/client/profile" class="action-pill">My profile</a>
+            <a routerLink="/post" class="action-pill action-pill--primary">
+              <span class="action-plus">+</span>
+              Post new job
+            </a>
+          </div>
+        </header>
 
-          @if (data()) {
-            <div class="stat-bar">
-              <button class="stat-item" [class.stat-active]="filter() === 'ALL'" (click)="setFilter('ALL')">
-                <span class="stat-val">{{ data()!.stats.total }}</span>
-                <span class="stat-label">All jobs</span>
-              </button>
-              <button class="stat-item" [class.stat-active]="filter() === 'POSTED'" (click)="setFilter('POSTED')">
-                <span class="stat-val stat-open">{{ data()!.stats.posted }}</span>
-                <span class="stat-label">Open</span>
-              </button>
-              <button class="stat-item" [class.stat-active]="filter() === 'IN_PROGRESS'" (click)="setFilter('IN_PROGRESS')">
-                <span class="stat-val stat-progress">{{ data()!.stats.inProgress }}</span>
-                <span class="stat-label">In progress</span>
-              </button>
-              <button class="stat-item" [class.stat-active]="filter() === 'COMPLETED'" (click)="setFilter('COMPLETED')">
-                <span class="stat-val">{{ data()!.stats.completed }}</span>
-                <span class="stat-label">Completed</span>
-              </button>
-            </div>
-          } @else {
-            <div class="stat-bar-skeleton"></div>
-          }
-        </div>
-      </div>
-
-      <!-- Body -->
-      <div class="page-body">
-        <div class="inner">
-
-          <!-- Identity verification -->
+        <!-- Identity verification (only when not yet verified) -->
+        @if (!idVerified()) {
           <div class="verify-section">
             <app-verify-identity />
           </div>
+        }
 
-          @if (data()) {
+        <!-- Stat tabs -->
+        @if (data()) {
+          <div class="stat-tabs">
+            <button class="stat-tab" [class.stat-tab--active]="filter() === 'ALL'" (click)="setFilter('ALL')" type="button">
+              <span class="stat-val">
+                {{ data()!.stats.total }}
+                @if (filter() === 'ALL') { <span class="stat-dot" style="background:#0A0A0A"></span> }
+              </span>
+              <span class="stat-label">All jobs</span>
+            </button>
+            <button class="stat-tab" [class.stat-tab--active]="filter() === 'POSTED'" (click)="setFilter('POSTED')" type="button">
+              <span class="stat-val" style="color:#3B82F6">
+                {{ data()!.stats.posted }}
+                @if (filter() === 'POSTED') { <span class="stat-dot" style="background:#3B82F6"></span> }
+              </span>
+              <span class="stat-label">Open</span>
+            </button>
+            <button class="stat-tab" [class.stat-tab--active]="filter() === 'IN_PROGRESS'" (click)="setFilter('IN_PROGRESS')" type="button">
+              <span class="stat-val" style="color:#B45309">
+                {{ data()!.stats.inProgress }}
+                @if (filter() === 'IN_PROGRESS') { <span class="stat-dot" style="background:#B45309"></span> }
+              </span>
+              <span class="stat-label">In progress</span>
+            </button>
+            <button class="stat-tab" [class.stat-tab--active]="filter() === 'COMPLETED'" (click)="setFilter('COMPLETED')" type="button">
+              <span class="stat-val" style="color:#737373">
+                {{ data()!.stats.completed }}
+                @if (filter() === 'COMPLETED') { <span class="stat-dot" style="background:#737373"></span> }
+              </span>
+              <span class="stat-label">Completed</span>
+            </button>
+          </div>
+        } @else {
+          <div class="stat-tabs-skel"></div>
+        }
 
-            @if (data()!.jobs.length === 0) {
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                </div>
-                <p class="empty-title">No jobs posted yet</p>
-                <p class="empty-sub">Post your first job and let AI find the best worker for you.</p>
-                <a routerLink="/post" class="btn-primary">Post a job</a>
+        @if (data()) {
+
+          @if (data()!.jobs.length === 0) {
+            <div class="empty-state">
+              <p class="empty-title">No jobs posted yet</p>
+              <p class="empty-sub">Post your first job and let AI find the best worker for you.</p>
+              <a routerLink="/post" class="empty-cta">Post a job</a>
+            </div>
+
+          } @else {
+
+            <!-- Section header -->
+            <div class="section-head">
+              <span class="section-label">
+                {{ filterLabel() }}
+                <span class="section-count">{{ filteredJobs().length }}</span>
+              </span>
+              <div class="section-tools">
+                <span class="section-sort">Newest ↓</span>
               </div>
+            </div>
 
-            } @else {
-              @if (showContent()) {
-              <div class="list-anim">
-              <div class="section-head">
-                <span class="section-title">{{ filterLabel() }}</span>
-                <span class="section-badge">{{ filteredJobs().length }}</span>
+            @if (filteredJobs().length === 0) {
+              <div class="filter-empty">
+                <p class="filter-empty-title">Nothing here yet.</p>
+                <p class="filter-empty-sub">Try a different tab, or post a new job.</p>
               </div>
+            }
 
-              @if (filteredJobs().length === 0) {
-                <div class="filter-empty">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-                  No {{ filterLabel().toLowerCase() }} jobs.
-                </div>
-              }
-
+            @if (showContent()) {
               <div class="jobs-list">
                 @for (job of filteredJobs(); track job.id) {
-                  <div class="job-card" [class.job-open]="expandedJob() === job.id">
+                  <article class="job-card">
 
-                    <!-- Collapsed row -->
-                    <div class="job-row" (click)="toggleJob(job.id)">
-                      <div class="job-cat-dot" [style.background]="catColor(job.category?.name)"></div>
-                      <div class="job-info">
+                    <!-- Collapsed row (toggle) -->
+                    <button class="job-row" (click)="toggleJob(job.id)" type="button">
+                      <div class="job-row-main">
                         <div class="job-title-row">
+                          <span class="job-cat-dot" [style.background]="catColor(job.category?.name)"></span>
                           <span class="job-title">{{ job.title }}</span>
-                          <span class="status-pill status-{{ job.status.toLowerCase() }}">{{ statusLabel(job.status) }}</span>
+                          <span class="status-pill status-{{ statusGroup(job.status) }}">
+                            <span class="status-dot"></span>
+                            {{ statusLabel(job.status) }}
+                          </span>
                         </div>
                         <div class="job-meta">
-                          <span>{{ job.category?.name || 'General' }}</span>
-                          @if (job.city) { <span class="dot">·</span><span>{{ job.city }}</span> }
-                          @if (job.priceMin) { <span class="dot">·</span><span class="job-price">€{{ job.priceMin }}–{{ job.priceMax }}</span> }
-                          <span class="dot">·</span>
-                          <span class="apps-count">{{ job.applications.length }} application{{ job.applications.length !== 1 ? 's' : '' }}</span>
+                          <span>{{ (job.category?.name || 'General').toLowerCase() }}</span>
+                          @if (job.city) { <span>· {{ job.city }}</span> }
+                          @if (job.priceMin) { <span>· €{{ job.priceMin }}–{{ job.priceMax }}</span> }
+                          <span>· posted {{ job.createdAt | date:'d MMM' }}</span>
                         </div>
                       </div>
-                      <div class="chevron" [class.chevron-open]="expandedJob() === job.id">
-                        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+
+                      <div class="job-row-right">
+                        @if (statusGroup(job.status) === 'open') {
+                          <span
+                            class="apps-chip"
+                            [class.apps-chip--has]="job.applications.length > 0"
+                          >{{ job.applications.length }} application{{ job.applications.length === 1 ? '' : 's' }}</span>
+                        } @else if (statusGroup(job.status) === 'progress') {
+                          <span class="progress-note">In progress</span>
+                        } @else if (statusGroup(job.status) === 'completed') {
+                          <span class="completed-note">
+                            <span class="completed-amt">+€{{ jobPrice(job) || job.priceMax || 0 }} paid</span>
+                          </span>
+                        }
                       </div>
-                    </div>
+
+                      <span
+                        class="chev"
+                        [class.chev--open]="expandedJob() === job.id"
+                      >⌄</span>
+                    </button>
 
                     <!-- Expanded body -->
                     @if (expandedJob() === job.id) {
@@ -140,208 +180,200 @@ interface ClientDashboard {
                           <p class="job-desc">{{ job.description }}</p>
                         }
 
-                        @if (job.applications.length === 0) {
-                          <p class="no-apps">No applications yet — workers will find this job soon.</p>
+                        <!-- In-progress worker card -->
+                        @if (job.status === 'IN_PROGRESS' || job.status === 'ASSIGNED') {
+                          @if (acceptedApp(job); as accepted) {
+                            <div class="worker-strip">
+                              <div class="worker-strip-left">
+                                <div class="worker-avatar-sm">{{ accepted.worker.firstName[0] }}{{ accepted.worker.lastName[0] }}</div>
+                                <div>
+                                  <p class="worker-strip-name">{{ accepted.worker.firstName }} {{ accepted.worker.lastName }}</p>
+                                  <p class="worker-strip-meta">
+                                    @if (job.status === 'IN_PROGRESS') { Payment secured in escrow }
+                                    @else if (job.payment?.status === 'PENDING') { Payment submitted · awaiting confirmation }
+                                    @else { Awaiting payment to start }
+                                  </p>
+                                </div>
+                              </div>
+                              <div class="worker-strip-actions">
+                                <button class="btn-ghost-pill" (click)="chat.openChat(job.id); chat.openWidget()" type="button">
+                                  Open chat
+                                </button>
+                                @if (job.status === 'ASSIGNED' && job.payment?.status === 'PENDING') {
+                                  <button class="btn-ink-pill" (click)="verifyPayment(job.id)" [disabled]="verifyingPayment() === job.id" type="button">
+                                    @if (verifyingPayment() === job.id) { Verifying… }
+                                    @else { Confirm payment }
+                                  </button>
+                                } @else if (job.status === 'ASSIGNED') {
+                                  <button class="btn-ink-pill" (click)="fundJob(job.id)" [disabled]="payingJob() === job.id" type="button">
+                                    @if (payingJob() === job.id) { Redirecting… }
+                                    @else { Fund job{{ jobPrice(job) ? ' (€' + jobPrice(job) + ')' : '' }} }
+                                  </button>
+                                } @else if (job.status === 'IN_PROGRESS') {
+                                  <button class="btn-ink-pill" (click)="releasePayment(job.id)" [disabled]="releasingJob() === job.id" type="button">
+                                    @if (releasingJob() === job.id) { Processing… }
+                                    @else { Mark done · release escrow }
+                                  </button>
+                                }
+                              </div>
+                            </div>
+                          }
+                        }
 
-                        } @else {
-                          <div class="sub-head">
-                            Applications
-                            <span class="sub-badge">{{ job.applications.length }}</span>
-                          </div>
+                        <!-- Applications (open status) -->
+                        @if (job.status === 'POSTED') {
+                          @if (job.applications.length === 0) {
+                            <p class="no-apps">No applications yet — workers will find this job soon.</p>
+                          } @else {
+                            <div class="apps-head">
+                              <span class="apps-head-label">
+                                Applications · <span class="apps-head-count">{{ job.applications.length }}</span>
+                              </span>
+                              <span class="apps-head-sort">sorted by best match</span>
+                            </div>
+                            <div class="apps-list">
+                              @for (app of job.applications; track app.id) {
+                                <div
+                                  class="app-row"
+                                  [class.app-row--accepted]="app.status === 'ACCEPTED'"
+                                >
+                                  <div class="app-avatar">{{ app.worker.firstName[0] }}{{ app.worker.lastName[0] }}</div>
 
-                          <div class="apps-list">
-                            @for (app of job.applications; track app.id) {
-                              <div class="app-card">
-                                <div class="app-card-top">
-                                  <!-- Avatar + name -->
-                                  <div class="worker-avatar">{{ app.worker.firstName[0] }}{{ app.worker.lastName[0] }}</div>
-                                  <div class="worker-info">
-                                    <div class="worker-name-row">
-                                      <p class="worker-name">{{ app.worker.firstName }} {{ app.worker.lastName }}</p>
-                                      @if (!app.worker.user?.idVerified) {
-                                        <span class="unverified-tag" title="This worker has not verified their identity">
-                                          <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                          Not verified
-                                        </span>
+                                  <div class="app-main">
+                                    <div class="app-name-line">
+                                      <span class="app-name">{{ app.worker.firstName }} {{ app.worker.lastName }}</span>
+                                      @if (app.worker.user?.idVerified) {
+                                        <span class="app-id-pill">✓ ID</span>
                                       }
-                                    </div>
-                                    <div class="worker-chips">
                                       @if (app.worker.rating) {
-                                        <span class="chip">
-                                          <svg width="10" height="10" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                          {{ app.worker.rating }}
-                                        </span>
+                                        <span class="app-meta-mono">★ {{ app.worker.rating | number:'1.2-2' }} · {{ app.worker.totalJobs }} jobs</span>
+                                      } @else {
+                                        <span class="app-meta-mono app-meta-mono--new">new · {{ app.worker.totalJobs }} jobs</span>
                                       }
-                                      <span class="chip">{{ app.worker.totalJobs }} jobs</span>
                                       @if (app.worker.hourlyRate) {
-                                        <span class="chip">€{{ app.worker.hourlyRate }}/hr</span>
+                                        <span class="app-meta-mono app-meta-mono--dim">· €{{ app.worker.hourlyRate }}/hr</span>
                                       }
                                     </div>
+                                    @if (app.message) {
+                                      <p class="app-note">"{{ app.message }}"</p>
+                                    }
+                                    <button class="app-link" (click)="viewWorker(app, job.status)" type="button">
+                                      View full profile →
+                                    </button>
                                   </div>
-                                  <!-- Price + actions -->
+
                                   <div class="app-right">
                                     @if (app.proposedPrice) {
-                                      <span class="proposed-price">€{{ app.proposedPrice }}</span>
+                                      <div class="app-bid">€{{ app.proposedPrice }}</div>
+                                      <div class="app-bid-label">their bid</div>
                                     }
-                                    @if (app.status === 'APPLIED' && job.status === 'POSTED') {
-                                      <div class="action-btns">
-                                        <button class="btn-accept" (click)="accept(app.id)">Accept</button>
-                                        <button class="btn-decline" (click)="reject(app.id)">Decline</button>
+                                    @if (app.status === 'APPLIED') {
+                                      <div class="app-actions">
+                                        <button class="app-btn-pass" (click)="reject(app.id)" type="button">Pass</button>
+                                        <button class="app-btn-accept" (click)="accept(app.id)" type="button">Accept</button>
                                       </div>
+                                    } @else if (app.status === 'ACCEPTED') {
+                                      <span class="app-hired">✓ Hired</span>
                                     } @else {
-                                      <span class="app-status app-status-{{ app.status.toLowerCase() }}">{{ statusLabel(app.status) }}</span>
+                                      <span class="app-passed">{{ statusLabel(app.status).toLowerCase() }}</span>
                                     }
                                   </div>
                                 </div>
-
-                                @if (app.message) {
-                                  <p class="app-msg">"{{ app.message }}"</p>
-                                }
-
-                                <button class="view-profile-btn" (click)="viewWorker(app, job.status)">
-                                  View full profile
-                                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                                </button>
-                              </div>
-                            }
-                          </div>
-                        }
-
-                        <!-- Chat -->
-                        @if (job.status === 'ASSIGNED' || job.status === 'IN_PROGRESS' || job.status === 'COMPLETED') {
-                          <div class="chat-section">
-                            <button class="chat-open-btn" (click)="chat.openChat(job.id); chat.openWidget()">
-                              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                              Chat with worker
-                            </button>
-                          </div>
-                        }
-
-                        <!-- Escrow actions -->
-                        @if (job.status === 'ASSIGNED') {
-                          <div class="job-action-row">
-                            @if (job.payment?.status === 'PENDING') {
-                              <div class="escrow-prompt">
-                                <svg width="14" height="14" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                <span>Payment was submitted — click to confirm it's been received.</span>
-                              </div>
-                              <button class="btn-fund" (click)="verifyPayment(job.id)" [disabled]="verifyingPayment() === job.id">
-                                @if (verifyingPayment() === job.id) {
-                                  <span class="load-ring-sm"></span> Verifying…
-                                } @else {
-                                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                                  Confirm payment received
-                                }
-                              </button>
-                            } @else {
-                              <div class="escrow-prompt">
-                                <svg width="14" height="14" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                                <span>Fund escrow to start the job — the worker gets paid once you mark it complete.</span>
-                              </div>
-                              <button class="btn-fund" (click)="fundJob(job.id)" [disabled]="payingJob() === job.id">
-                                @if (payingJob() === job.id) {
-                                  <span class="load-ring-sm"></span> Redirecting…
-                                } @else {
-                                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                                  Fund job{{ jobPrice(job) ? ' (€' + jobPrice(job) + ')' : '' }}
-                                }
-                              </button>
-                            }
-                          </div>
-                        }
-                        @if (job.status === 'IN_PROGRESS') {
-                          <div class="job-action-row">
-                            <div class="escrow-held">
-                              <svg width="14" height="14" fill="none" stroke="#15803d" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                              <span>Payment secured in escrow — release it when the work is done.</span>
-                            </div>
-                            <button class="btn-complete" (click)="releasePayment(job.id)" [disabled]="releasingJob() === job.id">
-                              @if (releasingJob() === job.id) {
-                                <span class="load-ring-sm"></span> Processing…
-                              } @else {
-                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                                Mark complete & release payment
                               }
-                            </button>
-                          </div>
+                            </div>
+                          }
                         }
 
-                        <!-- Review -->
+                        <!-- Completed strip -->
+                        @if (job.status === 'COMPLETED') {
+                          @if (acceptedApp(job); as accepted) {
+                            <div class="completed-strip">
+                              <div class="completed-strip-text">
+                                Completed by
+                                <span class="completed-strip-name">{{ accepted.worker.firstName }} {{ accepted.worker.lastName }}</span>
+                                · paid €{{ jobPrice(job) || job.priceMax || 0 }} · invoice issued
+                              </div>
+                              <a routerLink="/post" class="btn-ghost-pill">Rebook →</a>
+                            </div>
+                          }
+                        }
+
+                        <!-- Review (completed) -->
                         @if (job.status === 'COMPLETED' && !reviewedJobs().has(job.id)) {
                           <div class="review-section">
-                            <div class="sub-head">Leave a review</div>
+                            <p class="review-label">Leave a review</p>
                             <div class="stars-row">
                               @for (star of [1,2,3,4,5]; track star) {
                                 <button
                                   class="star-btn"
                                   [class.star-active]="(reviewRatings()[job.id] ?? 0) >= star"
                                   (click)="setRating(job.id, star)"
+                                  type="button"
                                 >
                                   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                                 </button>
                               }
                             </div>
-                            <button class="btn-review" (click)="submitReview(job)" [disabled]="!reviewRatings()[job.id]">
-                              Submit review
-                            </button>
+                            <button
+                              class="btn-review"
+                              (click)="submitReview(job)"
+                              [disabled]="!reviewRatings()[job.id]"
+                              type="button"
+                            >Submit review</button>
                           </div>
                         }
 
-                        <!-- Delete job -->
-                        @if (job.status === 'POSTED' || job.status === 'DRAFT') {
-                          @if (!canDelete(job)) {
-                            <p class="delete-blocked">
-                              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                              @if (hasActiveApplication(job)) {
-                                Cannot delete — there is an accepted application in progress.
-                              } @else {
-                                Cannot delete — less than 24 hours before the scheduled date.
-                              }
-                            </p>
-                          } @else if (confirmDeleteId() === job.id) {
-                            <div class="delete-confirm">
-                              <span>Are you sure?</span>
-                              <button class="btn-delete-confirm" (click)="deleteJob(job.id)">Yes, delete</button>
-                              <button class="btn-delete-cancel" (click)="confirmDeleteId.set(null)">Cancel</button>
-                            </div>
+                        <!-- Footer actions -->
+                        <div class="job-foot">
+                          @if (job.status === 'POSTED' || job.status === 'DRAFT') {
+                            @if (!canDelete(job)) {
+                              <span class="delete-blocked">
+                                @if (hasActiveApplication(job)) {
+                                  Cannot delete — accepted application in progress.
+                                } @else {
+                                  Cannot delete — less than 24h before scheduled date.
+                                }
+                              </span>
+                            } @else if (confirmDeleteId() === job.id) {
+                              <span class="delete-confirm">
+                                Are you sure?
+                                <button class="delete-confirm-yes" (click)="deleteJob(job.id)" type="button">Yes, delete</button>
+                                <button class="delete-confirm-no" (click)="confirmDeleteId.set(null)" type="button">Cancel</button>
+                              </span>
+                            } @else {
+                              <button class="btn-delete" (click)="confirmDeleteId.set(job.id)" type="button">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                Delete job
+                              </button>
+                            }
                           } @else {
-                            <button class="btn-delete" (click)="confirmDeleteId.set(job.id)">
-                              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                              Delete job
-                            </button>
+                            <span></span>
                           }
-                        }
-
+                        </div>
                       </div>
                     }
-                  </div>
+                  </article>
                 }
               </div>
-              </div><!-- /list-anim -->
-              }<!-- /showContent -->
-
-              @if (data()!.jobs.length < total()) {
-                <div class="load-more-row">
-                  <button class="load-more-btn" (click)="loadMore()" [disabled]="loadingMore()">
-                    @if (loadingMore()) { <span class="load-ring-sm"></span> Loading… }
-                    @else { Load more jobs }
-                  </button>
-                  <span class="load-more-count">{{ data()!.jobs.length }} of {{ total() }}</span>
-                </div>
-              }
             }
 
-          } @else {
-            <!-- Skeleton -->
-            @for (i of [1,2,3]; track i) {
-              <div class="skeleton-card">
-                <div class="skel-line w55"></div>
-                <div class="skel-line w35"></div>
+            @if (data()!.jobs.length < total()) {
+              <div class="load-more-row">
+                <button class="load-more-btn" (click)="loadMore()" [disabled]="loadingMore()" type="button">
+                  @if (loadingMore()) { <span class="load-ring-sm"></span> Loading… }
+                  @else { Load more jobs }
+                </button>
+                <span class="load-more-count">{{ data()!.jobs.length }} of {{ total() }}</span>
               </div>
             }
           }
 
-        </div>
+        } @else {
+          @for (i of [1,2,3]; track i) {
+            <div class="skeleton-card"></div>
+          }
+        }
+
       </div>
 
       @if (selectedApp()) {
@@ -359,611 +391,844 @@ interface ClientDashboard {
     </div>
   `,
   styles: [`
-    * { box-sizing: border-box; }
-    .page { min-height: 100vh; background: #f8f8f8; }
-    .inner { max-width: 1100px; margin: 0 auto; padding: 0 1.25rem; }
-
-    /* ── Header ───────────────────────────── */
-    .page-header {
-      background: #fff;
-      border-bottom: 1px solid #e4e4e7;
-      padding: 2rem 0 0;
+    :host {
+      --bg: #FAFAFA;
+      --panel: #FFFFFF;
+      --ink: #0A0A0A;
+      --muted: #737373;
+      --sub: #A3A3A3;
+      --rule: #E8E8E5;
+      --accent: #84CC16;
+      --accent-ink: #0A0A0A;
+      --accent-text: #4D7C0F;
+      --soft: #F5F5F3;
+      --positive: #15803D;
+      --warn: #B45309;
+      --info: #3B82F6;
+      --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      display: block;
     }
-    .header-top {
+    * { box-sizing: border-box; }
+    .page {
+      min-height: calc(100vh - 56px);
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+    .inner { max-width: 1180px; margin: 0 auto; padding: 28px 40px 24px; }
+
+    /* ── Hero ─────────────────────────────── */
+    .hero {
       display: flex;
-      align-items: flex-start;
       justify-content: space-between;
-      gap: 1rem;
+      align-items: flex-end;
+      gap: 24px;
       flex-wrap: wrap;
-      padding-bottom: 1.5rem;
+      margin-bottom: 16px;
     }
     .eyebrow {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: #a1a1aa;
-      margin-bottom: 0.3rem;
+      font-weight: 500;
+      margin: 0 0 6px;
     }
-    .page-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #18181b;
+    .title {
+      font-size: 32px;
+      font-weight: 500;
       letter-spacing: -0.025em;
       margin: 0;
+      line-height: 1;
+      color: var(--ink);
     }
-
-    .btn-primary {
+    .hero-meta {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      background: #2d9580;
-      color: #fff;
-      text-decoration: none;
-      padding: 0.5rem 1rem;
-      border-radius: 99px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: background 0.15s, box-shadow 0.15s;
-      font-family: inherit;
-      white-space: nowrap;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 8px;
     }
-    .btn-primary:hover { background: #257a68; box-shadow: 0 2px 8px rgba(45,149,128,0.25); }
+    .verified-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+      font-weight: 500;
+    }
+    .hero-meta-sep { color: var(--rule); }
+    .hero-meta-text { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-    /* ── Stat bar ─────────────────────────── */
-    .stat-bar {
-      display: flex;
-      border-top: 1px solid #e4e4e7;
-    }
-    .stat-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      padding: 1rem 1.25rem;
-      background: none;
-      border: none;
+    .hero-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .action-pill {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      color: var(--ink);
+      font-size: 12.5px;
+      font-family: var(--font);
+      font-weight: 500;
       cursor: pointer;
-      text-align: left;
-      font-family: inherit;
-      position: relative;
-      transition: background 0.12s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.15s, background 0.15s;
     }
-    .stat-item:hover { background: rgba(0,0,0,0.02); }
-    .stat-item.stat-active { background: none; }
-    .stat-item.stat-active::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 2px;
-      background: #2d9580;
-      border-radius: 2px 2px 0 0;
+    .action-pill:hover { border-color: var(--sub); }
+    .action-pill--primary {
+      background: var(--ink);
+      border: none;
+      color: #fff;
+      padding: 8px 16px;
     }
-    .stat-val {
-      font-size: 1.4rem;
+    .action-pill--primary:hover { background: #262626; }
+    .action-plus {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-size: 11px;
+      line-height: 1;
       font-weight: 700;
-      color: #18181b;
+    }
+
+    .verify-section { margin: 8px 0 14px; }
+
+    /* ── Stat tabs ────────────────────────── */
+    .stat-tabs {
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px solid var(--rule);
+      margin: 12px 0 0;
+    }
+    .stat-tab {
+      flex: 1;
+      padding: 16px 18px;
+      text-align: left;
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: -1px;
+      border-radius: 12px 12px 0 0;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.12s, border-color 0.12s;
+      position: relative;
+    }
+    .stat-tab:hover { background: rgba(0,0,0,0.02); }
+    .stat-tab--active {
+      background: var(--panel);
+      border-color: var(--rule);
+      border-bottom-color: var(--panel);
+    }
+    .stat-tab--active:hover { background: var(--panel); }
+    .stat-val {
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--ink);
       letter-spacing: -0.025em;
       line-height: 1;
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
     }
-    .stat-open { color: #2563eb; }
-    .stat-progress { color: #f59e0b; }
-    .stat-label { font-size: 0.72rem; color: #a1a1aa; font-weight: 500; }
-    .stat-bar-skeleton {
-      height: 72px;
-      border-top: 1px solid #e4e4e7;
+    .stat-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+    .stat-label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+    .stat-tabs-skel {
+      height: 90px;
+      border-bottom: 1px solid var(--rule);
+      margin: 12px 0 0;
       animation: pulse 1.5s ease-in-out infinite;
     }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-    /* ── Filter empty ─────────────────────── */
-    .filter-empty {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.84rem;
-      color: #a1a1aa;
-      padding: 1.5rem 0 0.5rem;
-    }
-
-    /* ── Body ─────────────────────────────── */
-    .page-body { padding: 2rem 0; }
-    .verify-section { margin-bottom: 1.5rem; }
-
-    /* ── List animation ──────────────────── */
-    .list-anim {
-      animation: listSlideIn 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-    }
-    @keyframes listSlideIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── Section head ─────────────────────── */
+    /* ── Section header ───────────────────── */
     .section-head {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
+      margin: 20px 0 12px;
     }
-    .section-title {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.07em;
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: #71717a;
+      font-weight: 500;
     }
-    .section-badge {
-      background: #2d9580;
+    .section-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: var(--ink);
       color: #fff;
-      font-size: 0.6rem;
-      font-weight: 700;
-      padding: 0.08rem 0.42rem;
-      border-radius: 99px;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+    .section-tools { display: flex; gap: 6px; align-items: center; }
+    .section-sort {
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      font-size: 11.5px;
+      color: var(--muted);
+      font-family: var(--font);
     }
 
-    /* ── Job list ─────────────────────────── */
-    .jobs-list { display: flex; flex-direction: column; gap: 0.625rem; }
+    /* ── Jobs list ────────────────────────── */
+    .jobs-list { display: flex; flex-direction: column; gap: 12px; }
 
     .job-card {
-      background: #fff;
-      border: 1.5px solid #e4e4e7;
+      background: var(--panel);
+      border: 1px solid var(--rule);
       border-radius: 14px;
       overflow: hidden;
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      transition: border-color 0.15s;
     }
-    .job-card:not(.job-open):hover {
-      border-color: #a7f3d0;
-      box-shadow: 0 4px 20px rgba(45,149,128,0.08);
-      transform: translateY(-2px);
-    }
-    .job-card.job-open { border-color: #2d9580; box-shadow: 0 4px 16px rgba(45,149,128,0.1); }
+    .job-card:has(.job-body) { border-color: #D4D4D1; }
 
     .job-row {
-      display: flex;
-      align-items: center;
-      gap: 0.875rem;
-      padding: 1rem 1.125rem;
+      width: 100%;
+      padding: 18px 22px;
+      border: none;
+      background: transparent;
+      text-align: left;
       cursor: pointer;
-      transition: background 0.12s;
+      font-family: var(--font);
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 18px;
+      align-items: center;
     }
-    .job-row:hover { background: #fafafa; }
-
-    .job-cat-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .job-info { flex: 1; min-width: 0; }
+    .job-row:hover { background: rgba(0,0,0,0.015); }
+    .job-row-main { min-width: 0; }
     .job-title-row {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 10px;
       flex-wrap: wrap;
-      margin-bottom: 0.2rem;
+    }
+    .job-cat-dot {
+      width: 6px; height: 6px;
+      border-radius: 3px;
+      flex-shrink: 0;
     }
     .job-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #18181b;
-      letter-spacing: -0.01em;
+      font-size: 15.5px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.012em;
     }
     .job-meta {
-      font-size: 0.74rem;
-      color: #a1a1aa;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
       display: flex;
-      align-items: center;
-      gap: 0.25rem;
+      gap: 8px;
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
       flex-wrap: wrap;
     }
-    .dot { color: #d4d4d8; }
-    .job-price { color: #2563eb; font-weight: 500; }
-    .apps-count { color: #18181b; font-weight: 600; }
 
-    .chevron { color: #a1a1aa; transition: transform 0.2s; flex-shrink: 0; }
-    .chevron-open { transform: rotate(90deg); }
+    .job-row-right { text-align: right; flex-shrink: 0; }
 
     /* Status pills */
     .status-pill {
-      font-size: 0.65rem;
-      font-weight: 600;
-      padding: 0.18rem 0.6rem;
-      border-radius: 99px;
-      white-space: nowrap;
-    }
-    .status-posted      { background: rgba(37,99,235,0.08);  color: #1d4ed8; }
-    .status-assigned    { background: rgba(245,158,11,0.1);  color: #b45309; }
-    .status-in_progress { background: rgba(20,184,166,0.1);  color: #0f766e; }
-    .status-completed   { background: rgba(0,0,0,0.05);      color: #71717a; }
-    .status-cancelled,
-    .status-draft      { background: rgba(0,0,0,0.05);      color: #71717a; }
-
-    /* ── Job expanded body ────────────────── */
-    .job-body {
-      padding: 0 1.125rem 1.125rem;
-      border-top: 1px solid #f4f4f5;
-    }
-    .job-desc {
-      font-size: 0.82rem;
-      color: #71717a;
-      line-height: 1.6;
-      margin: 0.875rem 0 0;
-      padding-bottom: 0.875rem;
-      border-bottom: 1px solid #f4f4f5;
-    }
-    .no-apps { font-size: 0.82rem; color: #a1a1aa; padding: 0.875rem 0 0.25rem; }
-
-    .sub-head {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: #71717a;
-      padding-top: 0.875rem;
-      margin-bottom: 0.625rem;
-    }
-    .sub-badge {
-      background: #2d9580;
-      color: #fff;
-      font-size: 0.58rem;
-      font-weight: 700;
-      padding: 0.08rem 0.4rem;
-      border-radius: 99px;
-    }
-
-    /* ── Application cards ────────────────── */
-    .apps-list { display: flex; flex-direction: column; gap: 0.5rem; }
-
-    .app-card {
-      background: #fafafa;
-      border: 1.5px solid #e4e4e7;
-      border-radius: 12px;
-      padding: 0.875rem 1rem;
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-    }
-    .app-card:hover { border-color: #a7f3d0; box-shadow: 0 2px 10px rgba(45,149,128,0.07); transform: translateY(-1px); }
-
-    .app-card-top {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
-      margin-bottom: 0.5rem;
-    }
-    .worker-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: #2d9580;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.72rem;
-      font-weight: 700;
-      flex-shrink: 0;
-      letter-spacing: 0.03em;
-    }
-    .worker-info { flex: 1; min-width: 0; }
-    .worker-name-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.3rem; }
-    .worker-name { font-size: 0.875rem; font-weight: 600; color: #18181b; margin: 0; }
-    .unverified-tag {
-      display: inline-flex; align-items: center; gap: 0.25rem;
-      background: #fef3c7; color: #92400e;
-      font-size: 0.68rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 99px;
-    }
-    .worker-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-    .chip {
       display: inline-flex;
       align-items: center;
-      gap: 0.2rem;
-      font-size: 0.7rem;
-      background: #fff;
-      color: #71717a;
-      border: 1.5px solid #e4e4e7;
-      padding: 0.12rem 0.45rem;
-      border-radius: 99px;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 10.5px;
       font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .status-dot { width: 5px; height: 5px; border-radius: 3px; }
+    .status-open      { background: #EFF6FF; color: #1D4ED8; }
+    .status-open .status-dot { background: var(--info); }
+    .status-progress  { background: #FEF3C7; color: #92400E; }
+    .status-progress .status-dot { background: var(--warn); }
+    .status-completed { background: var(--soft); color: var(--muted); }
+    .status-completed .status-dot { background: var(--muted); }
+
+    .apps-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+    .apps-chip--has {
+      background: var(--ink);
+      color: #fff;
+    }
+    .progress-note {
+      font-size: 11.5px;
+      color: var(--warn);
+    }
+    .completed-note {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    .completed-amt {
+      font-family: var(--mono);
+      color: var(--positive);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chev {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 13px;
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+    .chev--open { transform: rotate(180deg); }
+
+    /* ── Expanded body ────────────────────── */
+    .job-body {
+      padding: 16px 22px 22px;
+      border-top: 1px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .job-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 880px;
+      margin: 0;
+    }
+    .no-apps {
+      font-size: 13px;
+      color: var(--sub);
+      margin: 0;
+    }
+
+    /* In-progress worker strip */
+    .worker-strip {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      background: var(--soft);
+    }
+    .worker-strip-left { display: flex; gap: 12px; align-items: center; min-width: 0; }
+    .worker-avatar-sm {
+      width: 36px; height: 36px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .worker-strip-name {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 0;
+    }
+    .worker-strip-meta {
+      font-size: 11.5px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin: 2px 0 0;
+    }
+    .worker-strip-actions { display: flex; gap: 6px; }
+
+    .btn-ghost-pill {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      font-size: 12px;
+      font-family: var(--font);
+      color: var(--ink);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+    .btn-ghost-pill:hover { border-color: var(--sub); }
+    .btn-ink-pill {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      background: var(--ink);
+      color: #fff;
+      font-size: 12px;
+      font-family: var(--font);
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-ink-pill:hover:not(:disabled) { background: #262626; }
+    .btn-ink-pill:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Applications block */
+    .apps-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .apps-head-label {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .apps-head-count { color: var(--ink); }
+    .apps-head-sort {
+      font-size: 11px;
+      color: var(--sub);
+      font-family: var(--mono);
+    }
+
+    .apps-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .app-row {
+      padding: 14px 16px;
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      background: var(--panel);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: start;
+    }
+    .app-row--accepted {
+      border-color: #D4D4D1;
+      background: var(--soft);
+    }
+
+    .app-avatar {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: var(--ink);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .app-main { min-width: 0; }
+    .app-name-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .app-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+    }
+    .app-id-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .app-meta-mono {
+      font-size: 11.5px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .app-meta-mono--new { font-style: italic; }
+    .app-meta-mono--dim { color: var(--sub); }
+
+    .app-note {
+      margin: 8px 0 0;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--soft);
+      font-size: 12.5px;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.45;
+      border-left: 2px solid var(--rule);
+    }
+    .app-row--accepted .app-note { background: var(--panel); }
+
+    .app-link {
+      margin-top: 10px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      color: var(--ink);
+      font-size: 12px;
+      font-family: var(--font);
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: var(--rule);
     }
 
     .app-right {
       display: flex;
       flex-direction: column;
+      gap: 8px;
       align-items: flex-end;
-      gap: 0.375rem;
-      flex-shrink: 0;
+      min-width: 130px;
     }
-    .proposed-price {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #18181b;
-      letter-spacing: -0.02em;
+    .app-bid {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.025em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
     }
-    .action-btns { display: flex; gap: 0.3rem; }
-    .btn-accept {
-      background: #2d9580;
+    .app-bid-label {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .app-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .app-btn-pass {
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 11.5px;
+      font-family: var(--font);
+      cursor: pointer;
+    }
+    .app-btn-pass:hover { color: var(--ink); border-color: var(--sub); }
+    .app-btn-accept {
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: none;
+      background: var(--ink);
       color: #fff;
-      border: none;
-      padding: 0.3rem 0.75rem;
-      border-radius: 99px;
-      font-size: 0.72rem;
-      font-weight: 600;
+      font-size: 11.5px;
+      font-family: var(--font);
+      font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s, box-shadow 0.15s;
-      font-family: inherit;
-      white-space: nowrap;
     }
-    .btn-accept:hover { background: #257a68; box-shadow: 0 2px 8px rgba(45,149,128,0.25); }
-    .btn-decline {
-      background: transparent;
-      color: #a1a1aa;
-      border: 1.5px solid #e4e4e7;
-      padding: 0.3rem 0.75rem;
-      border-radius: 99px;
-      font-size: 0.72rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      font-family: inherit;
-      white-space: nowrap;
-    }
-    .btn-decline:hover { background: rgba(239,68,68,0.05); color: #dc2626; border-color: rgba(239,68,68,0.2); }
-
-    .app-status {
-      font-size: 0.68rem;
-      font-weight: 600;
-      padding: 0.18rem 0.6rem;
-      border-radius: 99px;
-    }
-    .app-status-accepted { background: rgba(20,184,166,0.1);  color: #0f766e; }
-    .app-status-rejected { background: rgba(239,68,68,0.08);  color: #dc2626; }
-    .app-status-applied  { background: rgba(37,99,235,0.08);  color: #1d4ed8; }
-
-    .app-msg {
-      font-size: 0.8rem;
-      color: #71717a;
-      font-style: italic;
-      margin: 0 0 0.5rem;
-      line-height: 1.5;
-      padding-left: 0.25rem;
-      border-left: 2px solid #e4e4e7;
-    }
-    .view-profile-btn {
+    .app-btn-accept:hover { background: #262626; }
+    .app-hired {
       display: inline-flex;
       align-items: center;
-      gap: 0.3rem;
-      background: none;
-      border: none;
-      color: #2d9580;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 0;
-      font-family: inherit;
-      transition: color 0.12s;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 4px;
     }
-    .view-profile-btn:hover { color: #257a68; }
+    .app-passed {
+      font-size: 11px;
+      color: var(--sub);
+      margin-top: 4px;
+    }
 
-    /* ── Chat ─────────────────────────────── */
-    .chat-section {
-      padding-top: 0.875rem;
-      margin-top: 0.875rem;
-      border-top: 1px solid #f4f4f5;
-    }
-    .chat-open-btn {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      background: #2d9580; color: #fff;
-      border: none; padding: 0.45rem 1rem; border-radius: 99px;
-      font-size: 0.8rem; font-weight: 600;
-      cursor: pointer; transition: background 0.15s, box-shadow 0.15s; font-family: inherit;
-    }
-    .chat-open-btn:hover { background: #257a68; box-shadow: 0 2px 8px rgba(45,149,128,0.25); }
-
-    /* ── Mark complete ────────────────────── */
-    .job-action-row {
-      padding-top: 0.875rem;
-      margin-top: 0.875rem;
-      border-top: 1px solid #f4f4f5;
-    }
-    .btn-complete {
-      display: inline-flex;
+    /* Completed strip */
+    .completed-strip {
+      padding: 14px 16px;
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      background: var(--soft);
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 0.375rem;
-      background: rgba(20,184,166,0.08);
-      color: #0f766e;
-      border: 1.5px solid rgba(20,184,166,0.2);
-      padding: 0.5rem 1rem;
-      border-radius: 99px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      font-family: inherit;
+      gap: 12px;
+      flex-wrap: wrap;
     }
-    .btn-complete:hover { background: rgba(20,184,166,0.14); border-color: rgba(20,184,166,0.35); }
+    .completed-strip-text {
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .completed-strip-name {
+      color: var(--ink);
+      font-weight: 500;
+    }
 
-    /* ── Review ───────────────────────────── */
+    /* Review */
     .review-section {
-      padding-top: 0.875rem;
-      margin-top: 0.875rem;
-      border-top: 1px solid #f4f4f5;
+      padding: 14px 16px;
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      background: var(--panel);
     }
-    .stars-row { display: flex; gap: 0.125rem; margin: 0.5rem 0 0.75rem; }
+    .review-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0;
+    }
+    .stars-row { display: flex; gap: 2px; margin: 8px 0 12px; }
     .star-btn {
       background: none;
       border: none;
-      color: #e4e4e7;
+      color: var(--rule);
       cursor: pointer;
       padding: 0;
       line-height: 1;
       transition: color 0.1s, transform 0.1s;
-      font-family: inherit;
     }
     .star-btn:hover { transform: scale(1.15); }
-    .star-active { color: #f59e0b; }
+    .star-active { color: #F59E0B; }
     .btn-review {
-      background: #2d9580;
+      background: var(--ink);
       color: #fff;
       border: none;
-      padding: 0.5rem 1.125rem;
-      border-radius: 99px;
-      font-size: 0.82rem;
-      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s, box-shadow 0.15s;
-      font-family: inherit;
+      font-family: var(--font);
     }
-    .btn-review:hover:not(:disabled) { background: #257a68; box-shadow: 0 2px 8px rgba(45,149,128,0.25); }
+    .btn-review:hover:not(:disabled) { background: #262626; }
     .btn-review:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ── Load more ────────────────────────── */
+    /* Footer actions */
+    .job-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 4px;
+    }
+    .btn-delete {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: #B91C1C;
+      font-size: 12px;
+      font-family: var(--font);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-delete:hover { background: rgba(220,38,38,0.06); }
+    .delete-confirm {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .delete-confirm-yes {
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #DC2626;
+      color: #fff;
+      border: none;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+    }
+    .delete-confirm-no {
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--rule);
+      font-size: 11.5px;
+      cursor: pointer;
+      font-family: var(--font);
+    }
+    .delete-blocked {
+      font-size: 11.5px;
+      color: var(--sub);
+    }
+
+    /* Empty / filter empty */
+    .empty-state {
+      background: var(--panel);
+      border: 1px dashed var(--rule);
+      border-radius: 14px;
+      padding: 56px 32px;
+      text-align: center;
+    }
+    .empty-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 0 0 6px;
+    }
+    .empty-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0 0 18px;
+    }
+    .empty-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .empty-cta:hover { background: #262626; }
+    .filter-empty {
+      padding: 40px 24px;
+      border: 1px dashed var(--rule);
+      border-radius: 14px;
+      text-align: center;
+      background: var(--panel);
+    }
+    .filter-empty-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 0;
+    }
+    .filter-empty-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 4px 0 0;
+    }
+
+    /* Load more */
     .load-more-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 1rem;
-      margin-top: 1.5rem;
+      gap: 16px;
+      margin-top: 18px;
     }
     .load-more-btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      background: #fff;
-      color: #18181b;
-      border: 1.5px solid #e4e4e7;
-      padding: 0.6rem 1.375rem;
-      border-radius: 99px;
-      font-size: 0.84rem;
-      font-weight: 600;
+      gap: 6px;
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--rule);
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
       font-family: inherit;
     }
-    .load-more-btn:hover:not(:disabled) { border-color: #18181b; background: #f4f4f5; }
+    .load-more-btn:hover:not(:disabled) { border-color: var(--sub); }
     .load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .load-more-count {
-      font-size: 0.75rem;
-      color: #a1a1aa;
-      white-space: nowrap;
+      font-size: 11.5px;
+      color: var(--sub);
+      font-family: var(--mono);
     }
     .load-ring-sm {
       width: 12px; height: 12px;
-      border: 2px solid #d4d4d8;
-      border-top-color: #18181b;
+      border: 2px solid #D4D4D1;
+      border-top-color: var(--ink);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       display: inline-block;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Empty ────────────────────────────── */
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      background: #fff;
-      border: 1.5px dashed #e4e4e7;
-      border-radius: 16px;
-    }
-    .empty-icon {
-      width: 48px; height: 48px;
-      border-radius: 12px;
-      background: #f4f4f5;
-      color: #a1a1aa;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem;
-    }
-    .empty-title { font-size: 0.95rem; font-weight: 600; color: #18181b; margin: 0 0 0.3rem; }
-    .empty-sub { font-size: 0.84rem; color: #71717a; margin: 0 0 1.25rem; }
-
-    /* ── Skeleton ─────────────────────────── */
+    /* Skeleton */
     .skeleton-card {
-      background: #fff;
-      border: 1.5px solid #e4e4e7;
+      background: var(--panel);
+      border: 1px solid var(--rule);
       border-radius: 14px;
-      padding: 1.125rem;
-      margin-bottom: 0.625rem;
-    }
-    .skel-line {
-      height: 11px;
-      background: #f4f4f5;
-      border-radius: 6px;
-      margin-bottom: 0.625rem;
+      padding: 18px 22px;
+      height: 80px;
+      margin-bottom: 12px;
       animation: pulse 1.5s ease-in-out infinite;
     }
-    .skel-line.w55 { width: 55%; }
-    .skel-line.w35 { width: 35%; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
-    .btn-delete {
-      display: inline-flex; align-items: center; gap: 0.375rem;
-      background: none; border: 1px solid #fecaca; color: #dc2626;
-      font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.875rem;
-      border-radius: 99px; cursor: pointer; font-family: inherit;
-      transition: background 0.15s; margin-top: 0.5rem;
-    }
-    .btn-delete:hover { background: #fff1f2; }
-    .delete-confirm {
-      display: flex; align-items: center; gap: 0.5rem;
-      margin-top: 0.5rem; font-size: 0.82rem; color: #52525b;
-    }
-    .btn-delete-confirm {
-      background: #dc2626; color: #fff; border: none;
-      padding: 0.35rem 0.875rem; border-radius: 99px;
-      font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
-    }
-    .btn-delete-cancel {
-      background: none; color: #71717a; border: 1px solid #e4e4e7;
-      padding: 0.35rem 0.875rem; border-radius: 99px;
-      font-size: 0.8rem; cursor: pointer; font-family: inherit;
-    }
-    .delete-blocked {
-      display: flex; align-items: center; gap: 0.375rem;
-      font-size: 0.78rem; color: #a1a1aa; margin-top: 0.5rem;
-    }
-
-    /* ── Escrow prompts ───────────────────────── */
-    .escrow-prompt {
-      display: flex; align-items: flex-start; gap: 0.5rem;
-      background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px;
-      padding: 0.6rem 0.875rem; font-size: 0.78rem; color: #92400e;
-      line-height: 1.5; margin-bottom: 0.625rem;
-    }
-    .escrow-prompt svg { flex-shrink: 0; margin-top: 1px; }
-    .escrow-held {
-      display: flex; align-items: flex-start; gap: 0.5rem;
-      background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;
-      padding: 0.6rem 0.875rem; font-size: 0.78rem; color: #166534;
-      line-height: 1.5; margin-bottom: 0.625rem;
-    }
-    .escrow-held svg { flex-shrink: 0; margin-top: 1px; }
-    .btn-fund {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      background: #f59e0b; color: #fff; border: none;
-      padding: 0.55rem 1.25rem; border-radius: 99px;
-      font-size: 0.84rem; font-weight: 600; cursor: pointer;
-      transition: background 0.15s, box-shadow 0.15s; font-family: inherit;
-    }
-    .btn-fund:hover:not(:disabled) { background: #d97706; box-shadow: 0 2px 8px rgba(245,158,11,0.3); }
-    .btn-fund:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .header-actions { display: flex; align-items: center; gap: 0.75rem; }
-    .btn-ghost {
-      padding: 0.5rem 1rem; border-radius: 10px; font-size: 0.875rem; font-weight: 500;
-      background: transparent; border: 1.5px solid #e4e4e7; color: #3f3f46;
-      text-decoration: none; transition: background 0.15s;
-    }
-    .btn-ghost:hover { background: #f4f4f5; }
-
-    @media (max-width: 640px) {
-      .inner { padding: 0 1rem; }
-      .stat-bar { flex-wrap: wrap; }
-      .stat-item { min-width: 50%; }
-      .app-card-top { flex-wrap: wrap; }
+    /* Responsive */
+    @media (max-width: 820px) {
+      .inner { padding: 20px 16px 24px; }
+      .hero { flex-direction: column; align-items: flex-start; }
+      .hero-actions { width: 100%; }
+      .stat-tabs { flex-wrap: wrap; }
+      .stat-tab { min-width: calc(50% - 5px); flex: none; }
+      .job-row { grid-template-columns: 1fr auto; }
+      .job-row-right { grid-column: 1 / -1; text-align: left; }
+      .app-row { grid-template-columns: auto 1fr; }
+      .app-right { grid-column: 1 / -1; align-items: flex-start; }
+      .worker-strip { grid-template-columns: 1fr; }
     }
   `]
 })
@@ -974,6 +1239,7 @@ export class ClientDashboardComponent implements OnInit {
   data = signal<ClientDashboard | null>(null);
   total = signal(0);
   loadingMore = signal(false);
+  idVerified = signal(false);
   expandedJob = signal<string | null>(null);
   filter = signal<'ALL' | 'POSTED' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
   showContent = signal(true);
@@ -1035,7 +1301,12 @@ export class ClientDashboardComponent implements OnInit {
     }, 80);
   }
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.api.getVerifyStatus().subscribe({
+      next: (s) => this.idVerified.set(s.idVerified),
+    });
+  }
 
   load() {
     this.api.getClientDashboard(0).subscribe({
@@ -1118,6 +1389,16 @@ export class ClientDashboardComponent implements OnInit {
   jobPrice(job: Job): number | null {
     const accepted = job.applications.find(a => a.status === 'ACCEPTED');
     return accepted?.proposedPrice ?? job.priceMax ?? job.priceMin ?? null;
+  }
+
+  acceptedApp(job: Job): Application | null {
+    return job.applications.find(a => a.status === 'ACCEPTED') ?? null;
+  }
+
+  statusGroup(status: string): 'open' | 'progress' | 'completed' {
+    if (status === 'POSTED' || status === 'DRAFT') return 'open';
+    if (status === 'IN_PROGRESS' || status === 'ASSIGNED') return 'progress';
+    return 'completed';
   }
 
   setRating(jobId: string, rating: number) {

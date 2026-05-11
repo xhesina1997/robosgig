@@ -27,6 +27,12 @@ export const appRoutes: Route[] = [
       import('./features/client/client-profile.component').then((m) => m.ClientProfileComponent),
   },
   {
+    path: 'drafts',
+    canActivate: [clientOnlyGuard],
+    loadComponent: () =>
+      import('./features/client/client-drafts.component').then((m) => m.ClientDraftsComponent),
+  },
+  {
     path: 'subscription/success',
     canActivate: [clientOnlyGuard],
     loadComponent: () =>

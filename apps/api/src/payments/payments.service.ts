@@ -229,17 +229,34 @@ export class PaymentsService {
 
   /** Returns saved payment methods for the authenticated client. */
   async getSavedPaymentMethods(userId: string) {
-    const profile = await this.prisma.clientProfile.findUnique({
-      where: { userId },
-      select: { stripeCustomerId: true },
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        clientProfile: { select: { id: true, stripeCustomerId: true } },
+        subscription: { select: { stripeCustomerId: true } },
+      },
     });
-    if (!profile?.stripeCustomerId) return [];
+    if (!user?.clientProfile) return [];
+
+    const stripeCustomerId = user.clientProfile.stripeCustomerId
+      ?? user.subscription?.stripeCustomerId
+      ?? null;
+    if (!stripeCustomerId) return [];
 
     const stripeKey = this.config.get<string>('STRIPE_SECRET_KEY') ?? '';
     if (!stripeKey || stripeKey.includes('placeholder')) return [];
 
+    // Backfill clientProfile.stripeCustomerId from subscription if it was missing —
+    // keeps the two in sync going forward.
+    if (user.clientProfile.stripeCustomerId !== stripeCustomerId) {
+      await this.prisma.clientProfile.update({
+        where: { id: user.clientProfile.id },
+        data: { stripeCustomerId },
+      });
+    }
+
     try {
-      const methods = await this.stripe.listPaymentMethods(profile.stripeCustomerId);
+      const methods = await this.stripe.listPaymentMethods(stripeCustomerId);
       return methods.data.map(m => ({
         id: m.id,
         brand: m.card?.brand ?? 'card',
@@ -250,6 +267,59 @@ export class PaymentsService {
       }));
     } catch {
       return [];
+    }
+  }
+
+  /**
+   * Creates a Stripe SetupIntent so the client can add a card inline via Stripe Elements.
+   * Returns the client secret which the frontend uses with stripe.confirmCardSetup().
+   */
+  async createSetupIntent(userId: string) {
+    const stripeKey = this.config.get<string>('STRIPE_SECRET_KEY') ?? '';
+    if (!stripeKey || stripeKey.includes('placeholder')) {
+      throw new ServiceUnavailableException('Stripe is not configured');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        clientProfile: { select: { id: true, stripeCustomerId: true } },
+        subscription: { select: { stripeCustomerId: true } },
+      },
+    });
+    if (!user?.clientProfile) throw new NotFoundException('Client profile not found');
+
+    let stripeCustomerId = user.clientProfile.stripeCustomerId
+      ?? user.subscription?.stripeCustomerId
+      ?? null;
+
+    if (!stripeCustomerId) {
+      const customer = await this.stripe.createCustomer(user.email);
+      stripeCustomerId = customer.id;
+    }
+
+    // Always sync the resolved customer id onto clientProfile so the rest of the
+    // app (saved-cards list, etc.) can find it via the client profile.
+    if (user.clientProfile.stripeCustomerId !== stripeCustomerId) {
+      await this.prisma.clientProfile.update({
+        where: { id: user.clientProfile.id },
+        data: { stripeCustomerId },
+      });
+    }
+
+    try {
+      const intent = await this.stripe.client.setupIntents.create({
+        customer: stripeCustomerId,
+        payment_method_types: ['card'],
+        usage: 'off_session',
+        metadata: { userId, purpose: 'add-card' },
+      });
+      return { clientSecret: intent.client_secret };
+    } catch (err: unknown) {
+      throw new ServiceUnavailableException(
+        `Stripe error: ${(err as { message?: string }).message ?? 'Could not create setup intent'}`,
+      );
     }
   }
 

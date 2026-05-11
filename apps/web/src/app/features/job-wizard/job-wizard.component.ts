@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -18,188 +18,234 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       <!-- STEP 1: Input -->
       @if (step() === 'input') {
         <div class="input-view">
-          <div class="input-bg">
-            <div class="bg-orb bg-orb-1"></div>
-            <div class="bg-orb bg-orb-2"></div>
-          </div>
           <div class="input-inner">
-            <div class="ai-badge">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-              AI-Powered Matching
-            </div>
-            <h1 class="headline">What do you need<br>help with?</h1>
-            <p class="sub">Describe your problem in plain language — our AI writes the post, prices it fairly, and finds the best workers near you.</p>
 
-            <div class="prompt-container">
+            <!-- Page header -->
+            <header class="pj-header">
+              <div>
+                <p class="pj-eyebrow">Post a job</p>
+                <h1 class="pj-title">Tell us what you need — we'll write the post.</h1>
+                <p class="pj-sub">
+                  Describe the problem in plain language. Our AI drafts the listing,
+                  suggests a fair price band, and matches workers near you.
+                  You stay in control — review, edit, then publish.
+                </p>
+              </div>
+            </header>
 
-              <!-- Robot peeking over the top-right edge -->
-              <div class="peek-robot-wrap">
-                <div class="robot-scene">
-                  <div class="think-dot think-1"></div>
-                  <div class="think-dot think-2"></div>
-                  <div class="think-dot think-3"></div>
-                  <div class="robot">
-                    <div class="ant-ball"></div>
-                    <div class="ant-stick"></div>
-                    <div class="r-head">
-                      <div class="r-ear r-ear-l"></div>
-                      <div class="r-ear r-ear-r"></div>
-                      <div class="r-face">
-                        <div class="r-eyes-row">
-                          <div class="r-eye r-eye-l"><div class="r-pupil"></div></div>
-                          <div class="r-eye r-eye-r"><div class="r-pupil"></div></div>
+            <div class="pj-grid">
+
+              <!-- MAIN: composer -->
+              <div class="pj-main">
+                <div class="pj-composer-wrap">
+
+                  <!-- Robot peeking over the top-right edge of the composer -->
+                  <div class="peek-robot-wrap">
+                    <div class="robot-scene">
+                      <div class="think-dot think-1"></div>
+                      <div class="think-dot think-2"></div>
+                      <div class="think-dot think-3"></div>
+                      <div class="robot">
+                        <div class="ant-ball"></div>
+                        <div class="ant-stick"></div>
+                        <div class="r-head">
+                          <div class="r-ear r-ear-l"></div>
+                          <div class="r-ear r-ear-r"></div>
+                          <div class="r-face">
+                            <div class="r-eyes-row">
+                              <div class="r-eye r-eye-l"><div class="r-pupil"></div></div>
+                              <div class="r-eye r-eye-r"><div class="r-pupil"></div></div>
+                            </div>
+                            <div class="r-mouth"></div>
+                          </div>
                         </div>
-                        <div class="r-mouth"></div>
+                        <div class="r-neck"></div>
+                        <div class="r-body">
+                          <div class="r-arm r-arm-l"></div>
+                          <div class="r-arm r-arm-r"></div>
+                          <div class="r-panel">
+                            <div class="r-led led-1"></div>
+                            <div class="r-led led-2"></div>
+                            <div class="r-led led-3"></div>
+                          </div>
+                        </div>
+                        <div class="r-legs">
+                          <div class="r-leg"><div class="r-foot"></div></div>
+                          <div class="r-leg"><div class="r-foot"></div></div>
+                        </div>
                       </div>
                     </div>
-                    <div class="r-neck"></div>
-                    <div class="r-body">
-                      <div class="r-arm r-arm-l"></div>
-                      <div class="r-arm r-arm-r"></div>
-                      <div class="r-panel">
-                        <div class="r-led led-1"></div>
-                        <div class="r-led led-2"></div>
-                        <div class="r-led led-3"></div>
+                  </div>
+
+                  <div class="pj-composer">
+                    <!-- Composer head -->
+                    <div class="pj-comp-head">
+                      <div class="pj-comp-head-left">
+                        <span class="pj-step-num">1</span>
+                        <span class="pj-comp-title">Describe your task</span>
+                      </div>
+                      <span class="pj-ai-pill">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3z"/></svg>
+                        AI-powered
+                      </span>
+                    </div>
+
+                    <div class="pj-comp-body">
+                      <label class="pj-label">What's going on?</label>
+                      <textarea
+                        class="pj-textarea"
+                        [(ngModel)]="rawInput"
+                        maxlength="600"
+                        placeholder="e.g. My kitchen sink is leaking and there's water under the cabinet. The pipe seems cracked and I need a plumber to fix it asap…"
+                        (keydown.meta.enter)="analyze()"
+                      ></textarea>
+
+                      <div class="pj-hint-row">
+                        <span class="pj-hint-text">More detail = better price + closer matches.</span>
+                        <span class="pj-counter">{{ rawInput.length }} / 600</span>
+                      </div>
+
+                      <!-- Try chips -->
+                      <div class="pj-try-row">
+                        <span class="pj-try-label">Try:</span>
+                        @for (ex of examples; track ex) {
+                          <button class="pj-try-chip" (click)="rawInput = ex" type="button">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                            {{ ex }}
+                          </button>
+                        }
+                      </div>
+
+                      <!-- Meta row: location / photos / urgency -->
+                      <div class="pj-meta-row">
+                        <!-- Location -->
+                        <div class="pj-meta-field">
+                          <span class="pj-meta-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.58 7-13a7 7 0 0 0-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                          </span>
+                          <input
+                            class="pj-meta-input"
+                            [(ngModel)]="locationQuery"
+                            (ngModelChange)="onLocationInput()"
+                            (blur)="onLocationBlur()"
+                            placeholder="Address or postcode…"
+                          />
+                          <button class="pj-meta-action" (click)="useMyLocation()" [disabled]="locationLoading()" type="button">
+                            @if (locationLoading()) { … } @else { Use current }
+                          </button>
+                          @if (locationSuggestions().length > 0) {
+                            <div class="pj-loc-dropdown">
+                              @for (item of locationSuggestions(); track item.display_name) {
+                                <button class="pj-loc-opt" (mousedown)="selectLocation(item)" type="button">
+                                  {{ item.display_name }}
+                                </button>
+                              }
+                            </div>
+                          }
+                        </div>
+
+                        <!-- Urgency segmented -->
+                        <div class="pj-urg">
+                          @for (u of urgencyOpts; track u.id) {
+                            <button
+                              class="pj-urg-btn"
+                              [class.pj-urg-btn--on]="urgency() === u.id"
+                              (click)="urgency.set(u.id)"
+                              type="button"
+                            >
+                              <span class="pj-urg-label">{{ u.label }}</span>
+                              <span class="pj-urg-sub">{{ u.ti }}</span>
+                            </button>
+                          }
+                        </div>
+                      </div>
+
+                      @if (locationConfirmed()) {
+                        <div class="pj-loc-confirmed">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                          {{ jobLocation.city }}{{ jobLocation.address ? ' · ' + jobLocation.address : '' }}
+                        </div>
+                      }
+                      @if (locationError()) {
+                        <div class="pj-loc-error">{{ locationError() }}</div>
+                      }
+                    </div>
+
+                    <!-- Composer footer -->
+                    <div class="pj-comp-foot">
+                      <span class="pj-foot-note">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 1 1 8 0v4"/></svg>
+                        Nothing is published yet — you'll review the draft first.
+                      </span>
+                      <div class="pj-foot-actions">
+                        <button
+                          class="pj-btn pj-btn--primary"
+                          (click)="analyze()"
+                          [disabled]="!rawInput.trim() || !locationConfirmed()"
+                          type="button"
+                        >
+                          <span class="pj-btn-spark">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3z"/></svg>
+                          </span>
+                          Generate listing
+                        </button>
                       </div>
                     </div>
-                    <div class="r-legs">
-                      <div class="r-leg"><div class="r-foot"></div></div>
-                      <div class="r-leg"><div class="r-foot"></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RIGHT RAIL -->
+              <aside class="pj-rail">
+                <div class="pj-rail-card">
+                  <p class="pj-rail-heading">How it works</p>
+                  <div class="pj-rail-step">
+                    <span class="pj-rail-num pj-rail-num--active">1</span>
+                    <div>
+                      <p class="pj-rail-step-label">Describe the task</p>
+                      <p class="pj-rail-step-det">Plain language is fine — typos, fragments. The more you give us, the tighter the price band.</p>
+                    </div>
+                  </div>
+                  <div class="pj-rail-step">
+                    <span class="pj-rail-num">2</span>
+                    <div>
+                      <p class="pj-rail-step-label pj-rail-muted">Review the AI draft</p>
+                      <p class="pj-rail-step-det">Edit the title, description, category, and price band before anything goes live.</p>
+                    </div>
+                  </div>
+                  <div class="pj-rail-step">
+                    <span class="pj-rail-num">3</span>
+                    <div>
+                      <p class="pj-rail-step-label pj-rail-muted">Choose a worker</p>
+                      <p class="pj-rail-step-det">Top matches arrive within minutes. Chat, accept, and payment holds in escrow until done.</p>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div class="input-box">
-              <div class="ai-prompt-header">
-                <div class="ai-prompt-label">
-                  <div class="ai-spark"></div>
-                  Describe your task
-                </div>
-                <span class="ai-prompt-badge">AI-powered</span>
-              </div>
-              <div class="ai-prompt-wrap">
-                <textarea
-                  class="main-input"
-                  [(ngModel)]="rawInput"
-                  placeholder="e.g. My kitchen sink is leaking and there's water under the cabinet. The pipe seems cracked and I need a plumber to fix it asap…"
-                  rows="6"
-                  (keydown.meta.enter)="analyze()"
-                ></textarea>
-              </div>
-              <p class="input-hint">More detail = better price estimate + closer worker matches.</p>
-
-              <div class="examples-row">
-                <span class="examples-label">Try:</span>
-                @for (ex of examples; track ex) {
-                  <button class="example-chip" (click)="rawInput = ex">{{ ex }}</button>
-                }
-              </div>
-
-              <div class="loc-divider"></div>
-
-              <div class="loc-field">
-                <div class="loc-input-row">
-                  <div class="loc-icon-wrap">
-                    <svg class="loc-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <input class="loc-input"
-                           [(ngModel)]="locationQuery"
-                           (ngModelChange)="onLocationInput()"
-                           (blur)="onLocationBlur()"
-                           placeholder="Your location (address, postcode…)" />
-                  </div>
-                  <button class="loc-gps-btn" (click)="useMyLocation()" title="Use my current location" [disabled]="locationLoading()">
-                    @if (locationLoading()) {
-                      <span class="loc-spinner"></span>
-                    } @else {
-                      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-                    }
-                  </button>
-                </div>
-                @if (locationSuggestions().length > 0) {
-                  <div class="loc-dropdown">
-                    @for (item of locationSuggestions(); track item.display_name) {
-                      <button class="loc-option" (mousedown)="selectLocation(item)">
-                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;color:#aeaeb2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        {{ item.display_name }}
-                      </button>
-                    }
-                  </div>
-                }
-                @if (locationConfirmed()) {
-                  <div class="loc-confirmed">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    {{ jobLocation.city }}{{ jobLocation.address ? ' · ' + jobLocation.address : '' }}
-                    <span class="loc-coords">{{ jobLocation.latitude?.toFixed(4) }}, {{ jobLocation.longitude?.toFixed(4) }}</span>
-                  </div>
-                }
-                @if (locationError()) {
-                  <div class="loc-error">
-                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    {{ locationError() }}
-                  </div>
-                }
-              </div>
-
-              <div class="loc-divider"></div>
-
-              <div class="access-section">
-                <div class="access-title">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                  Property details <span class="access-optional">(optional)</span>
+                <div class="pj-rail-card">
+                  <p class="pj-rail-heading">Tips for a better draft</p>
+                  <ul class="pj-rail-tips">
+                    <li><span class="pj-rail-dot"></span>Include rough size or count (e.g. "3 m² of tile", "12 frames")</li>
+                    <li><span class="pj-rail-dot"></span>Mention access — stairs, parking, pets, lift</li>
+                    <li><span class="pj-rail-dot"></span>If you have a deadline, say when ("before Friday 6pm")</li>
+                    <li><span class="pj-rail-dot"></span>Add details visible to you (leak, broken item, layout)</li>
+                  </ul>
                 </div>
 
-                <div class="access-row">
-                  <span class="access-label">Type</span>
-                  <div class="access-chips">
-                    @for (opt of propertyTypeOpts; track opt.value) {
-                      <button class="access-chip" [class.access-chip-on]="propertyType() === opt.value" (click)="propertyType.set(opt.value)">{{ opt.label }}</button>
-                    }
-                  </div>
-                </div>
-
-                <div class="access-row">
-                  <span class="access-label">Floor</span>
-                  <div class="access-chips">
-                    @for (opt of floorOpts; track opt.value) {
-                      <button class="access-chip" [class.access-chip-on]="floorNumber() === opt.value" (click)="floorNumber.set(opt.value)">{{ opt.label }}</button>
-                    }
-                  </div>
-                </div>
-
-                @if (floorNumber() !== null && floorNumber() !== 0) {
-                  <div class="access-row">
-                    <span class="access-label">Elevator</span>
-                    <div class="access-chips">
-                      <button class="access-chip" [class.access-chip-on]="hasElevator() === true" (click)="hasElevator.set(true)">Yes</button>
-                      <button class="access-chip" [class.access-chip-on]="hasElevator() === false" (click)="hasElevator.set(false)">No</button>
+                <div class="pj-rail-card">
+                  <p class="pj-rail-heading">Privacy</p>
+                  <div class="pj-privacy">
+                    <span class="pj-privacy-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v7c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5l-8-3z"/></svg>
+                    </span>
+                    <div>
+                      <p class="pj-privacy-title">Your address stays hidden</p>
+                      <p class="pj-privacy-sub">Workers only see the neighbourhood until you accept their offer. We don't train on your messages.</p>
                     </div>
                   </div>
-                }
-
-                <div class="access-row">
-                  <span class="access-label">Parking</span>
-                  <div class="access-chips">
-                    @for (opt of parkingOpts; track opt.value) {
-                      <button class="access-chip" [class.access-chip-on]="parking() === opt.value" (click)="parking.set(opt.value)">{{ opt.label }}</button>
-                    }
-                  </div>
                 </div>
-              </div>
+              </aside>
 
-              <button class="submit-btn" (click)="analyze()" [disabled]="!rawInput.trim() || !locationConfirmed()">
-                Analyze with AI
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-              </button>
-            </div><!-- /.input-box -->
-            </div><!-- /.prompt-container -->
-
-            <div class="footer-row">
-              <span>Secure</span>
-              <span class="sep">·</span>
-              <span>4.9/5 avg rating</span>
-              <span class="sep">·</span>
-              <span>Distance-matched workers</span>
             </div>
           </div>
         </div>
@@ -423,6 +469,21 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
           <div class="preview-actions">
             <button class="btn-ghost-pill" (click)="reset()">Edit request</button>
             @if (auth.isLoggedIn()) {
+              @if (draftSaved()) {
+                <span class="pj-draft-flash pj-draft-flash--ok">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                  Draft saved
+                </span>
+              } @else if (draftError()) {
+                <span class="pj-draft-flash pj-draft-flash--err">{{ draftError() }}</span>
+              }
+              <button
+                class="btn-ghost-pill"
+                (click)="saveDraftFromPreview()"
+                [disabled]="draftSaving()"
+              >
+                @if (draftSaving()) { Saving… } @else { Save draft }
+              </button>
               <button class="btn-primary-pill" (click)="confirmJob()">Post this job</button>
             } @else {
               <div class="login-to-post">
@@ -484,105 +545,93 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     </div>
   `,
   styles: [`
-    .wiz {
-      min-height: calc(100vh - 52px);
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
-      background: #f5f5f7;
+    :host {
+      --bg: #FAFAFA;
+      --panel: #FFFFFF;
+      --ink: #0A0A0A;
+      --muted: #737373;
+      --sub: #A3A3A3;
+      --rule: #E8E8E5;
+      --accent: #84CC16;
+      --accent-ink: #0A0A0A;
+      --accent-text: #4D7C0F;
+      --soft: #F5F5F3;
+      --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      display: block;
     }
-
-    /* Input step gets a rich dark background */
-    .input-view {
-      background: linear-gradient(135deg, #0f0c29 0%, #1a1040 40%, #0d1b3e 70%, #0a1628 100%);
+    .wiz {
+      min-height: calc(100vh - 56px);
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ── Input view ───────────────────────── */
     .input-view {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      min-height: calc(100vh - 52px);
-      padding: 3rem 1.5rem;
+      min-height: calc(100vh - 56px);
+      padding: 40px 32px 64px;
       position: relative;
       overflow: hidden;
+      background: var(--bg);
     }
-    .input-bg {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      overflow: hidden;
-    }
-    .bg-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.35;
-    }
-    .bg-orb-1 {
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 65%);
-      top: -150px; right: -120px;
-      animation: bgFloat 8s ease-in-out infinite alternate;
-    }
-    .bg-orb-2 {
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 65%);
-      bottom: -100px; left: -100px;
-      animation: bgFloat 10s ease-in-out infinite alternate-reverse;
-    }
-    @keyframes bgFloat {
-      from { transform: translate(0, 0); }
-      to { transform: translate(20px, -20px); }
-    }
+    .input-bg, .bg-orb { display: none; }
     .input-inner {
-      max-width: 820px;
+      max-width: 1180px;
       width: 100%;
-      text-align: center;
+      text-align: left;
       position: relative;
       z-index: 1;
     }
     .ai-badge {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      background: rgba(99,102,241,0.15);
-      color: #a5b4fc;
-      border: 1px solid rgba(99,102,241,0.3);
-      padding: 0.3rem 0.75rem;
-      border-radius: 980px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
+      gap: 6px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+      border: 1px solid #D9F0A3;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      margin-bottom: 1.25rem;
+      margin-bottom: 14px;
     }
     .headline {
-      font-size: clamp(2rem, 5vw, 2.875rem);
-      font-weight: 700;
+      font-size: clamp(2.25rem, 5vw, 48px);
+      font-weight: 500;
       letter-spacing: -0.035em;
-      color: #fff;
-      margin-bottom: 1rem;
-      line-height: 1.1;
+      color: var(--ink);
+      margin: 0 0 14px;
+      line-height: 1.05;
     }
     .sub {
-      font-size: 0.95rem;
-      color: rgba(255,255,255,0.55);
-      line-height: 1.65;
-      max-width: 460px;
-      margin: 0 auto 2rem;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 520px;
+      margin: 0 auto 28px;
     }
 
     .input-box {
-      background: #fff;
-      border-radius: 18px;
-      border: 1px solid #e5e5ea;
-      padding: 1.25rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 8px 24px rgba(0,0,0,0.06);
-      margin-bottom: 1.25rem;
+      background: var(--panel);
+      border-radius: 16px;
+      border: 1px solid var(--rule);
+      padding: 22px 22px;
+      box-shadow: 0 1px 0 rgba(10,10,10,0.02);
+      margin-bottom: 14px;
+      text-align: left;
     }
     /* Peeking robot on input step */
     .prompt-container {
       position: relative;
-      margin-bottom: 1.25rem;
+      margin-bottom: 14px;
+      padding-top: 60px;
     }
     .prompt-container .input-box {
       position: relative;
@@ -591,13 +640,13 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .peek-robot-wrap {
       position: absolute;
-      top: -72px;
+      top: -8px;
       right: 24px;
       transform: scale(0.46);
-      transform-origin: top center;
+      transform-origin: top right;
       pointer-events: none;
       z-index: 0;
-      filter: drop-shadow(0 0 10px rgba(99,102,241,0.5));
+      filter: drop-shadow(0 6px 16px rgba(132,204,22,0.25));
     }
 
     /* AI prompt section */
@@ -605,106 +654,104 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 0.625rem;
+      margin-bottom: 10px;
     }
     .ai-prompt-label {
       display: flex;
       align-items: center;
-      gap: 0.45rem;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: #1d1d1f;
+      gap: 6px;
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.14em;
     }
     .ai-spark {
-      width: 9px; height: 9px;
+      width: 7px; height: 7px;
       border-radius: 50%;
-      background: #2563eb;
+      background: var(--accent);
       flex-shrink: 0;
       animation: sparkPulse 2s ease-in-out infinite;
     }
     @keyframes sparkPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.5); }
-      50%       { box-shadow: 0 0 0 6px rgba(37,99,235,0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(132,204,22,0.5); }
+      50%       { box-shadow: 0 0 0 6px rgba(132,204,22,0); }
     }
     .ai-prompt-badge {
-      font-size: 0.65rem;
+      font-size: 10px;
       font-weight: 600;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: #2563eb;
-      background: rgba(37,99,235,0.08);
-      border: 1px solid rgba(37,99,235,0.2);
-      padding: 0.15rem 0.55rem;
-      border-radius: 99px;
+      color: var(--accent-text);
+      background: #F0FAE0;
+      border: 1px solid #D9F0A3;
+      padding: 2px 8px;
+      border-radius: 999px;
     }
     .ai-prompt-wrap {
-      border-radius: 14px;
-      padding: 2px;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4, #3b82f6);
-      background-size: 300% 300%;
-      animation: aiBorder 5s linear infinite;
-      margin-bottom: 0.5rem;
+      border-radius: 12px;
+      padding: 0;
+      background: transparent;
+      border: 1px solid var(--rule);
+      margin-bottom: 10px;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
     .ai-prompt-wrap:focus-within {
-      animation-duration: 2s;
-    }
-    @keyframes aiBorder {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      border-color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(132,204,22,0.15);
     }
     .main-input {
       width: 100%;
       border: none;
       border-radius: 12px;
-      padding: 1rem 1.125rem;
-      font-size: 0.95rem;
+      padding: 14px 16px;
+      font-size: 14px;
       resize: none;
       outline: none;
       box-sizing: border-box;
-      font-family: inherit;
-      color: #1d1d1f;
-      line-height: 1.7;
-      background: #fff;
+      font-family: var(--font);
+      color: var(--ink);
+      line-height: 1.55;
+      background: var(--panel);
       display: block;
     }
-    .main-input::placeholder { color: #aeaeb2; }
+    .main-input::placeholder { color: var(--sub); }
     .input-hint {
       text-align: left;
-      font-size: 0.73rem;
-      color: #aeaeb2;
-      margin: 0 0 0.25rem;
+      font-size: 11.5px;
+      color: var(--sub);
+      margin: 0 0 4px;
     }
 
     .examples-row {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.375rem;
-      margin: 0.875rem 0;
+      gap: 6px;
+      margin: 12px 0;
     }
     .examples-label {
-      font-size: 0.75rem;
-      color: #aeaeb2;
+      font-size: 11px;
+      color: var(--sub);
       font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
     .example-chip {
-      background: #f5f5f7;
-      border: 1px solid #e5e5ea;
-      border-radius: 980px;
-      padding: 0.25rem 0.75rem;
-      font-size: 0.75rem;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 12px;
       cursor: pointer;
-      color: #6e6e73;
-      font-family: inherit;
+      color: var(--ink);
+      font-family: var(--font);
       transition: all 0.12s;
     }
     .example-chip:hover {
-      background: rgba(37,99,235,0.07);
-      border-color: rgba(37,99,235,0.2);
-      color: #2563eb;
+      background: #F0FAE0;
+      border-color: #D9F0A3;
+      color: var(--accent-text);
     }
 
     .submit-btn {
@@ -712,32 +759,513 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      background: #18181b;
+      gap: 6px;
+      background: var(--ink);
       color: #fff;
       border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 980px;
-      font-size: 0.9rem;
+      padding: 13px 18px;
+      border-radius: 12px;
+      font-size: 13.5px;
       font-weight: 600;
       cursor: pointer;
-      font-family: inherit;
-      transition: background 0.15s;
+      font-family: var(--font);
+      transition: background 0.15s, transform 0.1s;
     }
-    .submit-btn:hover:not(:disabled) { background: #27272a; }
+    .submit-btn:hover:not(:disabled) { background: #262626; }
+    .submit-btn:active:not(:disabled) { transform: scale(0.99); }
     .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .footer-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      font-size: 0.78rem;
-      color: rgba(255,255,255,0.35);
+      gap: 10px;
+      font-size: 11.5px;
+      color: var(--sub);
+      font-family: var(--mono);
     }
-    .sep { color: rgba(255,255,255,0.2); }
+    .sep { color: var(--rule); }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Composer (new design) ──────────────── */
+    .pj-header { margin-bottom: 28px; text-align: left; }
+    .pj-eyebrow {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0 0 6px;
+    }
+    .pj-title {
+      font-size: clamp(2rem, 4vw, 32px);
+      font-weight: 500;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      margin: 0;
+      color: var(--ink);
+    }
+    .pj-sub {
+      font-size: 13.5px;
+      color: var(--muted);
+      margin: 6px 0 0;
+      max-width: 620px;
+      line-height: 1.55;
+    }
+
+    .pj-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      align-items: start;
+      text-align: left;
+    }
+    .pj-main { min-width: 0; }
+
+    .pj-composer-wrap {
+      position: relative;
+      padding-top: 56px;
+    }
+    .pj-composer-wrap .peek-robot-wrap {
+      position: absolute;
+      top: -8px;
+      right: 32px;
+      transform: scale(0.46);
+      transform-origin: top right;
+      pointer-events: none;
+      z-index: 0;
+      filter: drop-shadow(0 6px 16px rgba(132,204,22,0.25));
+    }
+
+    .pj-composer {
+      position: relative;
+      z-index: 1;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .pj-comp-head {
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .pj-comp-head-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pj-step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-family: var(--mono);
+      font-weight: 500;
+    }
+    .pj-comp-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .pj-ai-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #EEF0FF;
+      color: #3F3BC4;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .pj-comp-body { padding: 22px 22px 6px; }
+    .pj-label {
+      display: block;
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .pj-textarea {
+      width: 100%;
+      min-height: 160px;
+      padding: 16px 18px;
+      border: 1.5px solid var(--ink);
+      border-radius: 12px;
+      font-family: var(--font);
+      font-size: 15px;
+      color: var(--ink);
+      line-height: 1.55;
+      resize: vertical;
+      outline: none;
+      background: var(--panel);
+      box-sizing: border-box;
+    }
+    .pj-textarea::placeholder { color: var(--sub); }
+    .pj-textarea:focus { box-shadow: 0 0 0 3px rgba(132,204,22,0.15); }
+
+    .pj-hint-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 11.5px;
+    }
+    .pj-hint-text { color: var(--ink); }
+    .pj-counter {
+      font-family: var(--mono);
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pj-try-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      align-items: center;
+    }
+    .pj-try-label {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-right: 2px;
+    }
+    .pj-try-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      color: var(--ink);
+      font-size: 12px;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .pj-try-chip svg { color: var(--muted); flex-shrink: 0; }
+    .pj-try-chip:hover { border-color: var(--sub); }
+
+    .pj-meta-row {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .pj-meta-field {
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: var(--panel);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      position: relative;
+    }
+    .pj-meta-icon { color: var(--muted); display: inline-flex; flex-shrink: 0; }
+    .pj-meta-input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .pj-meta-input::placeholder { color: var(--sub); }
+    .pj-meta-action {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .pj-meta-action:hover:not(:disabled) { color: var(--ink); background: var(--soft); }
+    .pj-meta-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .pj-loc-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(10,10,10,0.08);
+      z-index: 5;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .pj-loc-opt {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      color: var(--ink);
+      font-family: var(--font);
+      cursor: pointer;
+    }
+    .pj-loc-opt:hover { background: var(--soft); }
+
+    .pj-loc-confirmed {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+    .pj-loc-error {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #B91C1C;
+    }
+
+    .pj-urg {
+      display: flex;
+      gap: 6px;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 4px;
+      background: var(--panel);
+    }
+    .pj-urg-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .pj-urg-btn--on {
+      background: var(--ink);
+      color: #fff;
+    }
+    .pj-urg-label { font-weight: 500; }
+    .pj-urg-sub {
+      font-size: 10px;
+      color: var(--sub);
+      font-family: var(--mono);
+    }
+    .pj-urg-btn--on .pj-urg-sub { color: #A3A3A3; }
+
+    .pj-comp-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 22px;
+      border-top: 1px solid var(--rule);
+      margin-top: 22px;
+      background: #FCFCFA;
+      flex-wrap: wrap;
+    }
+    .pj-foot-note {
+      font-size: 11.5px;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pj-foot-actions { display: flex; gap: 8px; align-items: center; }
+    .pj-draft-flash {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 500;
+      animation: pjFlashIn 180ms ease-out both;
+    }
+    .pj-draft-flash--ok {
+      background: #F0FAE0;
+      color: var(--accent-text);
+    }
+    .pj-draft-flash--err {
+      background: rgba(220,38,38,0.06);
+      color: #B91C1C;
+    }
+    @keyframes pjFlashIn {
+      from { opacity: 0; transform: translateY(-2px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .pj-btn {
+      padding: 11px 18px;
+      border-radius: 10px;
+      border: none;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+    .pj-btn--ghost {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      color: var(--ink);
+      padding: 9px 14px;
+      font-size: 12.5px;
+    }
+    .pj-btn--ghost:hover { border-color: var(--sub); }
+    .pj-btn--primary {
+      background: var(--ink);
+      color: #fff;
+    }
+    .pj-btn--primary:hover:not(:disabled) { background: #262626; }
+    .pj-btn--primary:disabled {
+      background: var(--soft);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+    .pj-btn-spark { color: var(--accent); display: inline-flex; }
+    .pj-btn--primary:disabled .pj-btn-spark { color: var(--sub); }
+
+    /* Right rail */
+    .pj-rail { display: flex; flex-direction: column; gap: 14px; }
+    .pj-rail-card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      padding: 18px 18px;
+    }
+    .pj-rail-heading {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0 0 12px;
+    }
+    .pj-rail-step {
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+    }
+    .pj-rail-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-family: var(--mono);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .pj-rail-num--active {
+      background: var(--ink);
+      color: #fff;
+    }
+    .pj-rail-step-label {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+      margin: 0;
+    }
+    .pj-rail-muted { color: var(--muted); font-weight: 400; }
+    .pj-rail-step-det {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin: 2px 0 0;
+      line-height: 1.45;
+    }
+    .pj-rail-tips {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .pj-rail-tips li {
+      font-size: 12.5px;
+      color: #404040;
+      line-height: 1.5;
+      margin-bottom: 8px;
+      padding-left: 14px;
+      position: relative;
+    }
+    .pj-rail-tips li:last-child { margin-bottom: 0; }
+    .pj-rail-dot {
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 4px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+    .pj-privacy {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: var(--soft);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .pj-privacy-icon {
+      color: var(--muted);
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: inline-flex;
+    }
+    .pj-privacy-title {
+      font-size: 12px;
+      color: var(--ink);
+      font-weight: 500;
+      margin: 0;
+    }
+    .pj-privacy-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin: 3px 0 0;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      .pj-grid { grid-template-columns: 1fr; }
+      .pj-meta-row { grid-template-columns: 1fr; }
+    }
 
     /* ── Loading view ─────────────────────── */
     .loading-view {
@@ -935,44 +1463,53 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
 
     .loading-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #1d1d1f;
-      margin-bottom: 0.4rem;
-      letter-spacing: -0.02em;
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 0 0 8px;
+      letter-spacing: -0.025em;
     }
-    .loading-sub { font-size: 0.875rem; color: #6e6e73; margin-bottom: 2rem; }
+    .loading-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
 
     /* Phase list */
     .phase-list {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 8px;
       text-align: left;
+      padding: 14px 16px;
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      background: var(--panel);
+      min-width: 280px;
     }
     .phase-item {
       display: flex;
       align-items: center;
-      gap: 0.625rem;
-      font-size: 0.875rem;
-      color: #aeaeb2;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
       transition: color 0.4s;
     }
-    .phase-item.phase-done { color: #1d1d1f; }
-    .phase-item.phase-active { color: #1d1d1f; }
+    .phase-item.phase-done { color: var(--ink); }
+    .phase-item.phase-active { color: var(--ink); font-weight: 500; }
     .phase-icon {
       width: 20px; height: 20px;
       border-radius: 50%;
-      background: #e5e5ea;
+      background: var(--soft);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
       transition: background 0.4s, color 0.4s;
-      color: #fff;
+      color: var(--accent-ink);
     }
-    .phase-done .phase-icon { background: #14b8a6; }
-    .phase-active .phase-icon { background: #2563eb; }
+    .phase-done .phase-icon { background: var(--accent); color: var(--accent-ink); }
+    .phase-active .phase-icon { background: var(--ink); color: #fff; }
     .phase-pulse-dot {
       width: 6px; height: 6px;
       border-radius: 50%;
@@ -1378,52 +1915,52 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .btn-ghost-pill:hover { background: rgba(0,0,0,0.04); }
 
     /* ── Location picker ──────────────────── */
-    .loc-divider { height: 1px; background: #f0f0f0; margin: 0.875rem 0; }
-    .loc-field { position: relative; margin-bottom: 0.875rem; }
-    .loc-input-row { display: flex; gap: 0.4rem; align-items: center; }
+    .loc-divider { height: 1px; background: var(--rule); margin: 14px 0; }
+    .loc-field { position: relative; margin-bottom: 0; }
+    .loc-input-row { display: flex; gap: 6px; align-items: center; }
     .loc-icon-wrap { position: relative; flex: 1; }
     .loc-icon {
       position: absolute;
-      left: 0.75rem;
+      left: 12px;
       top: 50%;
       transform: translateY(-50%);
-      color: #aeaeb2;
+      color: var(--sub);
       pointer-events: none;
     }
     .loc-input {
       width: 100%;
-      padding: 0.65rem 0.875rem 0.65rem 2rem;
-      border: 1px solid #d2d2d7;
-      border-radius: 10px;
-      font-size: 0.875rem;
+      padding: 10px 12px 10px 32px;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      font-size: 13px;
       outline: none;
-      font-family: inherit;
-      color: #1d1d1f;
-      background: #fafafa;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--panel);
       transition: border-color 0.15s, box-shadow 0.15s;
       box-sizing: border-box;
     }
-    .loc-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: #fff; }
-    .loc-input::placeholder { color: #aeaeb2; }
+    .loc-input:focus { border-color: var(--ink); }
+    .loc-input::placeholder { color: var(--sub); }
     .loc-gps-btn {
-      width: 36px; height: 36px;
+      width: 38px; height: 38px;
       flex-shrink: 0;
-      border: 1px solid #d2d2d7;
-      border-radius: 10px;
-      background: #fafafa;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      background: var(--panel);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #6e6e73;
-      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      color: var(--muted);
+      transition: border-color 0.15s, color 0.15s;
     }
-    .loc-gps-btn:hover:not(:disabled) { border-color: #2563eb; color: #2563eb; background: rgba(37,99,235,0.04); }
+    .loc-gps-btn:hover:not(:disabled) { border-color: var(--sub); color: var(--ink); }
     .loc-gps-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .loc-spinner {
-      width: 12px; height: 12px;
-      border: 2px solid #e5e5ea;
-      border-top-color: #2563eb;
+      width: 13px; height: 13px;
+      border: 2px solid var(--rule);
+      border-top-color: var(--ink);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       display: inline-block;
@@ -1432,10 +1969,10 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       position: absolute;
       top: calc(100% + 4px);
       left: 0; right: 0;
-      background: #fff;
-      border: 1px solid #e5e5ea;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(10,10,10,0.08);
       z-index: 100;
       overflow: hidden;
       max-height: 200px;
@@ -1444,67 +1981,77 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .loc-option {
       width: 100%;
       display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      padding: 0.6rem 0.875rem;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
       background: none;
       border: none;
-      border-bottom: 1px solid #f5f5f7;
+      border-bottom: 1px solid var(--soft);
       cursor: pointer;
-      font-size: 0.8rem;
-      color: #3f3f46;
+      font-size: 12px;
+      color: var(--ink);
       text-align: left;
-      font-family: inherit;
+      font-family: var(--font);
       line-height: 1.4;
       transition: background 0.1s;
     }
     .loc-option:last-child { border-bottom: none; }
-    .loc-option:hover { background: #f5f5f7; }
+    .loc-option:hover { background: var(--soft); }
     .loc-confirmed {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      margin-top: 0.375rem;
-      font-size: 0.73rem;
-      color: #0f766e;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: #F0FAE0;
+      font-size: 11.5px;
+      color: var(--accent-text);
       font-weight: 500;
     }
-    .loc-coords { color: #aeaeb2; font-weight: 400; font-size: 0.68rem; font-family: monospace; }
+    .loc-coords { color: var(--sub); font-weight: 400; font-size: 10.5px; font-family: var(--mono); margin-left: 4px; }
     .loc-error {
-      display: flex; align-items: center; gap: 0.35rem;
-      font-size: 0.75rem; color: #dc2626;
-      margin-top: 0.4rem;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: #B91C1C;
+      margin-top: 8px;
     }
 
     /* ── Access details ────────────────────── */
     .access-section {
-      display: flex; flex-direction: column; gap: 0.6rem;
-      padding: 0.75rem 0 0.25rem;
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 4px 0;
     }
     .access-title {
-      display: flex; align-items: center; gap: 0.4rem;
-      font-size: 0.72rem; font-weight: 600; color: #52525b;
-      letter-spacing: 0.04em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10.5px; font-weight: 500; color: var(--muted);
+      letter-spacing: 0.14em; text-transform: uppercase;
     }
-    .access-optional { font-weight: 400; color: #a1a1aa; text-transform: none; letter-spacing: 0; }
+    .access-optional { font-weight: 400; color: var(--sub); text-transform: none; letter-spacing: 0; }
     .access-row {
-      display: flex; align-items: center; gap: 0.75rem;
+      display: flex; align-items: center; gap: 12px;
     }
     .access-label {
-      font-size: 0.75rem; color: #71717a; min-width: 52px;
+      font-size: 12px; color: var(--muted); min-width: 60px;
     }
-    .access-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .access-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .access-chip {
-      padding: 0.2rem 0.65rem;
+      padding: 5px 12px;
       border-radius: 999px;
-      border: 1.5px solid #e4e4e7;
-      background: #fafafa;
-      font-size: 0.75rem; font-weight: 500; color: #3f3f46;
-      cursor: pointer; transition: all 0.15s;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font);
     }
-    .access-chip:hover { border-color: #a1a1aa; background: #f4f4f5; }
+    .access-chip:hover { border-color: var(--sub); }
     .access-chip-on {
-      border-color: #18181b; background: #18181b; color: #fff;
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+      font-weight: 500;
     }
 
     /* ── Error ────────────────────────────── */
@@ -1573,10 +2120,112 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .err-close:hover { color: #1d1d1f; }
   `]
 })
-export class JobWizardComponent {
+export class JobWizardComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   private router = inject(Router);
+
+  // Draft state
+  draftSaving = signal(false);
+  draftSaved = signal(false);
+  draftError = signal<string | null>(null);
+  // Tracks an in-progress draft id when the user enters the wizard via
+  // "Edit" on the Drafts page (set via query param `?draftId=...`).
+  private editingDraftId: string | null = null;
+
+  ngOnInit() {
+    const draftId = new URLSearchParams(window.location.search).get('draftId');
+    if (!draftId || !this.auth.isLoggedIn()) return;
+    this.editingDraftId = draftId;
+    this.api.listJobDrafts().subscribe({
+      next: (drafts) => {
+        const draft = drafts.find((d: any) => d.id === draftId);
+        if (!draft) return;
+        this.rawInput = draft.rawInput ?? '';
+        const urg = (draft.urgency ?? 'NORMAL').toUpperCase();
+        if (urg === 'EMERGENCY' || urg === 'HIGH') this.urgency.set('ASAP');
+        else if (urg === 'NORMAL') this.urgency.set('SOON');
+        else this.urgency.set('FLEXIBLE');
+        if (draft.latitude && draft.longitude) {
+          this.jobLocation = {
+            latitude: draft.latitude,
+            longitude: draft.longitude,
+            city: draft.city ?? '',
+            address: draft.address ?? '',
+            country: '',
+          };
+          this.locationQuery = [draft.address, draft.city].filter(Boolean).join(', ');
+          this.locationConfirmed.set(true);
+        }
+      },
+    });
+  }
+
+  private mapUrgencyToBackend(u?: string): 'EMERGENCY' | 'NORMAL' | 'LOW' | 'HIGH' {
+    const v = (u ?? this.editablePreview()?.urgency ?? '').toUpperCase();
+    if (v === 'EMERGENCY' || v === 'HIGH' || v === 'NORMAL' || v === 'LOW') return v as any;
+    // fallback from the input-step urgency signal
+    if (this.urgency() === 'ASAP') return 'EMERGENCY';
+    if (this.urgency() === 'SOON') return 'NORMAL';
+    return 'LOW';
+  }
+
+  saveDraftFromPreview() {
+    if (this.draftSaving()) return;
+    const preview = this.editablePreview();
+    if (!preview) return;
+
+    this.draftSaving.set(true);
+    this.draftError.set(null);
+
+    const payload = {
+      id: this.editingDraftId ?? undefined,
+      rawInput: this.rawInput,
+      title: preview.title,
+      description: preview.description,
+      urgency: this.mapUrgencyToBackend(preview.urgency),
+      categorySlug: this.result()?.jobPreview.categorySlug,
+      priceMin: preview.priceMin ?? undefined,
+      priceMax: preview.priceMax ?? undefined,
+      estimatedHours: preview.estimatedHours ?? undefined,
+      toolsNeeded: this.result()?.jobPreview.toolsNeeded ?? [],
+      latitude: this.jobLocation.latitude ?? undefined,
+      longitude: this.jobLocation.longitude ?? undefined,
+      address: this.jobLocation.address || undefined,
+      city: this.jobLocation.city || undefined,
+      scheduledDate: this.scheduledDate() || undefined,
+    };
+
+    this.api.saveJobDraft(payload).subscribe({
+      next: () => {
+        this.draftSaving.set(false);
+        this.draftSaved.set(true);
+        setTimeout(() => {
+          this.draftSaved.set(false);
+          this.router.navigate(['/drafts']);
+          this.resetAfterDraft();
+        }, 1200);
+      },
+      error: (err: any) => {
+        this.draftSaving.set(false);
+        this.draftError.set(err?.error?.message ?? 'Failed to save draft');
+        setTimeout(() => this.draftError.set(null), 2500);
+      },
+    });
+  }
+
+  private resetAfterDraft() {
+    this.rawInput = '';
+    this.urgency.set('SOON');
+    this.result.set(null);
+    this.editablePreview.set(null);
+    this.scheduledDate.set('');
+    this.jobLocation = { latitude: null, longitude: null, city: '', address: '', country: '' };
+    this.locationQuery = '';
+    this.locationConfirmed.set(false);
+    this.editingDraftId = null;
+    this.step.set('input');
+  }
 
   step = signal<WizardStep>('input');
   loadingPhase = signal(0);
@@ -1614,10 +2263,17 @@ export class JobWizardComponent {
   } | null>(null);
 
   examples = [
-    'My kitchen sink is leaking',
-    'Need help moving a sofa to another room',
-    'Dog needs walking this afternoon',
+    'Leaky kitchen sink',
+    'Move a sofa to another room',
+    'Walk my dog this afternoon',
     'Light switch stopped working',
+  ];
+
+  urgency = signal<'FLEXIBLE' | 'SOON' | 'ASAP'>('SOON');
+  urgencyOpts = [
+    { id: 'FLEXIBLE' as const, label: 'Flexible', ti: 'this week' },
+    { id: 'SOON'     as const, label: 'Soon',     ti: '1–2 days'  },
+    { id: 'ASAP'     as const, label: 'ASAP',     ti: 'today'     },
   ];
 
   propertyType = signal<string | null>(null);
@@ -1671,8 +2327,14 @@ export class JobWizardComponent {
       setTimeout(() => this.loadingPhase.set(phase), i * 800);
     });
 
+    const urgencyHint = this.urgency() === 'ASAP'
+      ? '\n\nUrgency: ASAP (today).'
+      : this.urgency() === 'SOON'
+        ? '\n\nUrgency: Soon (within 1–2 days).'
+        : '\n\nUrgency: Flexible (this week).';
+
     this.api.analyzeJob({
-      rawInput: this.rawInput + this.buildAccessContext(),
+      rawInput: this.rawInput + this.buildAccessContext() + urgencyHint,
       city: this.jobLocation.city,
       country: this.jobLocation.country,
       latitude: this.jobLocation.latitude ?? undefined,

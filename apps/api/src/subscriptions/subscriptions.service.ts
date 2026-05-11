@@ -12,8 +12,8 @@ const PLAN_LABELS: Record<PlanType, string> = {
 };
 
 const PLAN_PRICES: Record<PlanType, number> = {
-  WORKER_PRO: 1999,       // €19.99 in cents
-  CLIENT_BUSINESS: 2999,  // €29.99 in cents
+  WORKER_PRO: 300,        // €3.00 in cents
+  CLIENT_BUSINESS: 300,   // €3.00 in cents
 };
 
 @Injectable()

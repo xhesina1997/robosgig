@@ -1,11 +1,13 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
+import { loadStripe, Stripe, StripeCardElement, StripeElements } from '@stripe/stripe-js';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { VerifyIdentityComponent } from '../../shared/verify-identity.component';
 import { ReportProblemComponent } from '../../shared/report-problem.component';
+import { environment } from '../../../environments/environment';
 
 interface ClientProfile {
   id: string;
@@ -28,31 +30,38 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
   template: `
     <div class="page">
 
+      <!-- Header -->
       <div class="page-header">
         <div class="inner">
           <div class="header-top">
             <div>
-              <p class="eyebrow">Account</p>
-              <h1 class="page-title">My Profile</h1>
+              <p class="eyebrow">Client profile</p>
+              <h1 class="page-title">My profile</h1>
             </div>
+            @if (profile()) {
+              <div class="header-actions">
+                <button class="hdr-btn hdr-btn--primary" (click)="saveProfile()" [disabled]="saving()" type="button">
+                  @if (saving()) { Saving… } @else { Save changes }
+                </button>
+              </div>
+            }
           </div>
         </div>
         <div class="inner">
           <nav class="tabs-nav">
-            <button class="tab-btn" [class.tab-active]="activeTab() === 'profile'" (click)="activeTab.set('profile')">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <button class="tab-btn" [class.tab-active]="activeTab() === 'profile'" (click)="activeTab.set('profile')" type="button">
               Profile
             </button>
-            <button class="tab-btn" [class.tab-active]="activeTab() === 'identity'" (click)="activeTab.set('identity')">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M13 11h5M13 15h3"/></svg>
+            <button class="tab-btn" [class.tab-active]="activeTab() === 'identity'" (click)="activeTab.set('identity')" type="button">
               Identity
             </button>
-            <button class="tab-btn" [class.tab-active]="activeTab() === 'payment'" (click)="activeTab.set('payment')">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <button class="tab-btn" [class.tab-active]="activeTab() === 'payment'" (click)="activeTab.set('payment')" type="button">
               Payment
             </button>
-            <button class="tab-btn" [class.tab-active]="activeTab() === 'security'" (click)="activeTab.set('security')">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <button class="tab-btn" [class.tab-active]="activeTab() === 'spending'" (click)="activeTab.set('spending')" type="button">
+              Spending
+            </button>
+            <button class="tab-btn" [class.tab-active]="activeTab() === 'security'" (click)="activeTab.set('security')" type="button">
               Security
             </button>
           </nav>
@@ -61,218 +70,687 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 
       @if (profile()) {
         <div class="slides-outer">
-          <div class="slides-track" [style.transform]="'translateX(-' + tabIndex() * 100 + '%)'">
-            <!-- Slide 0: Profile -->
-            <div class="slide">
-        <div class="page-body">
-          <div class="inner inner--narrow">
+          <div class="slides-track">
 
-              <!-- Personal Info -->
-              <div class="card">
-                <div class="avatar-row">
-                  <div class="avatar-circle">{{ profile()!.firstName[0] }}{{ profile()!.lastName[0] }}</div>
-                  <div>
-                    <p class="avatar-name">{{ profile()!.firstName }} {{ profile()!.lastName }}</p>
-                    <p class="avatar-email">{{ profile()!.email }}</p>
+            <!-- Slide 0: Profile -->
+            @if (activeTab() === 'profile') {
+            <div class="slide">
+              <div class="page-body">
+                <div class="inner">
+                  <div class="cp-grid cp-grid--single">
+
+                    <!-- Left: identity card -->
+                    <div class="cp-card">
+                      <div class="cp-avatar-row">
+                        <div class="cp-avatar">{{ profile()!.firstName[0] }}{{ profile()!.lastName[0] }}</div>
+                        <div class="cp-avatar-main">
+                          <p class="cp-avatar-name">{{ profile()!.firstName }} {{ profile()!.lastName }}</p>
+                          <p class="cp-avatar-email">{{ profile()!.email }}</p>
+                          @if (profile()!.idVerified) {
+                            <span class="cp-verified">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                              Verified
+                            </span>
+                          } @else {
+                            <span class="cp-unverified">Not verified</span>
+                          }
+                        </div>
+                      </div>
+
+                      <div class="cp-divider"></div>
+
+                      <p class="cp-eyebrow">Personal info</p>
+                      <div class="cp-fields">
+                        <div class="cp-field">
+                          <label class="cp-label">First name</label>
+                          <input class="cp-input" [(ngModel)]="edit.firstName" />
+                        </div>
+                        <div class="cp-field">
+                          <label class="cp-label">Last name</label>
+                          <input class="cp-input" [(ngModel)]="edit.lastName" />
+                        </div>
+                        <div class="cp-field cp-field--full">
+                          <label class="cp-label">Phone</label>
+                          <input class="cp-input" [(ngModel)]="edit.phone" placeholder="+43 …" />
+                        </div>
+                        <div class="cp-field cp-field--full">
+                          <div class="cp-label-row">
+                            <label class="cp-label">Location</label>
+                            <span class="cp-hint">Used for nearby workers</span>
+                          </div>
+                          <div class="cp-loc-wrap">
+                            <input class="cp-input"
+                                   [(ngModel)]="locationQuery"
+                                   (input)="searchLocation()"
+                                   placeholder="Search address, postcode, city…" />
+                            @if (locationSuggestions().length > 0) {
+                              <div class="cp-loc-dropdown">
+                                @for (item of locationSuggestions(); track item.display_name) {
+                                  <button class="cp-loc-opt" (click)="selectLocation(item)" type="button">
+                                    {{ item.display_name }}
+                                  </button>
+                                }
+                              </div>
+                            }
+                            @if (locationConfirmed() && edit.latitude) {
+                              <div class="cp-loc-ok">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                                {{ edit.city }}{{ edit.address ? ' · ' + edit.address : '' }}
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      </div>
+
+                      @if (saveSuccess()) {
+                        <div class="cp-banner cp-banner--ok">Profile saved successfully</div>
+                      }
+                      @if (saveError()) {
+                        <div class="cp-banner cp-banner--err">{{ saveError() }}</div>
+                      }
+                    </div>
+
                   </div>
-                </div>
-                <div class="fields-grid">
-                  <div class="field-col">
-                    <label class="field-label">First name</label>
-                    <input class="field-input" [(ngModel)]="edit.firstName" />
-                  </div>
-                  <div class="field-col">
-                    <label class="field-label">Last name</label>
-                    <input class="field-input" [(ngModel)]="edit.lastName" />
-                  </div>
-                  <div class="field-col">
-                    <label class="field-label">Phone</label>
-                    <input class="field-input" [(ngModel)]="edit.phone" placeholder="Optional" />
-                  </div>
-                  <div class="field-col">
-                    <label class="field-label">City / Address</label>
-                    <input class="field-input" [(ngModel)]="locationQuery" (input)="searchLocation()" placeholder="Search address…" />
-                    @if (locationSuggestions().length > 0) {
-                      <ul class="suggestions">
-                        @for (item of locationSuggestions(); track item.display_name) {
-                          <li (click)="selectLocation(item)">{{ item.display_name }}</li>
-                        }
-                      </ul>
-                    }
-                    @if (locationConfirmed()) {
-                      <p class="loc-confirmed">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        {{ edit.city || 'Location set' }}
-                      </p>
-                    }
-                  </div>
-                </div>
-                @if (saveSuccess()) { <p class="msg-ok">Changes saved!</p> }
-                @if (saveError()) { <p class="msg-err">{{ saveError() }}</p> }
-                <div class="card-footer">
-                  <button class="btn-primary" (click)="saveProfile()" [disabled]="saving()">
-                    {{ saving() ? 'Saving…' : 'Save changes' }}
-                  </button>
                 </div>
               </div>
-
-              <!-- Financial Stats -->
-              @if (stats()) {
-                <div class="card stats-card">
-                  <div class="section-label">Activity & Spending</div>
-                  <div class="stats-grid">
-                    <div class="stat-box">
-                      <span class="stat-val">€{{ stats().totalSpent.toFixed(2) }}</span>
-                      <span class="stat-lbl">Total spent</span>
-                    </div>
-                    <div class="stat-box">
-                      <span class="stat-val">€{{ stats().inEscrow.toFixed(2) }}</span>
-                      <span class="stat-lbl">In escrow</span>
-                    </div>
-                    <div class="stat-box">
-                      <span class="stat-val">{{ stats().jobsPosted }}</span>
-                      <span class="stat-lbl">Jobs posted</span>
-                    </div>
-                    <div class="stat-box">
-                      <span class="stat-val">{{ stats().jobsCompleted }}</span>
-                      <span class="stat-lbl">Completed</span>
-                    </div>
-                    <div class="stat-box">
-                      <span class="stat-val">{{ stats().jobsActive }}</span>
-                      <span class="stat-lbl">Active</span>
-                    </div>
-                    <div class="stat-box">
-                      <span class="stat-val">€{{ stats().totalFeesPaid.toFixed(2) }}</span>
-                      <span class="stat-lbl">Platform fees</span>
-                    </div>
-                  </div>
-                </div>
-              }
-
-          </div>
-        </div>
-            </div><!-- /slide-0 -->
+            </div>
+            }
 
             <!-- Slide 1: Identity -->
+            @if (activeTab() === 'identity') {
             <div class="slide">
               <div class="page-body">
-                <div class="inner inner--narrow">
-                  <div class="card">
-                    <div class="section-label">Identity Verification</div>
-                    <app-verify-identity />
+                <div class="inner">
+                  <div class="ci-grid">
+                    <!-- LEFT: progress + checklist + trust -->
+                    <div class="ci-left">
+                      <div class="ci-card">
+                        <div class="ci-progress-head">
+                          <div>
+                            <p class="cp-eyebrow" style="margin:0">Verification progress</p>
+                            <div class="ci-progress-num">
+                              <span class="ci-progress-done">{{ idStepsDone() }}</span><span class="ci-progress-total">/{{ idStepsRequired() }}</span>
+                              <span class="ci-progress-label">steps complete</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="ci-bar">
+                          <div class="ci-bar-fill" [style.width.%]="idProgressPct()"></div>
+                        </div>
+                        <div class="ci-bar-meta">
+                          <span>{{ idProgressPct() }}% complete</span>
+                          <span>{{ profile()!.idVerified ? 'Verified' : '~5 min remaining' }}</span>
+                        </div>
+                      </div>
+
+                      <div class="ci-card ci-checklist">
+                        <div class="ci-checklist-head">Checklist</div>
+                        @for (step of idSteps(); track step.id; let i = $index) {
+                          <div class="ci-step" [class.ci-step--focus]="step.focus && step.status === 'todo'">
+                            <span class="ci-step-dot ci-step-dot--{{ step.status }}">
+                              @if (step.status === 'done') {
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#84CC16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                              } @else {
+                                {{ i + 1 }}
+                              }
+                            </span>
+                            <div class="ci-step-main">
+                              <p class="ci-step-label">{{ step.label }}</p>
+                              <p class="ci-step-hint">{{ step.hint }}</p>
+                            </div>
+                            <span class="ci-step-pill ci-step-pill--{{ step.status }}">{{ stepStatusLabel(step.status) }}</span>
+                          </div>
+                        }
+                      </div>
+
+                      <div class="ci-card ci-trust">
+                        <div class="ci-trust-icon">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v7c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5l-8-3z"/></svg>
+                        </div>
+                        <div class="ci-trust-main">
+                          <p class="ci-trust-title">Bank-grade encryption</p>
+                          <p class="ci-trust-sub">
+                            Documents are stored encrypted, reviewed by a human, and deleted 30 days after verification.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- RIGHT: ID upload focus -->
+                    <div class="ci-card ci-right">
+                      <div class="ci-right-head">
+                        <div>
+                          <p class="cp-eyebrow" style="margin:0">Identity check</p>
+                          <p class="ci-right-title">Government-issued ID</p>
+                          <p class="ci-right-sub">
+                            Verify your identity to start posting jobs and protect your account.
+                          </p>
+                        </div>
+                      </div>
+                      <div class="ci-right-body">
+                        <app-verify-identity />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div><!-- /slide-1 -->
+            </div>
+            }
 
             <!-- Slide 2: Payment -->
+            @if (activeTab() === 'payment') {
             <div class="slide">
               <div class="page-body">
-                <div class="inner inner--narrow">
-                  <div class="card">
-                    <div class="section-label">Saved Payment Method</div>
-                    @if (cardLoading()) {
-                      <div class="card-loading"><div class="load-ring"></div> Loading…</div>
-                    } @else if (paymentMethods().length === 0) {
-                      <div class="no-card">
-                        <svg width="32" height="32" fill="none" stroke="#d4d4d8" stroke-width="1.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                        <p class="no-card-title">No saved card</p>
-                        <p class="no-card-sub">Your card will be saved automatically the first time you complete a payment.</p>
-                      </div>
-                    } @else {
-                      <div class="card-list">
-                        @for (m of paymentMethods(); track m.id) {
-                          <div class="pm-row">
-                            <div class="pm-icon">
-                              @if (m.brand === 'visa') {
-                                <svg width="38" height="24" viewBox="0 0 38 24" fill="none"><rect width="38" height="24" rx="4" fill="#1A1F71"/><path d="M14.5 16.5l1.8-9h2.9l-1.8 9h-2.9zM25.3 7.7c-.6-.2-1.5-.5-2.6-.5-2.9 0-4.9 1.5-4.9 3.6 0 1.6 1.4 2.5 2.5 3 1.1.6 1.5 1 1.5 1.5 0 .8-.9 1.2-1.7 1.2-1.1 0-1.7-.2-2.7-.6l-.4-.2-.4 2.4c.7.3 1.9.6 3.2.6 3 0 5-1.5 5-3.7 0-1.2-.8-2.2-2.4-3-.9-.5-1.5-.8-1.5-1.4 0-.5.5-1 1.5-1 .9 0 1.5.2 2 .4l.3.1.4-2.4zM30.5 7.5h-2.2c-.7 0-1.2.2-1.5.9l-4.2 10.1h3l.6-1.6h3.6l.3 1.6h2.6l-2.2-11zm-3.5 7.2l1.1-3 .6 3h-1.7z" fill="#fff"/></svg>
-                              } @else if (m.brand === 'mastercard') {
-                                <svg width="38" height="24" viewBox="0 0 38 24" fill="none"><rect width="38" height="24" rx="4" fill="#252525"/><circle cx="14" cy="12" r="7" fill="#EB001B"/><circle cx="24" cy="12" r="7" fill="#F79E1B"/><path d="M19 6.8a7 7 0 010 10.4A7 7 0 0119 6.8z" fill="#FF5F00"/></svg>
-                              } @else {
-                                <div class="pm-icon-generic">
-                                  <svg width="18" height="18" fill="none" stroke="#71717a" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                <div class="inner">
+                  <div class="cs-wrap">
+
+                    <section class="cs-section">
+                      <header class="cs-head">
+                        <span class="cs-head-icon">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg>
+                        </span>
+                        <div class="cs-head-main">
+                          <p class="cs-head-eyebrow">Payment methods</p>
+                          <p class="cs-head-title">Saved cards</p>
+                          <p class="cs-head-sub">
+                            Add a card now or let us save it automatically next time you pay.
+                            Cards are stored by Stripe — we never see your full number.
+                          </p>
+                        </div>
+                        @if (!cardFormOpen()) {
+                          <button
+                            class="cp-pm-add-btn"
+                            (click)="openCardForm()"
+                            type="button"
+                          >+ Add a card</button>
+                        }
+                      </header>
+                      <div class="cs-body">
+
+                        @if (cardFormOpen()) {
+                          <div class="cp-card-form">
+                            <label class="cp-card-form-lbl">Card details</label>
+                            <div id="wpm-card-element" class="cp-card-form-field"></div>
+                            <p class="cp-card-form-hint">Saved securely by Stripe — we never see your card number.</p>
+                            <div class="cp-card-form-actions">
+                              <button
+                                class="cp-pm-add-btn cp-pm-add-btn--ghost"
+                                (click)="closeCardForm()"
+                                [disabled]="addingCard()"
+                                type="button"
+                              >Cancel</button>
+                              <button
+                                class="cp-pm-add-btn"
+                                (click)="submitCard()"
+                                [disabled]="addingCard() || !cardFormReady()"
+                                type="button"
+                              >
+                                @if (addingCard()) { Saving… } @else { Save card }
+                              </button>
+                            </div>
+                          </div>
+                        }
+
+                        @if (cardLoading()) {
+                          <p class="cs-msg">Loading cards…</p>
+                        } @else if (paymentMethods().length === 0) {
+                          <div class="cp-empty">
+                            <p class="cp-empty-title">No saved cards yet</p>
+                            <p class="cp-empty-sub">
+                              Add one now to make checkout faster, or it'll be saved automatically the first time you pay.
+                            </p>
+                          </div>
+                        } @else {
+                          <div class="cp-card-list">
+                            @for (m of paymentMethods(); track m.id) {
+                              <div class="cp-pm-tile">
+                                <div class="cp-pm-preview cp-pm-preview--{{ m.brand }}">
+                                  <div class="cp-pm-preview-top">
+                                    <span class="cp-pm-preview-brand">{{ m.brand | uppercase }}</span>
+                                    <span class="cp-pm-preview-chip" aria-hidden="true"></span>
+                                  </div>
+                                  <div class="cp-pm-preview-num">
+                                    <span class="cp-pm-preview-dots">••••</span>
+                                    <span class="cp-pm-preview-dots">••••</span>
+                                    <span class="cp-pm-preview-dots">••••</span>
+                                    <span class="cp-pm-preview-last">{{ m.last4 }}</span>
+                                  </div>
+                                  <div class="cp-pm-preview-bottom">
+                                    <span>SAVED CARD</span>
+                                    <span class="cp-pm-preview-exp">EXP {{ m.expMonth | number: '2.0' }}/{{ (m.expYear ?? 0) % 100 | number: '2.0' }}</span>
+                                  </div>
                                 </div>
-                              }
+                                <div class="cp-pm-meta-row">
+                                  <span class="cp-pm-meta-check" aria-hidden="true">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                                  </span>
+                                  <div class="cp-pm-meta-main">
+                                    <p class="cp-pm-meta-name">{{ m.brand | titlecase }} •• {{ m.last4 }}</p>
+                                    <p class="cp-pm-meta-sub">Expires {{ m.expMonth | number: '2.0' }}/{{ m.expYear }}</p>
+                                  </div>
+                                  <button
+                                    class="cp-pm-meta-del"
+                                    (click)="removeCard(m.id)"
+                                    [disabled]="removingCard() === m.id"
+                                    [attr.aria-label]="'Remove card ending ' + m.last4"
+                                    type="button"
+                                  >
+                                    @if (removingCard() === m.id) {
+                                      <span class="cp-pm-meta-del-text">Removing…</span>
+                                    } @else {
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                                    }
+                                  </button>
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        }
+                        @if (cardSuccess()) { <p class="cs-msg cs-msg--ok">{{ cardSuccess() }}</p> }
+                        @if (cardError()) { <p class="cs-msg cs-msg--err">{{ cardError() }}</p> }
+                      </div>
+                    </section>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+            }
+
+            <!-- Slide 3: Spending -->
+            @if (activeTab() === 'spending') {
+            <div class="slide">
+              <div class="page-body">
+                <div class="inner">
+                  <div class="cw-wrap">
+
+                    <!-- Sub-header: range + actions -->
+                    <div class="cw-subhead">
+                      <div>
+                        <p class="cp-eyebrow" style="margin:0">Spending &amp; budget</p>
+                        <p class="cw-subhead-title">Spending</p>
+                        <p class="cw-subhead-sub">What you've paid, what's still in escrow, and where it went.</p>
+                      </div>
+                      <div class="cw-actions">
+                        <div class="cw-range">
+                          @for (r of spendRanges; track r) {
+                            <button
+                              class="cw-range-btn"
+                              [class.cw-range-btn--active]="spendRange() === r"
+                              (click)="spendRange.set(r)"
+                              type="button"
+                            >{{ r }}</button>
+                          }
+                        </div>
+                        <button class="cw-btn" type="button" (click)="exportCsv()" [disabled]="exportingCsv()">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 10l6 6 6-6"/><path d="M4 20h16"/></svg>
+                          @if (exportingCsv()) { Exporting… } @else { Export CSV }
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Hero spend card + balance grid -->
+                    <div class="cw-hero-grid">
+                      <div class="cp-card cw-balance-card">
+                        <div class="cw-balance-top">
+                          <div>
+                            <p class="cp-eyebrow" style="margin:0">Total spent · all time</p>
+                            <p class="cw-balance-amount">
+                              <span class="cw-balance-whole">€{{ spentWhole() }}</span><span class="cw-balance-dec">.{{ spentDec() }}</span>
+                            </p>
+                            @if (stats()) {
+                              <p class="cw-balance-growth">
+                                ↑ €{{ stats().totalFeesPaid.toFixed(0) }} platform fees
+                                <span class="cw-balance-growth-dim">· {{ stats().jobsCompleted }} job{{ stats().jobsCompleted === 1 ? '' : 's' }} paid</span>
+                              </p>
+                            }
+                          </div>
+                          <svg class="cw-spark" width="200" height="60" viewBox="0 0 200 60" preserveAspectRatio="none">
+                            <path d="M0 50 Q40 38 60 32 T120 18 T180 8" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M0 50 Q40 38 60 32 T120 18 T180 8 L200 8 L200 60 L0 60 Z" fill="rgba(10,10,10,0.06)" stroke="none"/>
+                            <circle cx="180" cy="8" r="3" fill="var(--ink)"/>
+                          </svg>
+                        </div>
+
+                        <!-- Category split (visual approximation) -->
+                        <div class="cw-split">
+                          <div class="cw-split-bar">
+                            <div class="cw-split-seg" style="width:44%;background:var(--ink)"></div>
+                            <div class="cw-split-seg" style="width:26%;background:var(--accent)"></div>
+                            <div class="cw-split-seg" style="width:18%;background:#F59E0B"></div>
+                            <div class="cw-split-seg" style="width:12%;background:#A3A3A3"></div>
+                          </div>
+                          <div class="cw-split-legend">
+                            <span><span class="cw-split-dot" style="background:var(--ink)"></span> Plumbing 44%</span>
+                            <span><span class="cw-split-dot" style="background:var(--accent)"></span> Cleaning 26%</span>
+                            <span><span class="cw-split-dot" style="background:#F59E0B"></span> Electrical 18%</span>
+                            <span><span class="cw-split-dot" style="background:#A3A3A3"></span> Other 12%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 2x2 stats -->
+                      <div class="cw-stat-grid">
+                        <div class="cw-stat">
+                          <p class="cw-stat-label">Wallet balance</p>
+                          <p class="cw-stat-val cw-stat-val--accent cw-stat-val--mono">€{{ stats() ? walletBalance() : '—' }}</p>
+                          <p class="cw-stat-sub">ready to spend</p>
+                        </div>
+                        <div class="cw-stat">
+                          <p class="cw-stat-label">Held in escrow</p>
+                          <p class="cw-stat-val cw-stat-val--warn cw-stat-val--mono">€{{ stats() ? stats().inEscrow.toFixed(2) : '—' }}</p>
+                          <p class="cw-stat-sub">{{ stats()?.jobsActive ?? 0 }} job{{ stats()?.jobsActive === 1 ? '' : 's' }} in progress</p>
+                        </div>
+                        <div class="cw-stat">
+                          <p class="cw-stat-label">Total spent</p>
+                          <p class="cw-stat-val cw-stat-val--mono">€{{ stats() ? stats().totalSpent.toFixed(0) : '—' }}</p>
+                          <p class="cw-stat-sub">all time</p>
+                        </div>
+                        <div class="cw-stat">
+                          <p class="cw-stat-label">Avg per job</p>
+                          <p class="cw-stat-val cw-stat-val--mono">€{{ avgPerJob() }}</p>
+                          <p class="cw-stat-sub">across {{ stats()?.jobsCompleted ?? 0 }} jobs</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Activity stats row -->
+                    <div class="cw-activity-row">
+                      <div class="cw-stat">
+                        <p class="cw-stat-label">Jobs posted</p>
+                        <p class="cw-stat-val">{{ stats()?.jobsPosted ?? 0 }}</p>
+                        <p class="cw-stat-sub">all time</p>
+                      </div>
+                      <div class="cw-stat">
+                        <p class="cw-stat-label">Completion rate</p>
+                        <p class="cw-stat-val">{{ completionRate() }}%</p>
+                        <p class="cw-stat-sub">{{ stats()?.jobsCompleted ?? 0 }} of {{ stats()?.jobsPosted ?? 0 }} finished</p>
+                      </div>
+                      <div class="cw-stat">
+                        <p class="cw-stat-label">Active jobs</p>
+                        <p class="cw-stat-val">{{ stats()?.jobsActive ?? 0 }}</p>
+                        <p class="cw-stat-sub">in progress</p>
+                      </div>
+                      <div class="cw-stat">
+                        <p class="cw-stat-label">Platform fees</p>
+                        <p class="cw-stat-val cw-stat-val--mono">€{{ stats() ? stats().totalFeesPaid.toFixed(0) : '—' }}</p>
+                        <p class="cw-stat-sub">all completed</p>
+                      </div>
+                      <div class="cw-stat">
+                        <p class="cw-stat-label">Repeat hires</p>
+                        <p class="cw-stat-val">—</p>
+                        <p class="cw-stat-sub">coming soon</p>
+                      </div>
+                    </div>
+
+                    <!-- Transactions + payment method -->
+                    <div class="cw-bottom-grid">
+                      <div class="cp-card cw-tx-card">
+                        <div class="cw-tx-head">
+                          <div class="cw-tx-head-left">
+                            Transactions
+                            <span class="cw-tx-count">0</span>
+                          </div>
+                          <div class="cw-tx-filters">
+                            <button class="cw-pill cw-pill--active" type="button">All</button>
+                            <button class="cw-pill" type="button">Payments</button>
+                            <button class="cw-pill" type="button">Top-ups</button>
+                            <button class="cw-pill" type="button">Refunds</button>
+                          </div>
+                        </div>
+                        <div class="cw-tx-empty">
+                          <p class="cw-tx-empty-title">No transactions yet</p>
+                          <p class="cw-tx-empty-sub">
+                            Pay for your first job and the receipts will land here —
+                            with refunds, escrow holds, and top-ups all in one searchable list.
+                          </p>
+                        </div>
+                      </div>
+
+                      <!-- Payment method + budget -->
+                      <div class="cp-card cw-payout-card">
+                        <p class="cw-payout-title">Payment method</p>
+
+                        <div class="cw-payout-bank">
+                          <div class="cw-payout-bank-glow"></div>
+                          <div class="cw-payout-bank-row">
+                            <span class="cw-payout-bank-label">
+                              {{ defaultCard() ? (defaultCard()!.brand | titlecase) + ' · Primary' : 'No card on file' }}
+                            </span>
+                            @if (defaultCard()) {
+                              <span class="cw-payout-bank-badge">Default</span>
+                            }
+                          </div>
+                          <p class="cw-payout-bank-num">
+                            @if (defaultCard()) {
+                              •••• •••• •••• {{ defaultCard()!.last4 }}
+                            } @else {
+                              — add a card to start —
+                            }
+                          </p>
+                          <div class="cw-payout-bank-foot">
+                            @if (defaultCard()) {
+                              <span>EXPIRES {{ defaultCard()!.expMonth }}/{{ defaultCard()!.expYear }}</span>
+                              <span>{{ (profile()!.firstName + ' ' + profile()!.lastName).toUpperCase() }}</span>
+                            } @else {
+                              <span>—</span>
+                              <span>{{ (profile()!.firstName + ' ' + profile()!.lastName).toUpperCase() }}</span>
+                            }
+                          </div>
+                        </div>
+
+                        <button class="cw-payout-add" (click)="activeTab.set('payment')" type="button">
+                          + {{ defaultCard() ? 'Manage cards' : 'Add a card' }}
+                        </button>
+
+                        <div class="cw-payout-auto">
+                          <p class="cw-payout-auto-label">Monthly budget</p>
+                          <p class="cw-payout-auto-text">
+                            Track how much you're spending each month.
+                            We'll email you at 90% and pause auto top-ups at 100% — active jobs always go through.
+                          </p>
+                          <div class="cw-payout-toggle-row">
+                            <span class="cw-payout-toggle-label">Auto top-up at low balance</span>
+                            <button
+                              class="cw-toggle"
+                              [class.cw-toggle--on]="autoTopup()"
+                              (click)="autoTopup.set(!autoTopup())"
+                              type="button"
+                            >
+                              <span class="cw-toggle-knob"></span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+            }
+
+            <!-- Slide 4: Security -->
+            @if (activeTab() === 'security') {
+            <div class="slide">
+              <div class="page-body">
+                <div class="inner">
+                  <div class="cs-wrap">
+
+                    <!-- Password -->
+                    <section class="cs-section">
+                      <header class="cs-head">
+                        <span class="cs-head-icon">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></svg>
+                        </span>
+                        <div class="cs-head-main">
+                          <p class="cs-head-eyebrow">Sign-in</p>
+                          <p class="cs-head-title">Change password</p>
+                          <p class="cs-head-sub">Use at least 8 characters with a mix of letters and numbers.</p>
+                        </div>
+                      </header>
+                      <div class="cs-body">
+                        <div class="cs-fields-2">
+                          <div class="cp-field">
+                            <label class="cp-label">Current password</label>
+                            <input class="cp-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
+                          </div>
+                          <div class="cp-field">
+                            <label class="cp-label">New password</label>
+                            <input class="cp-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
+                          </div>
+                          <div class="cp-field cs-field--full">
+                            <label class="cp-label">Confirm new password</label>
+                            <input class="cp-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
+                          </div>
+                        </div>
+                        @if (pwError()) { <p class="cs-msg cs-msg--err">{{ pwError() }}</p> }
+                        @if (pwSuccess()) { <p class="cs-msg cs-msg--ok">Password updated</p> }
+                        <button class="cs-save-btn" (click)="changePassword()" [disabled]="pwSaving()" type="button">
+                          {{ pwSaving() ? 'Saving…' : 'Update password' }}
+                        </button>
+                      </div>
+                    </section>
+
+                    <!-- Report a problem -->
+                    <section class="cs-section">
+                      <header class="cs-head">
+                        <span class="cs-head-icon">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2L12 3z"/><path d="M12 10v5M12 18v.5"/></svg>
+                        </span>
+                        <div class="cs-head-main">
+                          <p class="cs-head-eyebrow">Support</p>
+                          <p class="cs-head-title">Report a problem</p>
+                          <p class="cs-head-sub">
+                            Tell us what's going wrong and we'll get back within one business day.
+                          </p>
+                        </div>
+                      </header>
+                      <div class="cs-body">
+                        @if (reportSent()) {
+                          <div class="cs-report-sent">
+                            <span class="cs-report-sent-icon">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                            </span>
+                            <div class="cs-report-sent-main">
+                              <p class="cs-report-sent-title">Report sent</p>
+                              <p class="cs-report-sent-sub">We'll email you at the address on file.</p>
                             </div>
-                            <div class="pm-details">
-                              <p class="pm-number">•••• •••• •••• {{ m.last4 }}</p>
-                              <p class="pm-meta">{{ m.brand | titlecase }} · Expires {{ m.expMonth }}/{{ m.expYear }}</p>
-                            </div>
-                            <button class="btn-remove-card" (click)="removeCard(m.id)" [disabled]="removingCard() === m.id">
-                              @if (removingCard() === m.id) { … } @else { Remove }
+                            <button class="cs-save-btn cs-save-btn--ghost" (click)="resetReport()" type="button">Report another</button>
+                          </div>
+                        } @else {
+                          <p class="cs-mini-label">What's the issue?</p>
+                          <div class="cs-issue-grid">
+                            @for (t of issueTypes; track t.id) {
+                              <button
+                                class="cs-issue"
+                                [class.cs-issue--active]="reportCategory() === t.id"
+                                (click)="reportCategory.set(t.id)"
+                                type="button"
+                              >
+                                <span class="cs-issue-radio">
+                                  @if (reportCategory() === t.id) { <span class="cs-issue-radio-dot"></span> }
+                                </span>
+                                <div>
+                                  <p class="cs-issue-label">{{ t.label }}</p>
+                                  <p class="cs-issue-desc">{{ t.desc }}</p>
+                                </div>
+                              </button>
+                            }
+                          </div>
+
+                          <p class="cs-mini-label" style="margin-top:14px">Describe the problem</p>
+                          <textarea
+                            class="cp-input cp-input--area"
+                            [(ngModel)]="reportBody"
+                            rows="4"
+                            placeholder="What happened? Include any job IDs, transaction IDs, or details you can share."
+                          ></textarea>
+                          @if (reportError()) { <p class="cs-msg cs-msg--err">{{ reportError() }}</p> }
+                          <div class="cs-report-foot">
+                            <span class="cs-report-hint">Min. 10 characters</span>
+                            <button
+                              class="cs-save-btn cs-save-btn--lime"
+                              (click)="sendInlineReport()"
+                              [disabled]="!canSendReport() || reportSubmitting()"
+                              type="button"
+                            >
+                              @if (reportSubmitting()) { Sending… } @else { Send report → }
                             </button>
                           </div>
                         }
                       </div>
-                    }
-                    @if (cardError()) { <p class="msg-err">{{ cardError() }}</p> }
+                    </section>
+
+                    <!-- Delete -->
+                    <section class="cs-section cs-section--danger">
+                      <header class="cs-head cs-head--danger">
+                        <span class="cs-head-icon cs-head-icon--danger">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>
+                        </span>
+                        <div class="cs-head-main">
+                          <p class="cs-head-eyebrow cs-head-eyebrow--danger">Danger zone</p>
+                          <p class="cs-head-title cs-head-title--danger">Delete account</p>
+                          <p class="cs-head-sub">
+                            This permanently removes your profile, posted jobs, and message history.
+                            In-progress jobs must be completed or cancelled first. This cannot be undone.
+                          </p>
+                        </div>
+                      </header>
+                      <div class="cs-body">
+                        <div class="cs-danger-list">
+                          <p class="cs-danger-list-title">What gets deleted</p>
+                          <ul>
+                            <li><span class="cs-danger-dot"></span> Your profile and verification</li>
+                            <li><span class="cs-danger-dot"></span> All posted jobs and message history</li>
+                            <li><span class="cs-danger-dot"></span> Saved payment methods (your bank stays with your bank)</li>
+                            <li><span class="cs-danger-dot"></span> Spending analytics and rating history</li>
+                          </ul>
+                        </div>
+
+                        @if (!confirmDelete()) {
+                          <button class="cs-delete-btn" (click)="confirmDelete.set(true)" type="button">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+                            Delete my account
+                          </button>
+                        } @else {
+                          <div class="cs-delete-confirm">
+                            <p class="cs-delete-typed">
+                              Type <span class="cs-delete-typed-word">DELETE</span> to confirm.
+                            </p>
+                            <p class="cs-delete-typed-sub">Your account is queued for deletion immediately. This cannot be undone.</p>
+                            <input
+                              class="cp-input"
+                              [(ngModel)]="deleteText"
+                              placeholder="Type DELETE"
+                              autocomplete="off"
+                              style="margin-top:12px;font-family:var(--mono);letter-spacing:0.08em"
+                            />
+                            @if (deleteError()) { <p class="cs-msg cs-msg--err">{{ deleteError() }}</p> }
+                            <div class="cs-delete-actions">
+                              <button class="cs-save-btn cs-save-btn--ghost" (click)="confirmDelete.set(false); deleteText = ''" type="button">Cancel</button>
+                              <button
+                                class="cs-delete-btn cs-delete-btn--solid"
+                                [disabled]="!canDelete() || deleting()"
+                                (click)="deleteAccount()"
+                                type="button"
+                              >
+                                {{ deleting() ? 'Deleting…' : 'Permanently delete account' }}
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </section>
+
                   </div>
                 </div>
               </div>
-            </div><!-- /slide-2 -->
+            </div>
+            }
 
-            <!-- Slide 3: Security -->
-            <div class="slide">
-              <div class="page-body">
-                <div class="inner inner--narrow">
-
-                  <div class="card">
-                    <div class="section-label">Change Password</div>
-                    <div class="fields-grid fields-grid--single">
-                      <div class="field-col">
-                        <label class="field-label">Current password</label>
-                        <input class="field-input" type="password" [(ngModel)]="pw.current" autocomplete="current-password" />
-                      </div>
-                      <div class="field-col">
-                        <label class="field-label">New password</label>
-                        <input class="field-input" type="password" [(ngModel)]="pw.next" autocomplete="new-password" />
-                      </div>
-                      <div class="field-col">
-                        <label class="field-label">Confirm new password</label>
-                        <input class="field-input" type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" />
-                      </div>
-                    </div>
-                    @if (pwError()) { <p class="msg-err">{{ pwError() }}</p> }
-                    @if (pwSuccess()) { <p class="msg-ok">Password updated!</p> }
-                    <div class="card-footer">
-                      <button class="btn-primary" (click)="changePassword()" [disabled]="pwSaving()">
-                        {{ pwSaving() ? 'Saving…' : 'Update password' }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="card" style="margin-top:1.25rem">
-                    <div class="section-label">Delete Account</div>
-                    <p class="delete-desc">Permanently remove your account and all associated data.</p>
-                    @if (!confirmDelete()) {
-                      <button class="btn-delete" (click)="confirmDelete.set(true)">Delete my account</button>
-                    } @else {
-                      <p class="delete-warn">This cannot be undone. All your jobs, profile, and data will be erased.</p>
-                      <div class="delete-actions">
-                        <button class="btn-delete-confirm" (click)="deleteAccount()" [disabled]="deleting()">
-                          {{ deleting() ? 'Deleting…' : 'Yes, delete everything' }}
-                        </button>
-                        <button class="btn-cancel" (click)="confirmDelete.set(false)">Cancel</button>
-                      </div>
-                      @if (deleteError()) { <p class="msg-err">{{ deleteError() }}</p> }
-                    }
-                  </div>
-
-                  <div class="card" style="margin-top:1.25rem">
-                    <div class="section-label">Report a Problem</div>
-                    <p class="delete-desc">Experiencing an issue? Let us know and we'll look into it.</p>
-                    <button class="btn-report" (click)="showReportModal.set(true)">
-                      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      Report a problem
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-            </div><!-- /slide-2 -->
-
-          </div><!-- /slides-track -->
-        </div><!-- /slides-outer -->
+          </div>
+        </div>
       } @else {
         <div class="loading">
           <div class="load-ring"></div>
@@ -286,108 +764,1457 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     </div>
   `,
   styles: [`
-    * { box-sizing: border-box; }
-    .page { min-height: 100vh; background: #f8f8f8; }
-    .inner { max-width: 1100px; margin: 0 auto; padding: 0 1.25rem; }
-
-    .page-header { background: #fff; border-bottom: 1px solid #e4e4e7; padding: 2rem 0 0; }
-    .header-top { padding-bottom: 1.5rem; }
-    .eyebrow { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a1a1aa; margin-bottom: 0.3rem; }
-    .page-title { font-size: 1.5rem; font-weight: 700; color: #18181b; letter-spacing: -0.025em; margin: 0; }
-
-    /* ── Tabs ─────────────────────────────── */
-    .tabs-nav { display: flex; gap: 0; }
-    .tab-btn {
-      display: flex; align-items: center; gap: 0.4rem;
-      padding: 0.75rem 1.1rem;
-      border: none; background: none; cursor: pointer;
-      font-size: 0.855rem; font-weight: 500; color: #71717a;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-      transition: color 0.15s, border-color 0.15s;
-      font-family: inherit; white-space: nowrap;
+    :host {
+      --bg: #FAFAFA;
+      --panel: #FFFFFF;
+      --ink: #0A0A0A;
+      --muted: #737373;
+      --sub: #A3A3A3;
+      --rule: #E8E8E5;
+      --accent: #84CC16;
+      --accent-ink: #0A0A0A;
+      --accent-text: #4D7C0F;
+      --soft: #F5F5F3;
+      --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      display: block;
     }
-    .tab-btn:hover { color: #3f3f46; }
-    .tab-active { color: #18181b !important; border-bottom-color: #18181b; font-weight: 600; }
-
-    /* ── Slides ────────────────────────────── */
-    .slides-outer { overflow: hidden; }
-    .slides-track { display: flex; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
-    .slide { flex: 0 0 100%; min-width: 0; }
-    .inner--narrow { max-width: 660px; }
-
-    .page-body { padding: 2rem 0 4rem; }
-    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
-    .card { background: #fff; border: 1.5px solid #e4e4e7; border-radius: 16px; padding: 1.5rem; }
-    .fields-grid--single { grid-template-columns: 1fr; }
-
-    .avatar-row { display: flex; align-items: center; gap: 0.875rem; padding-bottom: 1.25rem; margin-bottom: 1.5rem; border-bottom: 1px solid #f4f4f5; }
-    .avatar-circle { width: 48px; height: 48px; border-radius: 50%; background: #18181b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; flex-shrink: 0; }
-    .avatar-name { font-size: 0.95rem; font-weight: 600; color: #18181b; margin: 0 0 0.2rem; }
-    .avatar-email { font-size: 0.8rem; color: #a1a1aa; margin: 0; }
-
-    .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #a1a1aa; margin: 0 0 1rem; }
-
-    .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1rem; }
-    .field-col { display: flex; flex-direction: column; }
-    .field-label { font-size: 0.75rem; font-weight: 600; color: #71717a; margin-bottom: 0.3rem; }
-    .field-input { width: 100%; padding: 0.5rem 0.75rem; border: 1.5px solid #e4e4e7; border-radius: 8px; font-size: 0.875rem; color: #18181b; font-family: inherit; outline: none; transition: border-color 0.15s; }
-    .field-input:focus { border-color: #18181b; }
-
-    .suggestions { list-style: none; margin: 0.25rem 0 0; padding: 0; border: 1.5px solid #e4e4e7; border-radius: 8px; overflow: hidden; position: absolute; z-index: 10; background: #fff; width: 100%; }
-    .suggestions li { padding: 0.5rem 0.75rem; font-size: 0.8rem; cursor: pointer; color: #3f3f46; }
-    .suggestions li:hover { background: #f4f4f5; }
-    .loc-confirmed { display: flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: #0f766e; margin: 0.3rem 0 0; }
-
-    .card-footer { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #f4f4f5; display: flex; justify-content: flex-end; }
-    .btn-primary { padding: 0.55rem 1.4rem; border-radius: 10px; background: #18181b; color: #fff; font-size: 0.875rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.15s; }
-    .btn-primary:hover:not(:disabled) { background: #3f3f46; }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .msg-ok { font-size: 0.8rem; color: #16a34a; margin: 0.75rem 0 0; }
-    .msg-err { font-size: 0.8rem; color: #dc2626; margin: 0.75rem 0 0; }
-
-    .delete-desc { font-size: 0.875rem; color: #71717a; margin: 0 0 1rem; }
-    .delete-warn { font-size: 0.875rem; color: #3f3f46; margin: 0 0 1rem; }
-    .delete-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
-    .btn-report { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; background: #fafafa; border: 1.5px solid #e4e4e7; color: #3f3f46; cursor: pointer; transition: all 0.15s; }
-    .btn-report:hover { background: #f4f4f5; border-color: #a1a1aa; }
-    .btn-delete { padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; background: #fff; border: 1.5px solid #e4e4e7; color: #dc2626; cursor: pointer; transition: background 0.15s; }
-    .btn-delete:hover { background: #fef2f2; border-color: #fca5a5; }
-    .btn-delete-confirm { padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; background: #dc2626; border: none; color: #fff; cursor: pointer; }
-    .btn-delete-confirm:hover:not(:disabled) { background: #b91c1c; }
-    .btn-delete-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-cancel { padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; background: transparent; border: 1.5px solid #e4e4e7; color: #71717a; cursor: pointer; }
-
-    /* ── Payment tab ──────────────────────────── */
-    .card-loading { display: flex; align-items: center; gap: 0.75rem; color: #a1a1aa; font-size: 0.84rem; padding: 0.5rem 0; }
-    .no-card { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 2rem 0; text-align: center; }
-    .no-card-title { font-size: 0.95rem; font-weight: 600; color: #3f3f46; margin: 0; }
-    .no-card-sub { font-size: 0.8rem; color: #a1a1aa; margin: 0; max-width: 280px; line-height: 1.5; }
-    .card-list { display: flex; flex-direction: column; gap: 0.75rem; }
-    .pm-row { display: flex; align-items: center; gap: 1rem; padding: 0.875rem 1rem; background: #fafafa; border: 1.5px solid #e4e4e7; border-radius: 12px; }
-    .pm-icon { flex-shrink: 0; display: flex; align-items: center; }
-    .pm-icon-generic { width: 38px; height: 24px; background: #f4f4f5; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
-    .pm-details { flex: 1; min-width: 0; }
-    .pm-number { font-size: 0.9rem; font-weight: 600; color: #18181b; margin: 0 0 0.2rem; font-family: monospace; letter-spacing: 0.05em; }
-    .pm-meta { font-size: 0.75rem; color: #71717a; margin: 0; text-transform: capitalize; }
-    .btn-remove-card { padding: 0.35rem 0.875rem; border-radius: 8px; font-size: 0.78rem; font-weight: 600; background: #fff; border: 1.5px solid #e4e4e7; color: #dc2626; cursor: pointer; transition: background 0.15s, border-color 0.15s; white-space: nowrap; font-family: inherit; flex-shrink: 0; }
-    .btn-remove-card:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
-    .btn-remove-card:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .stats-card { margin-top: 1rem; }
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 0.75rem; }
-    .stat-box { background: #f4f4f5; border-radius: 10px; padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; }
-    .stat-val { font-size: 1.25rem; font-weight: 700; color: #18181b; }
-    .stat-lbl { font-size: 0.72rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.04em; }
-
-    .loading { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem 0; color: #a1a1aa; font-size: 0.875rem; }
-    .load-ring { width: 30px; height: 30px; border: 2.5px solid #e4e4e7; border-top-color: #18181b; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    * { box-sizing: border-box; }
+    .page {
+      min-height: calc(100vh - 56px);
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+    .inner { max-width: 1180px; margin: 0 auto; padding: 0 40px; }
+    .loading {
+      min-height: 50vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+    }
+    .load-ring {
+      width: 28px; height: 28px;
+      border: 3px solid var(--rule);
+      border-top-color: var(--ink);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 600px) {
-      .inner { padding: 0 1rem; }
-      .fields-grid { grid-template-columns: 1fr; }
+    /* Header */
+    .page-header {
+      background: var(--bg);
+      border-bottom: 1px solid var(--rule);
+      padding: 26px 0 0;
+    }
+    .header-top {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-bottom: 20px;
+    }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+    .page-title {
+      font-size: 32px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.025em;
+      line-height: 1;
+      margin: 0;
+    }
+    .header-actions { display: flex; gap: 6px; align-items: center; }
+    .hdr-btn {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      font-size: 12.5px;
+      font-family: var(--font);
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .hdr-btn:hover:not(:disabled) { border-color: var(--sub); }
+    .hdr-btn--primary {
+      padding: 8px 16px;
+      border: none;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 500;
+    }
+    .hdr-btn--primary:hover:not(:disabled) { background: #262626; }
+    .hdr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Tabs */
+    .tabs-nav { display: flex; gap: 22px; }
+    .tab-btn {
+      padding: 10px 0;
+      border: none;
+      background: transparent;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      font-weight: 400;
+      font-size: 13px;
+      font-family: var(--font);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--ink); }
+    .tab-active {
+      color: var(--ink) !important;
+      border-bottom-color: var(--ink);
+      font-weight: 500;
+    }
+
+    .slides-outer { overflow: hidden; }
+    .slide { flex: 0 0 100%; }
+    .page-body { padding: 0; }
+
+    /* ── Profile slide ────────────────────── */
+    .cp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      padding: 24px 0 28px;
+    }
+    .cp-grid--single {
+      grid-template-columns: 1fr;
+    }
+    .cp-card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      padding: 24px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+    .cp-avatar-row { display: flex; gap: 14px; align-items: center; }
+    .cp-avatar {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      background: var(--ink);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      flex-shrink: 0;
+    }
+    .cp-avatar-main { flex: 1; min-width: 0; }
+    .cp-avatar-name {
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: -0.012em;
+      color: var(--ink);
+      margin: 0;
+    }
+    .cp-avatar-email {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 2px 0 0;
+    }
+    .cp-verified {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .cp-unverified {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .cp-divider { height: 1px; background: var(--rule); }
+    .cp-eyebrow {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0 0 14px;
+    }
+    .cp-card-sub {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: 6px 0 0;
+      line-height: 1.5;
+    }
+
+    .cp-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .cp-field { display: flex; flex-direction: column; gap: 6px; }
+    .cp-field--full { grid-column: 1 / -1; }
+    .cp-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .cp-label {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+    }
+    .cp-hint {
+      font-size: 10.5px;
+      color: var(--sub);
+    }
+    .cp-input {
+      padding: 10px 12px;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--panel);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .cp-input:focus { border-color: var(--ink); }
+    .cp-input--area { min-height: 70px; resize: vertical; }
+
+    .cp-loc-wrap { display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .cp-loc-dropdown {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+      z-index: 5;
+    }
+    .cp-loc-opt {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      color: var(--ink);
+      font-family: var(--font);
+      cursor: pointer;
+    }
+    .cp-loc-opt:hover { background: var(--soft); }
+    .cp-loc-ok {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+      font-size: 11.5px;
+    }
+
+    .cp-banner {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+    }
+    .cp-banner--ok { background: #F0FAE0; color: var(--accent-text); }
+    .cp-banner--err { background: rgba(220,38,38,0.06); color: #B91C1C; }
+
+    /* Activity stat grid */
+    .cp-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .cp-stat {
+      padding: 14px 16px;
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    .cp-stat--full { grid-column: 1 / -1; }
+    .cp-stat-label {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0;
+    }
+    .cp-stat-val {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin: 8px 0 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .cp-stat-val--warn { color: #B45309; }
+    .cp-stat-val--mono { font-family: var(--mono); }
+    .cp-stat-sub {
+      font-size: 11px;
+      color: var(--sub);
+      margin: 6px 0 0;
+    }
+
+    /* ── Spending slide ───────────────────── */
+    .cw-wrap {
+      padding: 20px 0 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .cw-subhead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .cw-subhead-title {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin: 6px 0 0;
+      line-height: 1;
+    }
+    .cw-subhead-sub {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: 6px 0 0;
+    }
+    .cw-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .cw-range {
+      display: inline-flex;
+      padding: 3px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+    }
+    .cw-range-btn {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-family: var(--font);
+      cursor: pointer;
+    }
+    .cw-range-btn--active {
+      background: var(--ink);
+      color: #fff;
+      font-weight: 500;
+    }
+    .cw-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      font-size: 12.5px;
+      font-family: var(--font);
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .cw-btn:hover { border-color: var(--sub); }
+    .cw-btn--primary {
+      padding: 8px 16px;
+      border: none;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 500;
+    }
+    .cw-btn--primary:hover { background: #262626; }
+
+    .cw-hero-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 14px;
+    }
+    .cw-balance-card {
+      padding: 22px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .cw-balance-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .cw-balance-amount {
+      font-size: 56px;
+      font-weight: 500;
+      letter-spacing: -0.035em;
+      line-height: 1;
+      margin: 8px 0 0;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: baseline;
+    }
+    .cw-balance-whole { color: var(--ink); }
+    .cw-balance-dec {
+      font-size: 18px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-left: 4px;
+    }
+    .cw-balance-growth {
+      font-size: 12px;
+      color: #B45309;
+      margin: 8px 0 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cw-balance-growth-dim { color: var(--muted); }
+    .cw-spark {
+      display: block;
+      flex-shrink: 0;
+      max-width: 200px;
+    }
+    .cw-split { margin-top: 8px; }
+    .cw-split-bar {
+      display: flex;
+      height: 6px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--soft);
+    }
+    .cw-split-seg { height: 100%; }
+    .cw-split-legend {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .cw-split-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 3px;
+      margin-right: 4px;
+    }
+
+    .cw-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+    }
+    .cw-activity-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+    .cw-stat {
+      padding: 16px 18px;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+    }
+    .cw-stat-label {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0;
+    }
+    .cw-stat-val {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin: 8px 0 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .cw-stat-val--accent { color: #15803D; }
+    .cw-stat-val--warn { color: #B45309; }
+    .cw-stat-val--mono { font-family: var(--mono); }
+    .cw-stat-sub {
+      font-size: 11px;
+      color: var(--sub);
+      margin: 6px 0 0;
+    }
+
+    .cw-bottom-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+    }
+    .cw-tx-card { padding: 0; overflow: hidden; }
+    .cw-tx-head {
+      padding: 16px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--rule);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .cw-tx-head-left {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cw-tx-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 600;
+    }
+    .cw-tx-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+    .cw-pill {
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 11px;
+      font-family: var(--font);
+      cursor: pointer;
+    }
+    .cw-pill--active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+    .cw-tx-empty {
+      padding: 40px 32px;
+      text-align: center;
+    }
+    .cw-tx-empty-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 0;
+    }
+    .cw-tx-empty-sub {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: 6px auto 0;
+      max-width: 360px;
+      line-height: 1.5;
+    }
+
+    /* Payment method (dark card) */
+    .cw-payout-card {
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .cw-payout-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+      margin: 0;
+    }
+    .cw-payout-bank {
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: var(--ink);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cw-payout-bank-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 100% 0%, rgba(132,204,22,0.2), transparent 60%);
+      pointer-events: none;
+    }
+    .cw-payout-bank > *:not(.cw-payout-bank-glow) { position: relative; }
+    .cw-payout-bank-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cw-payout-bank-label {
+      font-size: 10.5px;
+      color: #A3A3A3;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .cw-payout-bank-badge {
+      font-size: 10.5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+    .cw-payout-bank-num {
+      font-size: 14px;
+      font-family: var(--mono);
+      letter-spacing: 0.06em;
+      margin: 0;
+    }
+    .cw-payout-bank-foot {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: #A3A3A3;
+    }
+    .cw-payout-add {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      font-size: 11.5px;
+      font-family: var(--font);
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .cw-payout-add:hover { border-color: var(--sub); }
+    .cw-payout-auto {
+      border-top: 1px solid var(--rule);
+      padding-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .cw-payout-auto-label {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0;
+    }
+    .cw-payout-auto-text {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+    .cw-payout-toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+    .cw-payout-toggle-label {
+      font-size: 12px;
+      color: var(--ink);
+    }
+    .cw-toggle {
+      width: 38px;
+      height: 22px;
+      border-radius: 999px;
+      border: none;
+      background: var(--rule);
+      position: relative;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .cw-toggle--on { background: var(--ink); }
+    .cw-toggle-knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: #fff;
+      transition: left 0.15s, background 0.15s;
+    }
+    .cw-toggle--on .cw-toggle-knob {
+      left: 18px;
+      background: var(--accent);
+    }
+
+    @media (max-width: 1080px) {
+      .cw-hero-grid { grid-template-columns: 1fr; }
+      .cw-stat-grid { grid-template-columns: 1fr 1fr; }
+      .cw-activity-row { grid-template-columns: repeat(3, 1fr); }
+      .cw-bottom-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .cw-activity-row { grid-template-columns: 1fr 1fr; }
+      .cw-subhead { flex-direction: column; align-items: flex-start; }
+      .cw-actions { width: 100%; flex-wrap: wrap; }
+      .cw-balance-amount { font-size: 42px; }
+      .cw-spark { display: none; }
+    }
+
+    /* ── Identity slide ───────────────────── */
+    .ci-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 16px;
+      padding: 20px 0 28px;
+    }
+    .ci-left { display: flex; flex-direction: column; gap: 14px; }
+    .ci-card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      padding: 20px 24px;
+    }
+    .ci-progress-num {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    .ci-progress-done {
+      font-size: 36px;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      line-height: 1;
+    }
+    .ci-progress-total {
+      font-size: 36px;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      color: var(--muted);
+      line-height: 1;
+    }
+    .ci-progress-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+    .ci-bar {
+      margin-top: 14px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--soft);
+      overflow: hidden;
+    }
+    .ci-bar-fill {
+      height: 100%;
+      background: var(--ink);
+      transition: width 0.3s;
+    }
+    .ci-bar-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .ci-checklist { padding: 0; overflow: hidden; }
+    .ci-checklist-head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--rule);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .ci-step {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .ci-step:last-child { border-bottom: none; }
+    .ci-step--focus { background: var(--soft); }
+    .ci-step-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 10.5px;
+      font-weight: 500;
+      font-family: var(--mono);
+      color: var(--muted);
+    }
+    .ci-step-dot--done { background: var(--ink); }
+    .ci-step-dot--todo,
+    .ci-step-dot--optional {
+      border: 1.5px dashed var(--rule);
+      background: var(--panel);
+    }
+    .ci-step-main { flex: 1; min-width: 0; }
+    .ci-step-label {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+      margin: 0;
+    }
+    .ci-step-hint {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin: 2px 0 0;
+    }
+    .ci-step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .ci-step-pill--done     { background: #F0FAE0; color: var(--accent-text); }
+    .ci-step-pill--todo     { background: var(--panel); color: var(--muted); border: 1px solid var(--rule); }
+    .ci-step-pill--optional { background: var(--soft); color: var(--muted); }
+
+    .ci-trust {
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .ci-trust-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--soft);
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .ci-trust-main { flex: 1; }
+    .ci-trust-title {
+      font-size: 12.5px;
+      color: var(--ink);
+      font-weight: 500;
+      margin: 0;
+    }
+    .ci-trust-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin: 2px 0 0;
+      line-height: 1.5;
+    }
+
+    .ci-right {
+      padding: 22px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .ci-right-head { display: flex; justify-content: space-between; gap: 12px; }
+    .ci-right-title {
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.012em;
+      color: var(--ink);
+      margin: 6px 0 0;
+    }
+    .ci-right-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 4px 0 0;
+      line-height: 1.5;
+    }
+    .ci-right-body app-verify-identity { display: block; }
+
+    /* ── Payment / Security shared section ── */
+    .cs-wrap {
+      padding: 20px 0 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .cs-section {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .cs-section--danger { border-color: #FECACA; }
+    .cs-head {
+      padding: 20px 24px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--rule);
+    }
+    .cs-head--danger {
+      background: #FEF2F2;
+      border-bottom-color: #FECACA;
+    }
+    .cs-head-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--soft);
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .cs-head-icon--danger {
+      background: #FFFFFF;
+      color: #DC2626;
+    }
+    .cs-head-main { flex: 1; }
+    .cs-head-eyebrow {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0;
+    }
+    .cs-head-eyebrow--danger { color: #DC2626; }
+    .cs-head-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 4px 0 0;
+      letter-spacing: -0.015em;
+    }
+    .cs-head-title--danger { color: #DC2626; }
+    .cs-head-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 6px 0 0;
+      line-height: 1.5;
+      max-width: 560px;
+    }
+    .cs-body { padding: 18px 24px 22px; }
+    .cs-msg { font-size: 12px; color: var(--muted); margin: 0; }
+    .cs-msg--ok { color: var(--accent-text); }
+    .cs-msg--err { color: #B91C1C; }
+
+    .cs-fields-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    .cs-field--full { grid-column: 1 / -1; }
+    .cs-save-btn {
+      align-self: flex-start;
+      padding: 9px 16px;
+      border-radius: 10px;
+      border: none;
+      background: var(--ink);
+      color: #fff;
+      font-size: 12.5px;
+      font-family: var(--font);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 8px;
+    }
+    .cs-save-btn:hover:not(:disabled) { background: #262626; }
+    .cs-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .cs-save-btn--lime {
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+    .cs-save-btn--lime:hover:not(:disabled) { background: #a3e635; }
+    .cs-save-btn--ghost {
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--rule);
+    }
+    .cs-save-btn--ghost:hover:not(:disabled) { background: var(--soft); border-color: var(--sub); }
+
+    /* Payment cards */
+    .cp-empty {
+      padding: 36px 24px;
+      text-align: center;
+      border: 1px dashed var(--rule);
+      border-radius: 10px;
+      background: var(--soft);
+    }
+    .cp-empty-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 0;
+    }
+    .cp-empty-sub {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: 6px auto 0;
+      max-width: 360px;
+      line-height: 1.5;
+    }
+    .cp-card-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .cp-pm-tile {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Card-shaped preview */
+    .cp-pm-preview {
+      position: relative;
+      padding: 18px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1F2937 0%, #0F172A 100%);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 150px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(10,10,10,0.04);
+    }
+    .cp-pm-preview::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at top right, rgba(255,255,255,0.08), transparent 60%);
+      pointer-events: none;
+    }
+    .cp-pm-preview--visa { background: linear-gradient(135deg, #1A1F71 0%, #0B1043 100%); }
+    .cp-pm-preview--mastercard { background: linear-gradient(135deg, #1A1A1A 0%, #2B1212 60%, #6B0712 100%); }
+    .cp-pm-preview--amex { background: linear-gradient(135deg, #0F4C81 0%, #006FCF 100%); }
+    .cp-pm-preview-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+    .cp-pm-preview-brand {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      font-weight: 500;
+      color: rgba(255,255,255,0.7);
+      text-transform: uppercase;
+    }
+    .cp-pm-preview-chip {
+      width: 28px;
+      height: 22px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #C8B273 0%, #9A8453 100%);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+    }
+    .cp-pm-preview-num {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      color: #fff;
+      position: relative;
+      z-index: 1;
+      margin-top: 4px;
+    }
+    .cp-pm-preview-dots {
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.45);
+    }
+    .cp-pm-preview-last {
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    .cp-pm-preview-bottom {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.55);
+      position: relative;
+      z-index: 1;
+      margin-top: auto;
+    }
+    .cp-pm-preview-exp { color: rgba(255,255,255,0.8); }
+
+    /* Meta row under the card (matches the ID-upload row) */
+    .cp-pm-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 4px 0;
+    }
+    .cp-pm-meta-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .cp-pm-meta-main { flex: 1; min-width: 0; }
+    .cp-pm-meta-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 0;
+      line-height: 1.2;
+    }
+    .cp-pm-meta-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin: 2px 0 0;
+      font-family: var(--mono);
+    }
+    .cp-pm-meta-del {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s, background 0.15s;
+    }
+    .cp-pm-meta-del:hover:not(:disabled) {
+      background: rgba(239,68,68,0.08);
+      color: #DC2626;
+    }
+    .cp-pm-meta-del:disabled { opacity: 0.5; cursor: not-allowed; }
+    .cp-pm-meta-del-text {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .cp-pm-add-btn {
+      flex-shrink: 0;
+      align-self: flex-start;
+      padding: 9px 14px;
+      border-radius: 10px;
+      border: none;
+      background: var(--ink);
+      color: #fff;
+      font-size: 12.5px;
+      font-family: var(--font);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .cp-pm-add-btn:hover:not(:disabled) { background: #1F1F1F; }
+    .cp-pm-add-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+    .cp-pm-add-btn--ghost {
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--rule);
+    }
+    .cp-pm-add-btn--ghost:hover:not(:disabled) { background: var(--soft); }
+
+    .cp-card-form {
+      padding: 16px;
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      background: var(--soft);
+      margin-bottom: 16px;
+    }
+    .cp-card-form-lbl {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0 0 8px;
+    }
+    .cp-card-form-field {
+      padding: 12px 14px;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      min-height: 44px;
+    }
+    .cp-card-form-hint {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin: 8px 0 0;
+    }
+    .cp-card-form-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    /* Report a problem */
+    .cs-mini-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0 0 10px;
+    }
+    .cs-issue-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .cs-issue {
+      padding: 12px 14px;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      background: var(--panel);
+      cursor: pointer;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      text-align: left;
+      font-family: var(--font);
+    }
+    .cs-issue:hover { border-color: var(--sub); }
+    .cs-issue--active {
+      border-color: var(--ink);
+      background: var(--soft);
+    }
+    .cs-issue-radio {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1.5px solid var(--rule);
+      margin-top: 3px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .cs-issue--active .cs-issue-radio { border-color: var(--ink); }
+    .cs-issue-radio-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--ink);
+    }
+    .cs-issue-label {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+      margin: 0;
+    }
+    .cs-issue-desc {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin: 2px 0 0;
+      line-height: 1.4;
+    }
+    .cs-report-foot {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .cs-report-hint { font-size: 11.5px; color: var(--sub); }
+    .cs-report-sent {
+      padding: 16px 18px;
+      border: 1px solid rgba(132,204,22,0.4);
+      border-radius: 12px;
+      background: #F0FAE0;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .cs-report-sent-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .cs-report-sent-main { flex: 1; }
+    .cs-report-sent-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 0;
+    }
+    .cs-report-sent-sub {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: 2px 0 0;
+    }
+
+    /* Danger / delete */
+    .cs-danger-list {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .cs-danger-list-title {
+      font-size: 11px;
+      color: #DC2626;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin: 0 0 8px;
+    }
+    .cs-danger-list ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cs-danger-list li {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+      color: #7F1D1D;
+    }
+    .cs-danger-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 2px;
+      background: #DC2626;
+      flex-shrink: 0;
+    }
+    .cs-delete-btn {
+      margin-top: 14px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid #DC2626;
+      background: var(--panel);
+      color: #DC2626;
+      font-size: 13px;
+      font-family: var(--font);
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cs-delete-btn:hover { background: #FEF2F2; }
+    .cs-delete-btn--solid {
+      border: none;
+      background: #DC2626;
+      color: #fff;
+    }
+    .cs-delete-btn--solid:hover:not(:disabled) { background: #B91C1C; }
+    .cs-delete-btn--solid:disabled {
+      background: #FCA5A5;
+      cursor: not-allowed;
+    }
+    .cs-delete-confirm {
+      margin-top: 14px;
+      padding: 16px 18px;
+      border: 1px solid #DC2626;
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    .cs-delete-typed {
+      font-size: 13.5px;
+      color: var(--ink);
+      font-weight: 500;
+      margin: 0;
+    }
+    .cs-delete-typed-word {
+      font-family: var(--mono);
+      background: #FEF2F2;
+      color: #DC2626;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .cs-delete-typed-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 4px 0 0;
+    }
+    .cs-delete-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Responsive */
+    @media (max-width: 980px) {
+      .cp-grid { grid-template-columns: 1fr; }
+      .ci-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .inner { padding: 0 20px; }
+      .cp-fields { grid-template-columns: 1fr; }
+      .cp-stat-grid { grid-template-columns: 1fr; }
+      .cs-fields-2 { grid-template-columns: 1fr; }
+      .cs-issue-grid { grid-template-columns: 1fr; }
+      .cp-card { padding: 20px 18px; }
     }
   `]
 })
@@ -395,10 +2222,11 @@ export class ClientProfileComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   profile = signal<ClientProfile | null>(null);
-  activeTab = signal<'profile' | 'identity' | 'payment' | 'security'>('profile');
-  tabIndex = computed(() => (['profile', 'identity', 'payment', 'security'] as const).indexOf(this.activeTab()));
+  activeTab = signal<'profile' | 'identity' | 'payment' | 'spending' | 'security'>('profile');
+  tabIndex = computed(() => (['profile', 'identity', 'payment', 'spending', 'security'] as const).indexOf(this.activeTab()));
   saving = signal(false);
   saveSuccess = signal(false);
   saveError = signal<string | null>(null);
@@ -417,6 +2245,14 @@ export class ClientProfileComponent implements OnInit {
   cardLoading = signal(false);
   removingCard = signal<string | null>(null);
   cardError = signal<string | null>(null);
+  addingCard = signal(false);
+  cardSuccess = signal<string | null>(null);
+  exportingCsv = signal(false);
+  cardFormOpen = signal(false);
+  cardFormReady = signal(false);
+  private stripe: Stripe | null = null;
+  private stripeElements: StripeElements | null = null;
+  private cardElement: StripeCardElement | null = null;
 
   locationQuery = '';
   locationSuggestions = signal<NominatimResult[]>([]);
@@ -433,16 +2269,229 @@ export class ClientProfileComponent implements OnInit {
     longitude: null as number | null,
   };
 
+  // ── Identity checklist ──
+  idSteps = computed(() => {
+    const p = this.profile();
+    const verified = !!p?.idVerified;
+    const phone = !!p?.phone;
+    let firstTodoSeen = false;
+    const makeStep = (id: string, label: string, hint: string, status: 'done' | 'todo' | 'optional') => {
+      const focus = status === 'todo' && !firstTodoSeen;
+      if (focus) firstTodoSeen = true;
+      return { id, label, hint, status, focus };
+    };
+    return [
+      makeStep('email', 'Email confirmed', p?.email ?? '—', 'done'),
+      makeStep('phone', 'Phone verified', phone ? p!.phone! : 'Add a number we can reach you on', phone ? 'done' : 'todo'),
+      makeStep('id', 'Government ID', verified ? 'Verified ✓' : 'Passport, national ID, or driver licence', verified ? 'done' : 'todo'),
+      makeStep('address', 'Proof of address', 'Utility bill or bank statement, < 90 days', 'optional'),
+    ];
+  });
+  idStepsDone     = computed(() => this.idSteps().filter(s => s.status === 'done').length);
+  idStepsRequired = computed(() => this.idSteps().filter(s => s.status !== 'optional').length);
+  idProgressPct   = computed(() => {
+    const req = this.idStepsRequired();
+    return req === 0 ? 0 : Math.round((this.idStepsDone() / req) * 100);
+  });
+  stepStatusLabel(s: 'done' | 'todo' | 'optional'): string {
+    return { done: 'Verified', todo: 'Required', optional: 'Optional' }[s];
+  }
+
+  // ── Report ──
+  readonly issueTypes = [
+    { id: 'PAYMENT' as const, label: 'Payment or refund',   desc: 'Failed payment, refund request, charge dispute.' },
+    { id: 'CLIENT'  as const, label: 'Issue with a worker', desc: 'No-show, quality, harassment.' },
+    { id: 'BUG'     as const, label: 'Bug or app problem',  desc: 'Something looks broken or stopped working.' },
+    { id: 'ACCOUNT' as const, label: 'Account or login',    desc: 'Sign-in trouble, 2FA, verification stuck.' },
+    { id: 'OTHER'   as const, label: 'Something else',      desc: 'Describe it below in detail.' },
+  ];
+  reportCategory = signal<'PAYMENT' | 'CLIENT' | 'BUG' | 'ACCOUNT' | 'OTHER'>('PAYMENT');
+  reportBody = '';
+  reportSent = signal(false);
+  reportSubmitting = signal(false);
+  reportError = signal<string | null>(null);
+
+  canSendReport(): boolean { return this.reportBody.trim().length >= 10; }
+
+  sendInlineReport() {
+    if (!this.canSendReport() || this.reportSubmitting()) return;
+    this.reportSubmitting.set(true);
+    this.reportError.set(null);
+    const cat = this.reportCategory();
+    const subject = this.issueTypes.find(t => t.id === cat)?.label ?? 'Support request';
+    this.api.submitReport({
+      category: cat,
+      subject,
+      description: this.reportBody.trim(),
+    }).subscribe({
+      next: () => {
+        this.reportSubmitting.set(false);
+        this.reportSent.set(true);
+        this.reportBody = '';
+      },
+      error: (err: any) => {
+        this.reportSubmitting.set(false);
+        this.reportError.set(err?.error?.message ?? 'Failed to submit. Try again.');
+      },
+    });
+  }
+
+  resetReport() {
+    this.reportSent.set(false);
+    this.reportBody = '';
+    this.reportError.set(null);
+  }
+
+  deleteText = '';
+  canDelete(): boolean {
+    return this.deleteText.trim() === 'DELETE';
+  }
+
+  // ── Spending ──
+  readonly spendRanges = ['7d', '30d', '90d', 'All'] as const;
+  spendRange = signal<'7d' | '30d' | '90d' | 'All'>('All');
+  autoTopup = signal(false);
+
+  spentWhole = computed(() => {
+    const v = this.stats()?.totalSpent ?? 0;
+    return Math.floor(v).toLocaleString();
+  });
+  spentDec = computed(() => {
+    const v = this.stats()?.totalSpent ?? 0;
+    return (v - Math.floor(v)).toFixed(2).slice(2);
+  });
+  avgPerJob = computed(() => {
+    const s = this.stats();
+    if (!s || !s.jobsCompleted) return '0';
+    return (s.totalSpent / s.jobsCompleted).toFixed(0);
+  });
+  completionRate = computed(() => {
+    const s = this.stats();
+    if (!s || !s.jobsPosted) return 0;
+    return Math.round((s.jobsCompleted / s.jobsPosted) * 100);
+  });
+  walletBalance = computed(() => {
+    // Not tracked on the backend yet — show 0 placeholder for now.
+    return (0).toFixed(2);
+  });
+  defaultCard = computed(() => this.paymentMethods()[0] ?? null);
+
+  brandLabel(brand: string): string {
+    if (brand === 'mastercard') return 'MC';
+    return brand.slice(0, 4).toUpperCase();
+  }
+
   ngOnInit() {
     this.api.getClientProfile().subscribe({
       next: (p) => this.setProfile(p as ClientProfile),
     });
     this.api.getClientStats().subscribe({ next: (s) => this.stats.set(s) });
+    this.loadCards();
+
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab === 'profile' || tab === 'identity' || tab === 'payment' || tab === 'spending' || tab === 'security') {
+      this.activeTab.set(tab);
+    }
+  }
+
+  private loadCards() {
     this.cardLoading.set(true);
     this.api.getSavedPaymentMethods().subscribe({
       next: (methods) => { this.paymentMethods.set(methods); this.cardLoading.set(false); },
       error: () => this.cardLoading.set(false),
     });
+  }
+
+  async openCardForm() {
+    this.cardError.set(null);
+    this.cardSuccess.set(null);
+    if (this.cardFormOpen()) return;
+    this.cardFormOpen.set(true);
+    this.cardFormReady.set(false);
+
+    try {
+      if (!this.stripe) {
+        const s = await loadStripe(environment.stripePublicKey);
+        if (!s) {
+          this.cardError.set('Stripe failed to load. Check your network and try again.');
+          this.cardFormOpen.set(false);
+          return;
+        }
+        this.stripe = s;
+      }
+
+      this.stripeElements = this.stripe.elements();
+      this.cardElement = this.stripeElements.create('card', {
+        hidePostalCode: false,
+        style: {
+          base: {
+            fontFamily: '"Geist", "Inter", system-ui, sans-serif',
+            fontSize: '14px',
+            color: '#0A0A0A',
+            '::placeholder': { color: '#A3A3A3' },
+          },
+          invalid: { color: '#B91C1C' },
+        },
+      });
+
+      // Wait for the host div to render in the next animation frame, then mount
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      this.cardElement.mount('#wpm-card-element');
+      this.cardElement.on('ready', () => this.cardFormReady.set(true));
+      this.cardElement.on('change', (ev) => {
+        this.cardError.set(ev.error?.message ?? null);
+      });
+    } catch (err: unknown) {
+      this.cardError.set((err as Error)?.message ?? 'Could not load card form');
+      this.cardFormOpen.set(false);
+    }
+  }
+
+  closeCardForm() {
+    if (this.cardElement) {
+      this.cardElement.unmount();
+      this.cardElement.destroy();
+      this.cardElement = null;
+    }
+    this.stripeElements = null;
+    this.cardFormOpen.set(false);
+    this.cardFormReady.set(false);
+    this.addingCard.set(false);
+    this.cardError.set(null);
+  }
+
+  async submitCard() {
+    if (!this.stripe || !this.cardElement) return;
+    this.addingCard.set(true);
+    this.cardError.set(null);
+
+    try {
+      const { clientSecret } = await new Promise<{ clientSecret: string }>((resolve, reject) => {
+        this.api.createCardSetupIntent().subscribe({
+          next: (r) => resolve(r),
+          error: (e) => reject(e),
+        });
+      });
+
+      const result = await this.stripe.confirmCardSetup(clientSecret, {
+        payment_method: { card: this.cardElement },
+      });
+
+      if (result.error) {
+        this.cardError.set(result.error.message ?? 'Card could not be saved');
+        this.addingCard.set(false);
+        return;
+      }
+
+      this.cardSuccess.set('Card saved.');
+      setTimeout(() => this.cardSuccess.set(null), 4000);
+      this.closeCardForm();
+      this.loadCards();
+    } catch (err: unknown) {
+      const e = err as { error?: { message?: string }; message?: string };
+      this.cardError.set(e?.error?.message ?? e?.message ?? 'Could not save card');
+      this.addingCard.set(false);
+    }
   }
 
   private setProfile(p: ClientProfile) {
@@ -546,7 +2595,46 @@ export class ClientProfileComponent implements OnInit {
     });
   }
 
+  exportCsv() {
+    this.exportingCsv.set(true);
+    this.api.getClientTransactions().subscribe({
+      next: (rows) => {
+        const headers = ['Date', 'Job', 'Category', 'Worker', 'Status', 'Total (EUR)', 'Platform fee (EUR)', 'Worker payout (EUR)'];
+        const escape = (v: unknown) => {
+          const s = v == null ? '' : String(v);
+          return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const lines: string[] = [headers.join(',')];
+        for (const r of rows ?? []) {
+          lines.push([
+            new Date(r.date).toISOString().slice(0, 10),
+            escape(r.jobTitle),
+            escape(r.category),
+            escape(r.worker),
+            escape(r.status),
+            (r.totalAmount ?? 0).toFixed(2),
+            (r.platformFee ?? 0).toFixed(2),
+            (r.workerPayout ?? 0).toFixed(2),
+          ].join(','));
+        }
+        const csv = '﻿' + lines.join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `robosgig-spending-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        this.exportingCsv.set(false);
+      },
+      error: () => this.exportingCsv.set(false),
+    });
+  }
+
   deleteAccount() {
+    if (!this.canDelete()) return;
     this.deleting.set(true);
     this.deleteError.set(null);
     this.api.deleteAccount().subscribe({

@@ -4,16 +4,38 @@ import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 
+type Audience = 'worker' | 'client';
+type Period = 'mo' | 'yr';
+
 interface Plan {
   id: string;
-  name: string;
-  price: number;
-  period: string;
-  role: 'WORKER' | 'CLIENT';
-  color: string;
-  features: string[];
+  apiId?: string;
+  name: 'Free' | 'Pro' | 'Elite' | 'Business' | 'Enterprise';
+  price: { mo: number; yr: number };
   fee: string;
+  tagline: string;
+  featured?: boolean;
+  features: [string, string][];
   cta: string;
+  ctaActive?: boolean;
+  contact?: boolean;
+}
+
+interface CompareRow {
+  label: string;
+  free: string | boolean;
+  pro: string | boolean;
+  elite: string | boolean;
+}
+
+interface CompareGroup {
+  group: string;
+  rows: CompareRow[];
+}
+
+interface Faq {
+  q: string;
+  a: string;
 }
 
 @Component({
@@ -22,157 +44,245 @@ interface Plan {
   imports: [CommonModule, RouterModule],
   template: `
     <div class="page">
+      <div class="scroll">
 
-      <!-- Hero -->
-      <div class="hero">
-        <p class="eyebrow">Pricing</p>
-        <h1 class="hero-title">Simple, fair pricing.<br>No surprises.</h1>
-        <p class="hero-sub">Start free. Upgrade when you're ready. Cancel anytime.</p>
-
-        <!-- Role toggle: only visible when not logged in -->
-        @if (!auth.isLoggedIn()) {
-          <div class="role-toggle">
-            <button class="role-btn" [class.role-active]="view() === 'WORKER'" (click)="view.set('WORKER')">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
-              For Workers
-            </button>
-            <button class="role-btn" [class.role-active]="view() === 'CLIENT'" (click)="view.set('CLIENT')">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-              For Clients
-            </button>
+        <!-- Hero -->
+        <section class="hero">
+          <div class="hero-text">
+            <p class="eyebrow">Pricing</p>
+            <h1 class="title">
+              Simple pricing.<br>
+              <span class="title-mute">You</span> keep what you earn.
+            </h1>
+            <p class="subtitle">
+              Start free. Upgrade when the work picks up — pay less platform fee,
+              get found first, cancel anytime.
+            </p>
           </div>
-        } @else {
-          <p class="role-label">{{ view() === 'WORKER' ? 'Worker plans' : 'Client plans' }}</p>
-        }
-      </div>
 
-      <!-- Plans -->
-      <div class="plans-wrap">
-        <div class="plans-grid">
-          @for (plan of visiblePlans(); track plan.id) {
-            <div class="plan-card" [class.plan-dark]="plan.id !== 'worker_free' && plan.id !== 'client_free'">
+          <div class="hero-controls">
+            @if (!auth.isLoggedIn()) {
+              <div class="pill">
+                <button
+                  class="pill-btn"
+                  [class.pill-active]="audience() === 'worker'"
+                  (click)="audience.set('worker')"
+                  type="button"
+                >I'm a worker</button>
+                <button
+                  class="pill-btn"
+                  [class.pill-active]="audience() === 'client'"
+                  (click)="audience.set('client')"
+                  type="button"
+                >I'm a client</button>
+              </div>
+            }
 
-              @if (plan.id !== 'worker_free' && plan.id !== 'client_free') {
-                <div class="popular-tag">Most Popular</div>
-              }
+            @if (audience() === 'worker') {
+              <div class="pill">
+                <button
+                  class="pill-btn"
+                  [class.pill-active]="period() === 'mo'"
+                  (click)="period.set('mo')"
+                  type="button"
+                >Monthly</button>
+                <button
+                  class="pill-btn"
+                  [class.pill-active]="period() === 'yr'"
+                  (click)="period.set('yr')"
+                  type="button"
+                >
+                  Yearly
+                  <span class="pill-badge" [class.pill-badge-active]="period() === 'yr'">2 MOS FREE</span>
+                </button>
+              </div>
+            }
+          </div>
+        </section>
 
-              <div class="plan-head">
-                <p class="plan-name">{{ plan.name }}</p>
-                <div class="plan-price-row">
-                  @if (plan.price === 0) {
-                    <span class="plan-price">Free</span>
+        <!-- Plan cards -->
+        <section class="cards-wrap">
+          <div class="cards">
+            @for (plan of plans; track plan.id) {
+              <article
+                class="card"
+                [class.card-dark]="plan.featured"
+              >
+                @if (plan.featured) {
+                  <span class="popular">Most popular</span>
+                }
+
+                <div class="card-top">
+                  <div class="card-head">
+                    <span class="card-tier">{{ audience() === 'worker' ? 'Worker' : 'Client' }} {{ plan.name }}</span>
+                    <span class="fee-chip" [class.fee-chip-lime]="plan.featured">
+                      {{ plan.fee }} fee
+                    </span>
+                  </div>
+
+                  <div class="price-block">
+                    @if (priceFor(plan) === 0) {
+                      <span class="price-big">Free</span>
+                    } @else {
+                      <span class="price-cur">€</span>
+                      <span class="price-big">{{ priceParts(plan).whole }}</span>
+                      <span class="price-dec">.{{ priceParts(plan).dec }}</span>
+                      <span class="price-per">/mo</span>
+                    }
+                  </div>
+
+                  <p class="price-note">
+                    @if (plan.price.mo === 0) {
+                      No card required
+                    } @else if (period() === 'yr') {
+                      billed annually · €{{ plan.price.yr }}/yr
+                      <span class="save">· save {{ savePercent(plan) }}%</span>
+                    } @else {
+                      billed monthly · cancel anytime
+                    }
+                  </p>
+
+                  <p class="card-tagline">{{ plan.tagline }}</p>
+                </div>
+
+                <div class="card-divider"></div>
+
+                <ul class="features">
+                  @for (f of plan.features; track f[0] + '|' + f[1]; let i = $index) {
+                    <li class="feature" [class.feature-muted]="f[0] === '—'">
+                      <span class="feat-tag">{{ f[0] }}</span>
+                      <span class="feat-label">{{ f[1] }}</span>
+                    </li>
+                  }
+                </ul>
+
+                <button
+                  class="cta"
+                  [class.cta-current]="plan.ctaActive"
+                  [class.cta-lime]="plan.featured && !plan.ctaActive"
+                  [class.cta-ink]="!plan.featured && !plan.ctaActive"
+                  [disabled]="plan.ctaActive || loading() === plan.id"
+                  (click)="selectPlan(plan)"
+                  type="button"
+                >
+                  @if (loading() === plan.id) {
+                    <span class="spinner"></span> Redirecting…
                   } @else {
-                    <span class="plan-price">€{{ plan.price }}</span>
-                    <span class="plan-period">/mo</span>
+                    {{ plan.cta }}
+                    @if (!plan.ctaActive) {
+                      <span class="arrow">→</span>
+                    }
+                  }
+                </button>
+              </article>
+            }
+          </div>
+
+          <p class="legal">
+            All prices in EUR · VAT calculated at checkout · 30-day money-back on first upgrade
+          </p>
+        </section>
+
+        <!-- Compare table -->
+        <section class="compare-wrap">
+          <div class="compare-panel">
+            <div class="compare-head">
+              <div>
+                <p class="eyebrow">Compare</p>
+                <p class="compare-title">What's in each plan</p>
+              </div>
+              <span class="compare-meta">
+                worker plans · {{ period() === 'yr' ? 'yearly' : 'monthly' }}
+              </span>
+            </div>
+
+            <div class="compare-col-header">
+              <span></span>
+              <span class="ch-cell">Free</span>
+              <span class="ch-cell ch-pro">
+                Pro <span class="ch-pop">POPULAR</span>
+              </span>
+              <span class="ch-cell">Elite</span>
+            </div>
+
+            @for (group of compareGroups; track group.group) {
+              <div class="compare-group">{{ group.group }}</div>
+              @for (row of group.rows; track row.label) {
+                <div class="compare-row">
+                  <span class="compare-label">{{ row.label }}</span>
+                  <span class="compare-cell">
+                    <ng-container *ngTemplateOutlet="cell; context: { $implicit: row.free, dim: true }"></ng-container>
+                  </span>
+                  <span class="compare-cell compare-cell-pro">
+                    <ng-container *ngTemplateOutlet="cell; context: { $implicit: row.pro, dim: false }"></ng-container>
+                  </span>
+                  <span class="compare-cell">
+                    <ng-container *ngTemplateOutlet="cell; context: { $implicit: row.elite, dim: false }"></ng-container>
+                  </span>
+                </div>
+              }
+            }
+
+            <ng-template #cell let-val let-dim="dim">
+              @if (val === false) {
+                <span class="cell-dash">—</span>
+              } @else if (val === true) {
+                <span class="cell-check" [class.cell-check-dim]="dim">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                </span>
+              } @else {
+                <span class="cell-text">{{ val }}</span>
+              }
+            </ng-template>
+          </div>
+        </section>
+
+        <!-- FAQ + dark CTA -->
+        <section class="bottom-grid">
+          <div class="faq">
+            <p class="eyebrow">FAQ</p>
+            <p class="faq-title">Questions, answered.</p>
+            <div class="faq-list">
+              @for (item of faqs; track item.q; let i = $index) {
+                <div class="faq-item">
+                  <button
+                    class="faq-row"
+                    (click)="toggleFaq(i)"
+                    type="button"
+                  >
+                    <span class="faq-q">{{ item.q }}</span>
+                    <span class="faq-plus" [class.faq-plus-open]="openFaq() === i">+</span>
+                  </button>
+                  @if (openFaq() === i) {
+                    <p class="faq-a">{{ item.a }}</p>
                   }
                 </div>
-                <span class="fee-badge">{{ plan.fee }}</span>
-              </div>
-
-              <ul class="features">
-                @for (f of plan.features; track f) {
-                  <li class="feature-item">
-                    <span class="feature-check">
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                    </span>
-                    {{ f }}
-                  </li>
-                }
-              </ul>
-
-              <button
-                class="plan-btn"
-                [disabled]="loading() === plan.id"
-                (click)="selectPlan(plan)"
-              >
-                @if (loading() === plan.id) {
-                  <span class="spinner"></span> Redirecting…
-                } @else {
-                  {{ plan.cta }}
-                }
-              </button>
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- Fee explainer -->
-      <div class="fee-section">
-        <div class="fee-inner">
-          <p class="eyebrow">How it works</p>
-          <h2 class="section-title">Platform fees, explained</h2>
-          <p class="section-sub">We only earn when you earn — the fee comes from the job total, nothing extra from clients.</p>
-
-          <div class="fee-table">
-            <div class="fee-row fee-row-head">
-              <span class="fee-col">Plan</span>
-              <span class="fee-col">Fee</span>
-              <span class="fee-col">Worker keeps <em>(on €100 job)</em></span>
-            </div>
-            <div class="fee-row">
-              <span class="fee-col">
-                <span class="plan-dot plan-dot-gray"></span>
-                Free
-              </span>
-              <span class="fee-col fee-pct">15%</span>
-              <span class="fee-col fee-earn">€85</span>
-            </div>
-            <div class="fee-row">
-              <span class="fee-col">
-                <span class="plan-dot plan-dot-blue"></span>
-                Worker Pro
-              </span>
-              <span class="fee-col fee-pct">12%</span>
-              <span class="fee-col fee-earn">€88</span>
-            </div>
-            <div class="fee-row">
-              <span class="fee-col">
-                <span class="plan-dot plan-dot-teal"></span>
-                Client Business
-              </span>
-              <span class="fee-col fee-pct">10%</span>
-              <span class="fee-col fee-earn fee-earn-best">€90 ✦</span>
+              }
             </div>
           </div>
 
-          <p class="fee-note">✦ Lowest fee applies when both worker and client have a paid plan.</p>
-        </div>
-      </div>
+          <aside class="cta-card">
+            <div class="cta-glow"></div>
+            <p class="eyebrow eyebrow-dark">Still deciding?</p>
+            <p class="cta-title">
+              Try {{ audience() === 'worker' ? 'Pro' : 'Business' }} free for 14 days.
+            </p>
+            <p class="cta-sub">
+              No card. Auto-downgrades to Free if you don't upgrade —
+              your {{ audience() === 'worker' ? 'jobs and ratings' : 'posts and team' }} stay put.
+            </p>
+            <button class="trial-btn" (click)="startTrial()" type="button">
+              Start 14-day {{ audience() === 'worker' ? 'Pro' : 'Business' }} trial
+              <span class="arrow">→</span>
+            </button>
+            <p class="cta-stats">
+              <span>★ 4.92 avg</span><span>·</span>
+              <span>{{ audience() === 'worker' ? '2,400+ workers' : '900+ clients' }}</span><span>·</span>
+              <span>EU-hosted</span>
+            </p>
+          </aside>
+        </section>
 
-      <!-- FAQ -->
-      <div class="faq-wrap">
-        <div class="faq-inner">
-          <p class="eyebrow" style="text-align:center;margin-bottom:2rem">FAQ</p>
-          <div class="faq-grid">
-            <div class="faq-item">
-              <div class="faq-icon">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <div>
-                <p class="faq-q">Can I cancel anytime?</p>
-                <p class="faq-a">Yes — no lock-in. Cancel from your dashboard and you keep access until the end of your billing period.</p>
-              </div>
-            </div>
-            <div class="faq-item">
-              <div class="faq-icon">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-              </div>
-              <div>
-                <p class="faq-q">Which fee if both sides have a plan?</p>
-                <p class="faq-a">The lowest fee wins. Worker Pro + Client Business on the same job → 10% fee for the worker.</p>
-              </div>
-            </div>
-            <div class="faq-item">
-              <div class="faq-icon">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              </div>
-              <div>
-                <p class="faq-q">Is there a free trial?</p>
-                <p class="faq-a">The Free tier never expires. Upgrade only when the lower fee pays for the subscription itself.</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       @if (error()) {
@@ -181,381 +291,606 @@ interface Plan {
     </div>
   `,
   styles: [`
+    :host {
+      --bg: #FAFAFA;
+      --panel: #FFFFFF;
+      --ink: #0A0A0A;
+      --muted: #737373;
+      --sub: #A3A3A3;
+      --rule: #E8E8E5;
+      --accent: #84CC16;
+      --accent-ink: #0A0A0A;
+      --accent-text: #4D7C0F;
+      --soft: #F5F5F3;
+      --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      display: block;
+    }
     * { box-sizing: border-box; }
-    .page { min-height: 100vh; background: #f8f8f8; }
 
-    /* ── Hero ─────────────────────────────── */
-    .hero {
-      background: #fff;
-      border-bottom: 1px solid #e4e4e7;
-      text-align: center;
-      padding: 5rem 1.5rem 4rem;
+    .page {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
     }
+
+    .scroll {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 40px 32px;
+    }
+
     .eyebrow {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.09em;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: #a1a1aa;
-      margin-bottom: 1rem;
+      font-weight: 500;
+      margin: 0 0 10px;
     }
-    .hero-title {
-      font-size: clamp(2rem, 5vw, 2.75rem);
-      font-weight: 700;
-      line-height: 1.15;
-      color: #18181b;
+    .eyebrow-dark { color: #A3A3A3; }
+    .arrow { margin-left: 6px; display: inline-block; }
+
+    /* ── Hero ──────────────────────────────── */
+    .hero {
+      padding: 44px 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 32px;
+    }
+    .hero-text { max-width: 720px; }
+    .title {
+      font-size: 48px;
+      font-weight: 500;
       letter-spacing: -0.035em;
-      margin-bottom: 0.875rem;
+      margin: 0;
+      line-height: 1.02;
+      color: var(--ink);
     }
-    .hero-sub {
-      font-size: 1rem;
-      color: #71717a;
-      margin-bottom: 2.5rem;
-    }
-
-    .role-label {
-      font-size: 0.78rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #71717a;
+    .title-mute { color: var(--muted); }
+    .subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 16px 0 0;
+      max-width: 540px;
+      line-height: 1.55;
     }
 
-    /* Role toggle */
-    .role-toggle {
+    .hero-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+    .pill {
       display: inline-flex;
-      background: #f4f4f5;
-      border: 1.5px solid #e4e4e7;
-      border-radius: 99px;
-      padding: 4px;
-      gap: 3px;
+      padding: 3px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      align-items: center;
     }
-    .role-btn {
+    .pill-btn {
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-family: var(--font);
+      font-weight: 400;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      padding: 0.5rem 1.25rem;
-      border: none;
-      border-radius: 99px;
-      font-size: 0.84rem;
-      font-weight: 500;
-      cursor: pointer;
-      background: transparent;
-      color: #71717a;
+      gap: 6px;
       transition: all 0.15s;
-      font-family: inherit;
     }
-    .role-btn.role-active {
-      background: #18181b;
+    .pill-btn.pill-active {
+      background: var(--ink);
       color: #fff;
+      font-weight: 500;
+    }
+    .pill-badge {
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+      font-size: 9.5px;
+      font-family: var(--mono);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .pill-badge.pill-badge-active {
+      background: var(--accent);
+      color: var(--accent-ink);
     }
 
-    /* ── Plans ───────────────────────────── */
-    .plans-wrap {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 3rem 1.5rem;
-    }
-    .plans-grid {
+    /* ── Plan cards ────────────────────────── */
+    .cards-wrap { padding: 12px 0 24px; }
+    .cards {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
-      align-items: start;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      align-items: stretch;
+      padding-top: 12px;
+    }
+    .legal {
+      text-align: center;
+      margin: 18px 0 0;
+      font-size: 11.5px;
+      color: var(--sub);
+      font-family: var(--mono);
+      letter-spacing: 0.02em;
     }
 
-    .plan-card {
-      background: #fff;
-      border: 1.5px solid #e4e4e7;
-      border-radius: 20px;
-      padding: 2rem;
+    .card {
       position: relative;
-      transition: box-shadow 0.15s;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 18px;
+      padding: 28px 26px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 1px 0 rgba(10,10,10,0.02);
     }
-    .plan-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.07); }
-
-    /* Dark (featured) card */
-    .plan-dark {
-      background: #18181b;
-      border-color: #18181b;
+    .card-dark {
+      background: var(--ink);
+      border-color: #262626;
       color: #fff;
+      box-shadow: 0 30px 60px -30px rgba(10,10,10,0.55);
+      transform: translateY(-8px);
     }
+    .card-dark .card-divider { background: #262626; }
+    .card-dark .card-tier { color: #A3A3A3; }
+    .card-dark .price-cur,
+    .card-dark .price-big { color: #fff; }
+    .card-dark .price-dec { color: #A3A3A3; }
+    .card-dark .price-per { color: #A3A3A3; }
+    .card-dark .price-note { color: #A3A3A3; }
+    .card-dark .save { color: var(--accent); }
+    .card-dark .card-tagline { color: #fff; }
+    .card-dark .feature { color: #fff; }
+    .card-dark .feat-tag { color: var(--accent); }
+    .card-dark .feature-muted { color: #A3A3A3; }
+    .card-dark .feature-muted .feat-tag { color: #A3A3A3; }
 
-    .popular-tag {
+    .popular {
       position: absolute;
-      top: -13px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #d97706;
-      color: #fff;
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
+      top: -12px;
+      left: 24px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      padding: 0.22rem 0.875rem;
-      border-radius: 99px;
-      white-space: nowrap;
     }
 
-    .plan-head { margin-bottom: 1.75rem; }
-    .plan-name {
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      color: #a1a1aa;
-      margin-bottom: 0.875rem;
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
     }
-    .plan-dark .plan-name { color: rgba(255,255,255,0.5); }
+    .card-tier {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .fee-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+    .fee-chip-lime {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
 
-    .plan-price-row {
+    .price-block {
+      margin-top: 16px;
       display: flex;
       align-items: baseline;
-      gap: 0.2rem;
-      margin-bottom: 0.75rem;
+      gap: 4px;
+      font-variant-numeric: tabular-nums;
     }
-    .plan-price {
-      font-size: 2.75rem;
-      font-weight: 700;
-      color: #18181b;
+    .price-cur,
+    .price-dec {
+      font-size: 22px;
+      font-weight: 500;
+      align-self: flex-start;
+      margin-top: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+    .price-cur { color: var(--ink); }
+    .price-dec { color: var(--muted); }
+    .price-big {
+      font-size: 56px;
+      font-weight: 500;
       letter-spacing: -0.04em;
       line-height: 1;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
     }
-    .plan-dark .plan-price { color: #fff; }
-    .plan-period { font-size: 0.9rem; color: #a1a1aa; }
-    .plan-dark .plan-period { color: rgba(255,255,255,0.4); }
+    .price-per {
+      font-size: 13px;
+      color: var(--muted);
+      margin-left: 6px;
+    }
+    .price-note {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin: 8px 0 0;
+      min-height: 16px;
+    }
+    .save {
+      color: var(--accent-text);
+      font-weight: 500;
+    }
+    .card-tagline {
+      font-size: 13.5px;
+      color: var(--ink);
+      margin: 14px 0 0;
+      letter-spacing: -0.005em;
+      line-height: 1.45;
+    }
 
-    .fee-badge {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 0.2rem 0.6rem;
-      border-radius: 6px;
-      background: rgba(37,99,235,0.08);
-      color: #2563eb;
-    }
-    .plan-dark .fee-badge {
-      background: rgba(255,255,255,0.1);
-      color: rgba(255,255,255,0.75);
+    .card-divider {
+      height: 1px;
+      background: var(--rule);
     }
 
-    /* Features list */
     .features {
       list-style: none;
       padding: 0;
-      margin: 0 0 2rem;
+      margin: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.7rem;
+      gap: 10px;
     }
-    .feature-item {
+    .feature {
       display: flex;
-      align-items: flex-start;
-      gap: 0.625rem;
-      font-size: 0.875rem;
-      color: #3f3f46;
+      gap: 10px;
+      align-items: baseline;
+      font-size: 12.5px;
+      color: var(--ink);
+    }
+    .feature-muted { opacity: 0.55; color: var(--muted); }
+    .feat-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent-text);
+      min-width: 64px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+    .feature-muted .feat-tag { color: var(--muted); }
+    .feat-label {
+      flex: 1;
       line-height: 1.45;
     }
-    .plan-dark .feature-item { color: rgba(255,255,255,0.8); }
 
-    .feature-check {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      margin-top: 1px;
-      background: rgba(20,184,166,0.12);
-      color: #0f766e;
-    }
-    .plan-dark .feature-check {
-      background: rgba(255,255,255,0.12);
-      color: rgba(255,255,255,0.9);
-    }
-
-    /* CTA button */
-    .plan-btn {
+    .cta {
+      margin-top: auto;
       width: 100%;
-      display: flex;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 13px;
+      font-family: var(--font);
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      cursor: pointer;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
-      padding: 0.75rem 1rem;
-      border-radius: 99px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
+      gap: 4px;
       transition: all 0.15s;
-      background: #f4f4f5;
-      color: #18181b;
-      border: 1.5px solid #e4e4e7;
     }
-    .plan-btn:hover:not(:disabled) { background: #e4e4e7; }
-    .plan-dark .plan-btn {
-      background: #fff;
-      color: #18181b;
-      border-color: transparent;
+    .cta-ink {
+      background: var(--ink);
+      color: #fff;
     }
-    .plan-dark .plan-btn:hover:not(:disabled) { background: #f0f0f0; }
-    .plan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .cta-ink:hover:not(:disabled) { background: #262626; }
+    .cta-lime {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+    .cta-lime:hover:not(:disabled) { background: #a3e635; }
+    .cta-current {
+      background: var(--soft);
+      color: var(--muted);
+      cursor: default;
+    }
+    .card-dark .cta-current {
+      background: #262626;
+      color: #A3A3A3;
+    }
+    .cta:disabled { cursor: not-allowed; }
 
     .spinner {
-      width: 13px; height: 13px;
-      border: 2px solid rgba(0,0,0,0.15);
-      border-top-color: #18181b;
+      width: 12px; height: 12px;
+      border: 2px solid rgba(0,0,0,0.18);
+      border-top-color: currentColor;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       display: inline-block;
     }
-    .plan-dark .spinner {
-      border-color: rgba(255,255,255,0.2);
-      border-top-color: #18181b;
-    }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Fee table ────────────────────────── */
-    .fee-section {
-      background: #fff;
-      border-top: 1px solid #e4e4e7;
-      border-bottom: 1px solid #e4e4e7;
-      padding: 4rem 1.5rem;
-    }
-    .fee-inner {
-      max-width: 600px;
-      margin: 0 auto;
-      text-align: center;
-    }
-    .section-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #18181b;
-      letter-spacing: -0.025em;
-      margin: 0 0 0.5rem;
-    }
-    .section-sub {
-      font-size: 0.9rem;
-      color: #71717a;
-      margin-bottom: 2rem;
-      line-height: 1.6;
-    }
-
-    .fee-table {
-      border: 1.5px solid #e4e4e7;
+    /* ── Compare table ─────────────────────── */
+    .compare-wrap { padding: 12px 0 24px; }
+    .compare-panel {
+      background: var(--panel);
+      border: 1px solid var(--rule);
       border-radius: 14px;
       overflow: hidden;
-      text-align: left;
-      margin-bottom: 0.875rem;
     }
-    .fee-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      padding: 0.75rem 1.25rem;
-      border-bottom: 1px solid #f4f4f5;
-      align-items: center;
-    }
-    .fee-row:last-child { border-bottom: none; }
-    .fee-row-head {
-      background: #f4f4f5;
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #a1a1aa;
-    }
-    .fee-col {
+    .compare-head {
+      padding: 18px 24px 14px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-      color: #18181b;
+    }
+    .compare-title {
+      font-size: 18px;
       font-weight: 500;
+      letter-spacing: -0.015em;
+      color: var(--ink);
+      margin: 4px 0 0;
     }
-    .fee-col em { font-style: normal; font-weight: 400; color: #a1a1aa; }
-    .fee-pct { color: #71717a; font-weight: 400; }
-    .fee-earn { color: #0f766e; font-weight: 700; }
-    .fee-earn-best { font-size: 0.95rem; }
-
-    .plan-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .plan-dot-gray { background: #a1a1aa; }
-    .plan-dot-blue { background: #2563eb; }
-    .plan-dot-teal { background: #14b8a6; }
-
-    .fee-note {
-      font-size: 0.75rem;
-      color: #a1a1aa;
-      text-align: center;
-      margin: 0;
+    .compare-meta {
+      font-size: 11px;
+      color: var(--sub);
+      font-family: var(--mono);
     }
 
-    /* ── FAQ ──────────────────────────────── */
-    .faq-wrap {
-      padding: 4rem 1.5rem;
-    }
-    .faq-inner { max-width: 860px; margin: 0 auto; }
-    .faq-grid {
+    .compare-col-header {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
+      grid-template-columns: 1.6fr 1fr 1fr 1fr;
+      padding: 10px 24px;
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 500;
+      align-items: center;
     }
-    .faq-item {
-      display: flex;
-      gap: 0.875rem;
-      align-items: flex-start;
+    .ch-cell { text-align: center; }
+    .ch-pro { color: var(--ink); }
+    .ch-pop {
+      margin-left: 4px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-size: 9px;
+      font-family: var(--mono);
+      letter-spacing: 0.05em;
     }
-    .faq-icon {
-      width: 32px; height: 32px;
-      border-radius: 9px;
-      background: #f4f4f5;
-      border: 1.5px solid #e4e4e7;
+
+    .compare-group {
+      padding: 12px 24px 6px;
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+      background: var(--soft);
+    }
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr 1fr 1fr;
+      padding: 12px 24px;
+      align-items: center;
+      border-top: 1px solid var(--rule);
+      font-size: 13px;
+    }
+    .compare-label { color: var(--ink); }
+    .compare-cell {
+      text-align: center;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #71717a;
-      flex-shrink: 0;
-      margin-top: 1px;
+    }
+    .compare-cell-pro {
+      background: rgba(132,204,22,0.06);
+      padding: 10px 0;
+      margin: -12px 0;
+      border-left: 1px solid var(--rule);
+      border-right: 1px solid var(--rule);
+    }
+    .cell-dash {
+      color: var(--sub);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+    .cell-check {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+    }
+    .cell-check-dim {
+      background: var(--soft);
+      color: var(--muted);
+    }
+    .cell-text {
+      font-size: 12px;
+      color: var(--ink);
+    }
+
+    /* ── FAQ + CTA grid ────────────────────── */
+    .bottom-grid {
+      padding: 8px 0 32px;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 24px;
+    }
+    .faq-title {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin: 4px 0 8px;
+    }
+    .faq-list { display: flex; flex-direction: column; }
+    .faq-item { border-bottom: 1px solid var(--rule); }
+    .faq-row {
+      width: 100%;
+      padding: 16px 0;
+      background: transparent;
+      border: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-family: var(--font);
+      text-align: left;
     }
     .faq-q {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #18181b;
-      margin: 0 0 0.35rem;
-      letter-spacing: -0.01em;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.005em;
     }
+    .faq-plus {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1;
+      transition: transform 0.15s;
+    }
+    .faq-plus-open { transform: rotate(45deg); }
     .faq-a {
-      font-size: 0.8rem;
-      color: #71717a;
-      line-height: 1.65;
+      padding: 0 0 18px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 720px;
       margin: 0;
     }
 
-    /* ── Error toast ──────────────────────── */
+    .cta-card {
+      background: var(--ink);
+      color: #fff;
+      border-radius: 16px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+      align-self: start;
+    }
+    .cta-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 100% 0%, rgba(132,204,22,0.25), transparent 55%);
+      pointer-events: none;
+    }
+    .cta-card > * { position: relative; }
+    .cta-title {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin: 0;
+    }
+    .cta-sub {
+      font-size: 12.5px;
+      color: #A3A3A3;
+      line-height: 1.5;
+      margin: 0;
+    }
+    .trial-btn {
+      margin-top: 8px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-size: 13px;
+      font-family: var(--font);
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .trial-btn:hover { background: #a3e635; }
+    .cta-stats {
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+      color: #737373;
+      margin: 4px 0 0;
+      font-family: var(--mono);
+    }
+
+    /* ── Error toast ───────────────────────── */
     .err-toast {
       position: fixed;
-      bottom: 2rem;
+      bottom: 1.5rem;
       left: 50%;
       transform: translateX(-50%);
       background: #fff;
-      color: #dc2626;
-      border: 1.5px solid rgba(239,68,68,0.2);
-      padding: 0.75rem 1.5rem;
+      color: #b91c1c;
+      border: 1px solid rgba(220,38,38,0.25);
+      padding: 0.75rem 1.25rem;
       border-radius: 12px;
-      font-size: 0.875rem;
+      font-size: 13px;
       font-weight: 500;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+      box-shadow: 0 6px 28px rgba(10,10,10,0.1);
       z-index: 9999;
-      white-space: nowrap;
     }
 
-    @media (max-width: 640px) {
-      .plans-grid { grid-template-columns: 1fr; }
-      .faq-grid { grid-template-columns: 1fr; }
-      .fee-row { grid-template-columns: 1.5fr 1fr 1fr; }
+    /* ── Responsive ────────────────────────── */
+    @media (max-width: 980px) {
+      .hero { flex-direction: column; align-items: flex-start; }
+      .hero-controls { align-items: flex-start; }
+      .cards { grid-template-columns: 1fr; }
+      .card-dark { transform: none; }
+      .bottom-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .scroll { padding: 0 20px 24px; }
+      .title { font-size: 36px; }
+      .compare-col-header,
+      .compare-row {
+        grid-template-columns: 1.4fr 1fr 1fr 1fr;
+        padding-left: 16px;
+        padding-right: 16px;
+        font-size: 12px;
+      }
     }
   `]
 })
@@ -564,90 +899,218 @@ export class PricingComponent implements OnInit {
   protected auth = inject(AuthService);
   private router = inject(Router);
 
-  view = signal<'WORKER' | 'CLIENT'>('WORKER');
+  audience = signal<Audience>('worker');
+  period = signal<Period>('yr');
+  openFaq = signal<number | null>(0);
   loading = signal<string | null>(null);
   error = signal<string | null>(null);
 
-  private readonly plans: Plan[] = [
+  private readonly workerPlans: Plan[] = [
     {
-      id: 'worker_free',
-      name: 'Worker Free',
-      price: 0,
-      period: '',
-      role: 'WORKER',
-      color: 'gray',
-      fee: '15% platform fee',
-      cta: 'Current plan',
+      id: 'free',
+      name: 'Free',
+      price: { mo: 0, yr: 0 },
+      fee: '15%',
+      tagline: 'Pick up jobs as they come.',
       features: [
-        'Up to 5 job applications/month',
-        '15% platform fee on earnings',
-        'Basic profile listing',
-        'Standard search ranking',
+        ['5', 'applications / month'],
+        ['15%', 'platform fee on earnings'],
+        ['Standard', 'search ranking'],
+        ['—', 'Pro badge on profile'],
+        ['—', 'Advanced analytics'],
+        ['Basic', 'profile listing'],
       ],
+      cta: 'Current plan',
+      ctaActive: true,
     },
     {
-      id: 'WORKER_PRO',
-      name: 'Worker Pro',
-      price: 19.99,
-      period: 'month',
-      role: 'WORKER',
-      color: 'indigo',
-      fee: '12% platform fee',
+      id: 'pro',
+      apiId: 'WORKER_PRO',
+      name: 'Pro',
+      price: { mo: 3, yr: 30 },
+      fee: '12%',
+      tagline: 'Get found, get booked, keep more.',
+      featured: true,
+      features: [
+        ['Unlimited', 'job applications'],
+        ['12%', 'platform fee · save 3%'],
+        ['Priority', 'in search results'],
+        ['Pro', 'badge on your profile'],
+        ['Full', 'earnings & traffic analytics'],
+        ['Featured', 'profile listing'],
+      ],
       cta: 'Upgrade to Pro',
-      features: [
-        'Unlimited job applications',
-        '12% platform fee (save 3%)',
-        '"Pro" badge on your profile',
-        'Priority in search results',
-        'Advanced analytics',
-      ],
     },
     {
-      id: 'client_free',
-      name: 'Client Free',
-      price: 0,
-      period: '',
-      role: 'CLIENT',
-      color: 'gray',
-      fee: '15% platform fee',
-      cta: 'Current plan',
+      id: 'elite',
+      name: 'Elite',
+      price: { mo: 5, yr: 50 },
+      fee: '10%',
+      tagline: 'For full-time pros at the top of the list.',
       features: [
-        'Post up to 5 jobs/month',
-        'AI job analysis',
-        'Worker suggestions',
-        '15% platform fee',
+        ['Unlimited', '+ direct hire requests'],
+        ['10%', 'platform fee · save 5%'],
+        ['Top placement', 'in your category'],
+        ['Verified Elite', 'badge'],
+        ['Dedicated', 'account manager'],
+        ['Custom', 'scheduling & invoicing'],
       ],
-    },
-    {
-      id: 'CLIENT_BUSINESS',
-      name: 'Client Business',
-      price: 29.99,
-      period: 'month',
-      role: 'CLIENT',
-      color: 'indigo',
-      fee: '10% platform fee',
-      cta: 'Upgrade to Business',
-      features: [
-        'Unlimited job posts',
-        '10% platform fee (save 5%)',
-        'Priority worker matching',
-        'Dedicated support',
-        'Team billing',
-      ],
+      cta: 'Talk to sales',
+      contact: true,
     },
   ];
 
-  visiblePlans() {
-    return this.plans.filter((p) => p.role === this.view());
+  private readonly clientPlans: Plan[] = [
+    {
+      id: 'client_free',
+      name: 'Free',
+      price: { mo: 0, yr: 0 },
+      fee: '5%',
+      tagline: 'Post a job, pick a worker, get it done.',
+      features: [
+        ['5', 'job posts / month'],
+        ['5%', 'platform fee per hire'],
+        ['Standard', 'worker matching'],
+        ['—', 'Verified Business badge'],
+        ['—', 'Team seats'],
+        ['Basic', 'reporting'],
+      ],
+      cta: 'Current plan',
+      ctaActive: true,
+    },
+    {
+      id: 'client_business',
+      apiId: 'CLIENT_BUSINESS',
+      name: 'Business',
+      price: { mo: 3, yr: 30 },
+      fee: '3%',
+      tagline: 'Hire faster, manage your team, scale up.',
+      featured: true,
+      features: [
+        ['Unlimited', 'job posts'],
+        ['3%', 'platform fee · save 2%'],
+        ['Priority', 'worker matching'],
+        ['Verified', 'Business badge'],
+        ['3 seats', 'included · add more anytime'],
+        ['Advanced', 'reporting & exports'],
+      ],
+      cta: 'Upgrade to Business',
+    },
+    {
+      id: 'client_enterprise',
+      name: 'Enterprise',
+      price: { mo: 5, yr: 50 },
+      fee: '0%',
+      tagline: 'Zero platform fee. White-glove sourcing.',
+      features: [
+        ['Unlimited', 'posts + private invites'],
+        ['0%', 'platform fee · pay only the worker'],
+        ['White-glove', 'worker matching'],
+        ['Custom', 'SLA & legal review'],
+        ['Unlimited', 'team seats + SSO'],
+        ['Dedicated', 'account manager'],
+      ],
+      cta: 'Talk to sales',
+      contact: true,
+    },
+  ];
+
+  protected get plans(): Plan[] {
+    return this.audience() === 'worker' ? this.workerPlans : this.clientPlans;
   }
+
+  private readonly workerCompareGroups: CompareGroup[] = [
+    { group: 'Earning', rows: [
+      { label: 'Platform fee on each job', free: '15%', pro: '12%', elite: '10%' },
+      { label: 'Payout speed', free: '2 business days', pro: '1 business day', elite: 'Same day' },
+      { label: 'Auto-withdraw', free: false, pro: true, elite: true },
+    ]},
+    { group: 'Visibility', rows: [
+      { label: 'Search ranking', free: 'Standard', pro: 'Priority', elite: 'Top placement' },
+      { label: 'Profile badge', free: false, pro: 'Pro', elite: 'Elite ★' },
+      { label: 'Featured in category', free: false, pro: 'Sometimes', elite: 'Always' },
+    ]},
+    { group: 'Tooling', rows: [
+      { label: 'Monthly applications', free: '5', pro: 'Unlimited', elite: 'Unlimited' },
+      { label: 'Earnings analytics', free: 'Basic', pro: 'Advanced', elite: 'Advanced + export' },
+      { label: 'Account manager', free: false, pro: false, elite: true },
+    ]},
+  ];
+
+  private readonly clientCompareGroups: CompareGroup[] = [
+    { group: 'Hiring', rows: [
+      { label: 'Platform fee per hire', free: '5%', pro: '3%', elite: '0%' },
+      { label: 'Active job posts', free: '5 / mo', pro: 'Unlimited', elite: 'Unlimited' },
+      { label: 'Private invite jobs', free: false, pro: true, elite: true },
+    ]},
+    { group: 'Workers', rows: [
+      { label: 'Worker matching', free: 'Standard', pro: 'Priority', elite: 'White-glove' },
+      { label: 'Verified badge', free: false, pro: 'Business', elite: 'Enterprise ★' },
+      { label: 'Vetted talent pool', free: false, pro: 'Sometimes', elite: 'Always' },
+    ]},
+    { group: 'Team & ops', rows: [
+      { label: 'Team seats', free: '1', pro: '3 included', elite: 'Unlimited + SSO' },
+      { label: 'Reporting', free: 'Basic', pro: 'Advanced', elite: 'Advanced + export' },
+      { label: 'Account manager', free: false, pro: false, elite: true },
+    ]},
+  ];
+
+  protected get compareGroups(): CompareGroup[] {
+    return this.audience() === 'worker' ? this.workerCompareGroups : this.clientCompareGroups;
+  }
+
+  protected readonly faqs: Faq[] = [
+    { q: 'Can I cancel anytime?',
+      a: `Yes. Cancel from your account; you keep Pro access until the end of the billing period — no questions, no fees.` },
+    { q: 'What does the platform fee cover?',
+      a: `Payment processing, escrow, dispute mediation, and the marketplace itself. There are no hidden charges on top.` },
+    { q: 'Is my plan visible to others?',
+      a: `Yes — your badge (Pro/Elite for workers, Business/Enterprise for clients) shows on your public profile. Billing details are never shown.` },
+    { q: 'Can I switch plans later?',
+      a: `Yes — upgrade or downgrade at any time. We prorate the difference automatically.` },
+  ];
 
   ngOnInit() {
     const role = this.auth.user()?.role;
-    if (role === 'CLIENT') this.view.set('CLIENT');
+    if (role === 'CLIENT') this.audience.set('client');
+  }
+
+  priceFor(plan: Plan): number {
+    if (this.period() === 'mo') return plan.price.mo;
+    return plan.price.yr === 0 ? 0 : plan.price.yr / 12;
+  }
+
+  priceParts(plan: Plan): { whole: string; dec: string } {
+    const v = this.priceFor(plan);
+    const [whole, dec = '00'] = v.toFixed(2).split('.');
+    return { whole, dec };
+  }
+
+  savePercent(plan: Plan): number {
+    if (!plan.price.mo) return 0;
+    return Math.round((1 - plan.price.yr / (plan.price.mo * 12)) * 100);
+  }
+
+  toggleFaq(i: number) {
+    this.openFaq.set(this.openFaq() === i ? null : i);
+  }
+
+  startTrial() {
+    const upgradePlan = this.plans.find((p) => p.featured);
+    if (upgradePlan) this.selectPlan(upgradePlan);
   }
 
   selectPlan(plan: Plan) {
-    if (plan.id === 'worker_free' || plan.id === 'client_free') return;
+    if (plan.ctaActive) return;
+
+    if (plan.contact) {
+      window.location.href =
+        'mailto:sales@robosgig.com?subject=' +
+        encodeURIComponent(`${plan.name} plan inquiry`);
+      return;
+    }
+
+    if (!plan.apiId) return;
 
     if (!this.auth.isLoggedIn()) {
       this.router.navigate(['/login'], { queryParams: { returnUrl: '/pricing' } });
@@ -657,7 +1120,7 @@ export class PricingComponent implements OnInit {
     this.loading.set(plan.id);
     this.error.set(null);
 
-    this.api.createCheckoutSession(plan.id).subscribe({
+    this.api.createCheckoutSession(plan.apiId).subscribe({
       next: (res) => {
         if (res.url) window.location.href = res.url;
       },

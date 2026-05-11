@@ -48,14 +48,33 @@ interface JobDetail {
   template: `
     <div class="page">
 
-      <!-- Top nav bar -->
-      <header class="topbar">
-        <button class="back-btn" (click)="goBack()">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      <!-- Breadcrumb bar -->
+      <div class="crumb-bar">
+        <button class="crumb-back" (click)="goBack()" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           Back
         </button>
-        <span class="topbar-crumb">Job Details</span>
-      </header>
+        @if (job()) {
+          <span class="crumb-path">
+            browse / {{ (job()!.category?.name || 'general').toLowerCase() }} / {{ job()!.id.slice(0, 8) }}
+          </span>
+        }
+        <span class="crumb-spacer"></span>
+        @if (job()) {
+          <button class="crumb-btn" (click)="toggleSave()" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24"
+              [attr.fill]="isSaved() ? 'currentColor' : 'none'"
+              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 4h12v17l-6-4-6 4z"/>
+            </svg>
+            {{ isSaved() ? 'Saved' : 'Save' }}
+          </button>
+          <button class="crumb-btn" (click)="shareJob()" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 11l8-4M8 13l8 4"/></svg>
+            Share
+          </button>
+        }
+      </div>
 
       @if (loading()) {
         <div class="state-center">
@@ -69,248 +88,314 @@ interface JobDetail {
           <button class="btn-retry" (click)="load()">Try again</button>
         </div>
       } @else if (job()) {
-        <div class="content">
+        <div class="body">
+          <div class="grid">
 
-          <!-- Hero -->
-          <div class="hero card">
-            <div class="hero-meta">
-              @if (job()!.category) {
-                <span class="cat-chip">
-                  {{ job()!.category!.icon }} {{ job()!.category!.name }}
-                </span>
-              }
-              <span class="urgency-badge urgency-{{ job()!.urgency.toLowerCase() }}">
-                {{ urgencyLabel(job()!.urgency) }}
-              </span>
-              <span class="status-badge status-{{ job()!.status.toLowerCase() }}">
-                {{ statusLabel(job()!.status) }}
-              </span>
-              @if (job()!.distanceKm !== null) {
-                <span class="dist-pill">
-                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  {{ job()!.distanceKm }} km away
-                </span>
-              }
-            </div>
-            <h1 class="hero-title">{{ job()!.title }}</h1>
-            <div class="hero-byline">
-              <span class="byline-client">
-                Posted by
-                <strong>{{ clientName() }}</strong>
-                @if (job()!.client?.idVerified) {
-                  <span class="verified-pill">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="#14b8a6"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Verified
+            <!-- LEFT column -->
+            <div class="col-left">
+
+              <!-- Hero header (compact) -->
+              <div class="hero">
+                <div class="hero-chips">
+                  @if (job()!.category) {
+                    <span class="chip">
+                      <span class="chip-dot" [style.background]="catColor(job()!.category!.name)"></span>
+                      {{ job()!.category!.name }}
+                    </span>
+                  }
+                  <span class="chip chip-soft">{{ urgencyLabel(job()!.urgency).toLowerCase() }}</span>
+                  <span class="chip chip-open">
+                    <span class="chip-dot" style="background:#10B981"></span>
+                    {{ statusLabel(job()!.status).toLowerCase() }}
                   </span>
-                }
-              </span>
-              <span class="byline-sep">·</span>
-              <span class="byline-date">{{ timeAgo(job()!.createdAt) }}</span>
-              <span class="byline-sep">·</span>
-              <span class="byline-apps">{{ job()!.applicationCount }} {{ job()!.applicationCount === 1 ? 'applicant' : 'applicants' }}</span>
-            </div>
-          </div>
-
-          <!-- Main layout -->
-          <div class="layout">
-
-            <!-- LEFT: details -->
-            <div class="left">
+                  @if (job()!.distanceKm !== null) {
+                    <span class="chip">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.5 7-13a7 7 0 1 0-14 0c0 5.5 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                      {{ job()!.distanceKm }} km away
+                    </span>
+                  }
+                </div>
+                <h1 class="hero-title">{{ job()!.title }}</h1>
+                <div class="hero-byline">
+                  <span class="byline-avatar" [style.background]="avatarColor(clientName())">{{ clientInitials() }}</span>
+                  <span>Posted by <strong>{{ clientName() }}</strong></span>
+                  @if (job()!.client?.idVerified) {
+                    <span class="chip chip-lime">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                      Verified
+                    </span>
+                  }
+                  <span class="dot">·</span>
+                  <span>{{ timeAgo(job()!.createdAt) }}</span>
+                  <span class="dot">·</span>
+                  <span>{{ job()!.applicationCount }} applicant{{ job()!.applicationCount === 1 ? '' : 's' }}</span>
+                </div>
+              </div>
 
               <!-- Description -->
-              <section class="card section">
-                <h2 class="section-title">Description</h2>
-                <p class="description">{{ job()!.description }}</p>
+              <section class="panel">
+                <header class="panel-head">
+                  <p class="panel-eyebrow">Description</p>
+                </header>
+                <p class="desc-text">{{ job()!.description }}</p>
               </section>
 
-              <!-- Job details grid -->
-              <section class="card section">
-                <h2 class="section-title">Details</h2>
-                <div class="details-grid">
+              <!-- Details + Map row -->
+              <div class="row-2">
+                <section class="panel">
+                  <header class="panel-head">
+                    <p class="panel-eyebrow">Details</p>
+                  </header>
+
                   @if (job()!.city || job()!.address) {
-                    <div class="detail-item">
-                      <span class="detail-icon">📍</span>
-                      <div>
-                        <span class="detail-label">Location</span>
-                        <span class="detail-val">{{ job()!.address || job()!.city }}</span>
-                      </div>
+                    <div class="detail-row">
+                      <span class="detail-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.5 7-13a7 7 0 1 0-14 0c0 5.5 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                      </span>
+                      <span class="detail-label">Location</span>
+                      <span class="detail-val">
+                        <span>{{ job()!.address || job()!.city }}</span>
+                        @if (job()!.city && job()!.address) {
+                          <span class="detail-sub">{{ job()!.city }}</span>
+                        }
+                      </span>
                     </div>
                   }
-                  @if (job()!.scheduledDate) {
-                    <div class="detail-item">
-                      <span class="detail-icon">📅</span>
-                      <div>
-                        <span class="detail-label">Scheduled date</span>
-                        <span class="detail-val">{{ formatDate(job()!.scheduledDate!) }}</span>
-                      </div>
-                    </div>
-                  }
-                  @if (job()!.estimatedHours) {
-                    <div class="detail-item">
-                      <span class="detail-icon">⏱</span>
-                      <div>
-                        <span class="detail-label">Estimated duration</span>
-                        <span class="detail-val">~{{ job()!.estimatedHours }} hour{{ job()!.estimatedHours !== 1 ? 's' : '' }}</span>
-                      </div>
-                    </div>
-                  }
-                  @if (job()!.category) {
-                    <div class="detail-item">
-                      <span class="detail-icon">🏷</span>
-                      <div>
-                        <span class="detail-label">Category</span>
-                        <span class="detail-val">{{ job()!.category!.icon }} {{ job()!.category!.name }}</span>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </section>
 
+                  @if (job()!.scheduledDate) {
+                    <div class="detail-row">
+                      <span class="detail-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                      </span>
+                      <span class="detail-label">Scheduled</span>
+                      <span class="detail-val">{{ formatDate(job()!.scheduledDate!) }}</span>
+                    </div>
+                  }
+
+                  @if (job()!.estimatedHours) {
+                    <div class="detail-row">
+                      <span class="detail-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                      </span>
+                      <span class="detail-label">Duration</span>
+                      <span class="detail-val">~{{ job()!.estimatedHours }} hour{{ job()!.estimatedHours !== 1 ? 's' : '' }}</span>
+                    </div>
+                  }
+
+                  @if (job()!.category) {
+                    <div class="detail-row">
+                      <span class="detail-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="8" cy="8" r="1.5"/></svg>
+                      </span>
+                      <span class="detail-label">Category</span>
+                      <span class="detail-val detail-val-row">
+                        <span class="chip-dot" [style.background]="catColor(job()!.category!.name)"></span>
+                        {{ job()!.category!.name }}
+                      </span>
+                    </div>
+                  }
+                </section>
+
+                @if (job()!.latitude && job()!.longitude) {
+                  <section class="panel">
+                    <header class="panel-head">
+                      <p class="panel-eyebrow">Location preview</p>
+                    </header>
+                    <div id="detail-map" class="mini-map"></div>
+                    <button
+                      class="map-btn"
+                      [routerLink]="['/worker/map']"
+                      [queryParams]="{focus: job()!.id}"
+                      type="button"
+                    >Open in Maps →</button>
+                  </section>
+                }
+              </div>
+
+              <!-- Tools -->
               @if ((job()?.toolsNeeded?.length ?? 0) > 0) {
-                <section class="card section">
-                  <h2 class="section-title">Tools & equipment needed</h2>
-                  <div class="tools-list">
+                <section class="panel">
+                  <header class="panel-head">
+                    <p class="panel-eyebrow">Tools & equipment needed</p>
+                    <p class="panel-title">{{ job()!.toolsNeeded.length }} item{{ job()!.toolsNeeded.length === 1 ? '' : 's' }} the worker should bring</p>
+                  </header>
+                  <div class="tools-grid">
                     @for (tool of job()!.toolsNeeded; track tool) {
-                      <span class="tool-chip">🔧 {{ tool }}</span>
+                      <div class="tool-row">
+                        <span class="tool-check">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                        </span>
+                        <span class="tool-text">{{ tool }}</span>
+                      </div>
                     }
                   </div>
                 </section>
               }
-
-              <!-- Mini map -->
-              @if (job()!.latitude && job()!.longitude) {
-                <section class="card section map-section">
-                  <h2 class="section-title">Location</h2>
-                  <div id="detail-map" class="mini-map"></div>
-                </section>
-              }
-
             </div>
 
-            <!-- RIGHT: sidebar -->
-            <div class="right">
+            <!-- RIGHT rail -->
+            <aside class="col-right">
 
-              <!-- Price card -->
-              <div class="card sidebar-card">
-                <div class="price-row">
-                  @if (job()!.priceMin) {
-                    <span class="price-val">€{{ job()!.priceMin }}–{{ job()!.priceMax }}</span>
-                  } @else {
-                    <span class="price-val price-neg">Negotiable</span>
-                  }
-                  @if (job()!.priceMin && job()!.estimatedHours) {
-                    <span class="price-sub">Est. €{{ (job()!.priceMin! / job()!.estimatedHours!).toFixed(0) }}/hr</span>
-                  }
-                </div>
-
-                <!-- Application state -->
-                @if (!job()!.alreadyApplied) {
-                  <!-- Not applied yet -->
-                  @if (job()!.status === 'POSTED') {
-                    <button class="btn-apply" (click)="openApply()">
-                      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                      Apply now
-                    </button>
-                  } @else {
-                    <div class="notice notice--gray">This job is no longer accepting applications.</div>
-                  }
+              <!-- Pay card (dark) -->
+              <div class="pay-card">
+                <div class="pay-glow"></div>
+                <p class="pay-eyebrow">Client's offer</p>
+                @if (job()!.priceMin) {
+                  <p class="pay-amount">€{{ job()!.priceMin }}–{{ job()!.priceMax }}</p>
                 } @else {
-                  <!-- Already applied -->
-                  <div class="app-status-box app-status-{{ job()!.applicationStatus?.toLowerCase() }}">
-                    <div class="app-status-label">Your application</div>
-                    <div class="app-status-badge">{{ appStatusLabel(job()!.applicationStatus) }}</div>
-                    @if (job()!.myApplication?.proposedPrice) {
-                      <div class="app-detail-row">
-                        <span>Offered price</span>
-                        <strong>€{{ job()!.myApplication!.proposedPrice }}</strong>
-                      </div>
+                  <p class="pay-amount pay-amount--neg">Negotiable</p>
+                }
+                <p class="pay-sub">
+                  @if (job()!.priceMin && job()!.estimatedHours) {
+                    Est. <span class="pay-hourly">€{{ (job()!.priceMin! / job()!.estimatedHours!).toFixed(0) }}/hr</span>
+                    · fixed price · paid via escrow
+                  } @else {
+                    Fixed price · paid via escrow
+                  }
+                </p>
+                @if (job()!.priceMin) {
+                  <div class="pay-fee">
+                    <span>platform fee 12%</span>
+                    <span class="pay-fee-keep">you keep €{{ keepLow() }}–{{ keepHigh() }}</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Application status / Apply form -->
+              @if (!job()!.alreadyApplied) {
+                @if (job()!.status === 'POSTED') {
+                  <div class="rail-card">
+                    <p class="panel-eyebrow">Apply</p>
+                    <p class="rail-title">Send your offer</p>
+
+                    <label class="rail-label">Your price (€)</label>
+                    <input
+                      type="number"
+                      class="rail-input rail-input--mono"
+                      [(ngModel)]="proposedPrice"
+                      [placeholder]="'Suggested ' + (job()!.priceMin ?? '') + (job()!.priceMin ? '–' + job()!.priceMax : '')"
+                    />
+
+                    <label class="rail-label">Quick note</label>
+                    <textarea
+                      class="rail-input"
+                      [(ngModel)]="applyMessage"
+                      rows="3"
+                      placeholder="Tell the client why you're a good fit…"
+                    ></textarea>
+
+                    @if (applyError()) {
+                      <p class="rail-err">{{ applyError() }}</p>
                     }
-                    @if (job()!.myApplication?.message) {
-                      <p class="app-message">{{ job()!.myApplication!.message }}</p>
+
+                    <button
+                      class="rail-cta"
+                      (click)="submitApply()"
+                      [disabled]="submitting()"
+                      type="button"
+                    >
+                      @if (submitting()) { Sending… }
+                      @else { Send application → }
+                    </button>
+                  </div>
+                } @else {
+                  <div class="rail-card">
+                    <p class="rail-notice">This job is no longer accepting applications.</p>
+                  </div>
+                }
+              } @else {
+                <div class="rail-card">
+                  <p class="panel-eyebrow">Your application</p>
+
+                  <!-- Stepper -->
+                  <div class="stepper">
+                    @for (step of steps; track step.id; let i = $index) {
+                      <span
+                        class="step"
+                        [class.step--done]="i < appStepIndex()"
+                        [class.step--current]="i === appStepIndex()"
+                      >
+                        <span class="step-num">
+                          @if (i < appStepIndex()) {
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                          } @else {
+                            {{ i + 1 }}
+                          }
+                        </span>
+                        {{ step.label }}
+                      </span>
+                      @if (i < steps.length - 1) {
+                        <span class="step-line"></span>
+                      }
                     }
-                    <div class="app-meta">Applied {{ timeAgo(job()!.myApplication!.createdAt) }}</div>
                   </div>
 
+                  @if (job()!.myApplication?.proposedPrice) {
+                    <div class="rail-meta-row">
+                      <span class="rail-meta-label">Offered price</span>
+                      <span class="rail-meta-val">€{{ job()!.myApplication!.proposedPrice }}</span>
+                    </div>
+                  }
+
+                  @if (job()!.myApplication?.message) {
+                    <div class="rail-quote">"{{ job()!.myApplication!.message }}"</div>
+                  }
+
+                  <p class="rail-applied">Applied {{ timeAgo(job()!.myApplication!.createdAt) }}</p>
+
                   @if (job()!.applicationStatus === 'APPLIED') {
-                    <button class="btn-withdraw" (click)="withdraw()" [disabled]="withdrawing()">
-                      @if (withdrawing()) { Withdrawing… } @else { Withdraw application }
+                    <button
+                      class="rail-cta rail-cta--ghost rail-cta--danger"
+                      (click)="withdraw()"
+                      [disabled]="withdrawing()"
+                      type="button"
+                    >
+                      @if (withdrawing()) { Withdrawing… }
+                      @else { Withdraw application }
                     </button>
                   }
+
                   @if (job()!.applicationStatus === 'NOTIFIED') {
-                    <div class="notice notice--blue">The client has assigned this job to you.</div>
-                    <div class="action-row">
-                      <button class="btn-accept" (click)="acceptAssignment()" [disabled]="actioning()">Accept</button>
-                      <button class="btn-decline" (click)="declineAssignment()" [disabled]="actioning()">Decline</button>
+                    <p class="rail-notice rail-notice--accent">
+                      The client picked you for this job. Accept to confirm.
+                    </p>
+                    <div class="rail-actions">
+                      <button class="rail-cta rail-cta--ghost" (click)="declineAssignment()" [disabled]="actioning()" type="button">Decline</button>
+                      <button class="rail-cta" (click)="acceptAssignment()" [disabled]="actioning()" type="button">Accept</button>
                     </div>
                   }
                   @if (job()!.applicationStatus === 'ACCEPTED') {
-                    <div class="notice notice--green">You've been accepted for this job.</div>
+                    <p class="rail-notice rail-notice--accent">You've been accepted for this job.</p>
                   }
                   @if (job()!.applicationStatus === 'REJECTED') {
-                    <div class="notice notice--red">Your application was not selected.</div>
+                    <p class="rail-notice">Your application was not selected this time.</p>
                   }
                   @if (job()!.applicationStatus === 'WITHDRAWN') {
-                    <div class="notice notice--gray">You withdrew your application.</div>
+                    <p class="rail-notice">You withdrew your application.</p>
                   }
-                }
-              </div>
+                </div>
+              }
 
-              <!-- Client card -->
-              <div class="card sidebar-card">
-                <h3 class="sidebar-title">About the client</h3>
+              <!-- About the client -->
+              <div class="rail-card">
+                <p class="panel-eyebrow">About the client</p>
                 <div class="client-row">
-                  <div class="client-avatar">{{ clientInitials() }}</div>
+                  <span class="client-avatar" [style.background]="avatarColor(clientName())">{{ clientInitials() }}</span>
                   <div>
-                    <div class="client-name">{{ clientName() }}</div>
+                    <p class="client-name">{{ clientName() }}</p>
                     @if (job()!.client?.idVerified) {
-                      <div class="client-verified">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#14b8a6"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      <p class="client-verified">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
                         Identity verified
-                      </div>
+                      </p>
                     } @else {
-                      <div class="client-unverified">Not verified</div>
+                      <p class="client-unverified">Not verified</p>
                     }
                   </div>
                 </div>
               </div>
 
-            </div>
-          </div>
-        </div>
-      }
-
-      <!-- Apply modal -->
-      @if (applying()) {
-        <div class="overlay" (click)="closeApply()">
-          <div class="modal" (click)="$event.stopPropagation()">
-            <div class="modal-head">
-              <div>
-                <h3 class="modal-title">Apply for this job</h3>
-                <p class="modal-sub">{{ job()!.title }}</p>
-              </div>
-              <button class="modal-close" (click)="closeApply()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div class="modal-body">
-              <div class="field">
-                <label>Price offer (€) <span class="opt">optional</span></label>
-                <input type="number" class="field-input" [(ngModel)]="proposedPrice" placeholder="Leave empty to accept posted price"/>
-              </div>
-              <div class="field">
-                <label>Message <span class="opt">optional</span></label>
-                <textarea class="field-input" [(ngModel)]="applyMessage" rows="4" placeholder="Briefly describe your experience and why you're a great fit…"></textarea>
-              </div>
-            </div>
-            @if (applyError()) {
-              <div class="modal-err">{{ applyError() }}</div>
-            }
-            <div class="modal-actions">
-              <button class="btn-cancel" (click)="closeApply()">Cancel</button>
-              <button class="btn-submit" (click)="submitApply()" [disabled]="submitting()">
-                @if (submitting()) { <span class="spin"></span> Sending… } @else { Send application }
-              </button>
-            </div>
+            </aside>
           </div>
         </div>
       }
@@ -318,285 +403,580 @@ interface JobDetail {
     </div>
   `,
   styles: [`
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :host {
+      --bg: #FAFAFA;
+      --panel: #FFFFFF;
+      --ink: #0A0A0A;
+      --muted: #737373;
+      --sub: #A3A3A3;
+      --rule: #E8E8E5;
+      --accent: #84CC16;
+      --accent-ink: #0A0A0A;
+      --accent-text: #4D7C0F;
+      --soft: #F5F5F3;
+      --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      display: block;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
 
     .page {
-      min-height: 100vh;
-      background: var(--bg, #f5f5f7);
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      min-height: calc(100vh - 56px);
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Topbar ───────────────────────────── */
-    .topbar {
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.875rem 1.5rem;
-      background: #fff; border-bottom: 1px solid #e5e5ea;
-      position: sticky; top: 0; z-index: 50;
+    /* Breadcrumb */
+    .crumb-bar {
+      padding: 12px 32px;
+      border-bottom: 1px solid var(--rule);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel);
+      flex-wrap: wrap;
     }
-    .back-btn {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      background: none; border: 1px solid #d2d2d7; border-radius: 8px;
-      padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 500;
-      color: #3a3a3c; cursor: pointer; font-family: inherit;
-      transition: background 0.12s, border-color 0.12s;
+    .crumb-back, .crumb-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      font-size: 12px;
+      color: var(--ink);
+      font-family: var(--font);
+      cursor: pointer;
+      transition: border-color 0.15s;
     }
-    .back-btn:hover { background: #f5f5f7; border-color: #aeaeb2; }
-    .topbar-crumb { font-size: 0.82rem; color: #6e6e73; }
+    .crumb-back:hover, .crumb-btn:hover { border-color: var(--sub); }
+    .crumb-path {
+      font-size: 12px;
+      color: var(--sub);
+      font-family: var(--mono);
+    }
+    .crumb-spacer { flex: 1; }
 
-    /* ── Loading / error states ───────────── */
+    /* State centers */
     .state-center {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 1rem; padding: 6rem 2rem; color: #6e6e73; font-size: 0.875rem;
+      min-height: 50vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
     }
     .spinner-ring {
       width: 28px; height: 28px;
-      border: 2.5px solid #e5e5ea; border-top-color: #2563eb;
-      border-radius: 50%; animation: spin 0.7s linear infinite;
+      border: 3px solid var(--rule);
+      border-top-color: var(--ink);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .btn-retry {
-      padding: 0.5rem 1.25rem; border-radius: 99px;
-      background: #2563eb; color: #fff; border: none;
-      font-size: 0.875rem; cursor: pointer; font-family: inherit;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
     }
 
-    /* ── Content wrapper ──────────────────── */
-    .content { max-width: 960px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+    /* Body grid */
+    .body { padding: 24px 32px; }
+    .grid {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.7fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .col-left { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .col-right {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 16px;
+    }
 
-    /* ── Card ─────────────────────────────── */
-    .card {
-      background: #fff; border: 1px solid #e5e5ea;
-      border-radius: 18px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03);
+    /* Hero */
+    .hero { padding: 4px 4px 0; }
+    .hero-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
     }
-    .section { padding: 1.375rem 1.5rem; margin-bottom: 1rem; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      color: var(--ink);
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+    .chip-soft { background: var(--soft); color: var(--muted); }
+    .chip-open { background: #ECFDF5; color: #047857; border-color: #A7F3D0; }
+    .chip-lime { background: #F0FAE0; color: var(--accent-text); border-color: #D9F0A3; }
+    .chip-dot { width: 6px; height: 6px; border-radius: 3px; }
 
-    /* ── Hero ─────────────────────────────── */
-    .hero { padding: 1.5rem; margin-bottom: 1.25rem; }
-    .hero-meta {
-      display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;
-      margin-bottom: 0.875rem;
-    }
-    .cat-chip {
-      display: inline-flex; align-items: center; gap: 0.3rem;
-      background: #f0f2f5; border: 1px solid #e5e5ea;
-      border-radius: 99px; padding: 0.22rem 0.7rem;
-      font-size: 0.75rem; font-weight: 600; color: #3a3a3c;
-    }
-    .urgency-badge { font-size: 0.72rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 99px; }
-    .urgency-normal    { background: rgba(37,99,235,.1);  color: #1d4ed8; }
-    .urgency-low       { background: rgba(110,118,129,.1); color: #6e7681; }
-    .urgency-high      { background: rgba(245,158,11,.12); color: #b45309; }
-    .urgency-emergency { background: rgba(220,38,38,.1);  color: #dc2626; }
-    .status-badge { font-size: 0.72rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 99px; }
-    .status-posted   { background: rgba(20,184,166,.1);  color: #0f766e; }
-    .status-assigned { background: rgba(37,99,235,.1);   color: #1d4ed8; }
-    .status-completed { background: rgba(22,163,74,.1);  color: #15803d; }
-    .status-cancelled { background: rgba(107,114,128,.1); color: #6b7280; }
-    .dist-pill {
-      display: inline-flex; align-items: center; gap: 0.25rem;
-      font-size: 0.72rem; color: #6e6e73; background: #f5f5f7;
-      border-radius: 99px; padding: 0.22rem 0.65rem; border: 1px solid #e5e5ea;
-    }
     .hero-title {
-      font-size: 1.65rem; font-weight: 800; color: #1d1d1f;
-      letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 0.75rem;
+      font-size: 36px;
+      font-weight: 500;
+      letter-spacing: -0.025em;
+      line-height: 1.08;
+      margin: 0;
+      color: var(--ink);
     }
     .hero-byline {
-      display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;
-      font-size: 0.8rem; color: #6e6e73;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12.5px;
+      color: var(--muted);
+      flex-wrap: wrap;
     }
-    .byline-client { display: inline-flex; align-items: center; gap: 0.35rem; color: #3a3a3c; }
-    .byline-sep { color: #d2d2d7; }
-    .verified-pill {
-      display: inline-flex; align-items: center; gap: 0.2rem;
-      background: rgba(20,184,166,.1); color: #0f766e;
-      border-radius: 99px; padding: 0.15rem 0.5rem; font-size: 0.68rem; font-weight: 600;
+    .byline-avatar {
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9.5px;
+      font-weight: 600;
+    }
+    .hero-byline strong { color: var(--ink); font-weight: 500; }
+    .dot { color: var(--rule); }
+
+    /* Panels */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      padding: 20px 22px;
+    }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 14px;
+    }
+    .panel-eyebrow {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0;
+    }
+    .panel-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 4px 0 0;
+      letter-spacing: -0.01em;
+    }
+    .desc-text {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.65;
+      letter-spacing: -0.003em;
+      margin: 0;
+      white-space: pre-line;
     }
 
-    /* ── Layout ───────────────────────────── */
-    .layout { display: grid; grid-template-columns: 1fr 300px; gap: 1rem; align-items: start; }
+    /* Details + map row */
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 16px;
+    }
+    .detail-row {
+      display: flex;
+      gap: 14px;
+      padding: 12px 0;
+      border-top: 1px solid var(--rule);
+      align-items: center;
+    }
+    .detail-row:first-of-type { border-top: none; padding-top: 0; }
+    .detail-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .detail-label {
+      flex: 1;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .detail-val {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .detail-val-row {
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+    }
+    .detail-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 2px;
+    }
+    .mini-map {
+      height: 196px;
+      border-radius: 10px;
+      border: 1px solid var(--rule);
+      background: var(--soft);
+      overflow: hidden;
+    }
+    .map-btn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--rule);
+      background: var(--panel);
+      font-size: 12px;
+      color: var(--ink);
+      font-family: var(--font);
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .map-btn:hover { border-color: var(--sub); }
 
-    /* ── Section ──────────────────────────── */
-    .section-title { font-size: 0.8rem; font-weight: 700; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.875rem; }
-    .description { font-size: 0.925rem; color: #3a3a3c; line-height: 1.7; white-space: pre-wrap; }
-
-    /* ── Details grid ─────────────────────── */
-    .details-grid { display: flex; flex-direction: column; gap: 0.75rem; }
-    .detail-item { display: flex; align-items: flex-start; gap: 0.625rem; }
-    .detail-icon { font-size: 1rem; width: 22px; flex-shrink: 0; text-align: center; }
-    .detail-label { display: block; font-size: 0.7rem; color: #aeaeb2; font-weight: 500; margin-bottom: 0.1rem; }
-    .detail-val { display: block; font-size: 0.875rem; color: #1d1d1f; font-weight: 500; }
-
-    /* ── Tools ────────────────────────────── */
-    .tools-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .tool-chip {
-      background: #f5f5f7; border: 1px solid #e5e5ea;
-      border-radius: 99px; padding: 0.3rem 0.75rem;
-      font-size: 0.8rem; color: #3a3a3c;
+    /* Tools */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .tool-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      background: var(--bg);
+    }
+    .tool-check {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .tool-text {
+      font-size: 13px;
+      color: var(--ink);
     }
 
-    /* ── Mini map ─────────────────────────── */
-    .map-section { padding-bottom: 0; overflow: hidden; }
-    .mini-map { width: 100%; height: 220px; border-radius: 0 0 18px 18px; }
-
-    /* ── Sidebar ──────────────────────────── */
-    .right { display: flex; flex-direction: column; gap: 1rem; }
-    .sidebar-card { padding: 1.25rem; }
-    .sidebar-title { font-size: 0.8rem; font-weight: 700; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.875rem; }
-
-    .price-row { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 1rem; }
-    .price-val { font-size: 1.6rem; font-weight: 800; color: #1d1d1f; letter-spacing: -0.02em; }
-    .price-neg { font-size: 1.25rem; color: #6e6e73; }
-    .price-sub { font-size: 0.78rem; color: #aeaeb2; }
-
-    .btn-apply {
-      width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-      background: #1d1d1f; color: #fff; border: none;
-      padding: 0.75rem 1rem; border-radius: 12px;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit;
-      transition: background 0.15s, transform 0.1s;
+    /* Pay card */
+    .pay-card {
+      background: var(--ink);
+      color: #fff;
+      border-radius: 16px;
+      padding: 22px 22px 20px;
+      position: relative;
+      overflow: hidden;
     }
-    .btn-apply:hover { background: #2d2d2f; }
-    .btn-apply:active { transform: scale(0.98); }
-
-    /* ── Application status box ───────────── */
-    .app-status-box {
-      border-radius: 10px; padding: 0.875rem 1rem; margin-bottom: 0.75rem;
-      background: #f5f5f7; border: 1px solid #e5e5ea;
+    .pay-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 100% 0%, rgba(132,204,22,0.2), transparent 55%);
+      pointer-events: none;
     }
-    .app-status-applied   { background: rgba(37,99,235,.05);  border-color: rgba(37,99,235,.15); }
-    .app-status-accepted  { background: rgba(22,163,74,.05);  border-color: rgba(22,163,74,.15); }
-    .app-status-rejected  { background: rgba(220,38,38,.05);  border-color: rgba(220,38,38,.12); }
-    .app-status-notified  { background: rgba(245,158,11,.05); border-color: rgba(245,158,11,.15); }
-    .app-status-withdrawn { background: #f5f5f7; border-color: #e5e5ea; }
-
-    .app-status-label { font-size: 0.68rem; font-weight: 700; color: #aeaeb2; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
-    .app-status-badge { font-size: 0.875rem; font-weight: 700; color: #1d1d1f; margin-bottom: 0.5rem; }
-    .app-detail-row { display: flex; justify-content: space-between; font-size: 0.8rem; color: #6e6e73; margin-bottom: 0.25rem; }
-    .app-message { font-size: 0.8rem; color: #3a3a3c; line-height: 1.55; margin-top: 0.5rem; font-style: italic; }
-    .app-meta { font-size: 0.7rem; color: #aeaeb2; margin-top: 0.5rem; }
-
-    .btn-withdraw {
-      width: 100%; padding: 0.6rem; border-radius: 10px;
-      background: none; border: 1px solid #d2d2d7; color: #6e6e73;
-      font-size: 0.82rem; font-weight: 500; cursor: pointer; font-family: inherit;
-      transition: background 0.12s, color 0.12s;
+    .pay-card > * { position: relative; }
+    .pay-eyebrow {
+      font-size: 10.5px;
+      color: #A3A3A3;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 0;
     }
-    .btn-withdraw:hover:not(:disabled) { background: #fff0ee; border-color: #ff3b30; color: #ff3b30; }
-    .btn-withdraw:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .action-row { display: flex; gap: 0.5rem; margin-top: 0.625rem; }
-    .btn-accept {
-      flex: 1; padding: 0.6rem; border-radius: 10px;
-      background: #14b8a6; color: #fff; border: none;
-      font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
-      transition: opacity 0.15s;
+    .pay-amount {
+      font-size: 42px;
+      font-weight: 500;
+      letter-spacing: -0.035em;
+      line-height: 1;
+      margin: 6px 0 0;
+      font-variant-numeric: tabular-nums;
     }
-    .btn-accept:hover:not(:disabled) { opacity: 0.88; }
-    .btn-accept:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-decline {
-      flex: 1; padding: 0.6rem; border-radius: 10px;
-      background: none; border: 1px solid #d2d2d7; color: #6e6e73;
-      font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
-      transition: background 0.12s;
+    .pay-amount--neg {
+      font-size: 28px;
+      color: #A3A3A3;
     }
-    .btn-decline:hover:not(:disabled) { background: #f5f5f7; }
-    .btn-decline:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .notice {
-      border-radius: 10px; padding: 0.625rem 0.875rem;
-      font-size: 0.8rem; font-weight: 500; margin-top: 0.625rem;
+    .pay-sub {
+      font-size: 12px;
+      color: #A3A3A3;
+      margin: 6px 0 0;
     }
-    .notice--blue  { background: rgba(37,99,235,.06);  color: #1d4ed8; border: 1px solid rgba(37,99,235,.15); }
-    .notice--green { background: rgba(22,163,74,.06);  color: #15803d; border: 1px solid rgba(22,163,74,.15); }
-    .notice--red   { background: rgba(220,38,38,.06);  color: #dc2626; border: 1px solid rgba(220,38,38,.12); }
-    .notice--gray  { background: #f5f5f7; color: #6e6e73; border: 1px solid #e5e5ea; }
+    .pay-hourly { color: var(--accent); font-family: var(--mono); }
+    .pay-fee {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #262626;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: #A3A3A3;
+      font-family: var(--mono);
+    }
+    .pay-fee-keep { color: #fff; }
 
-    /* ── Client card ──────────────────────── */
-    .client-row { display: flex; align-items: center; gap: 0.75rem; }
+    /* Rail cards */
+    .rail-card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .rail-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--ink);
+      margin: 4px 0 0;
+      letter-spacing: -0.01em;
+    }
+    .rail-label {
+      display: block;
+      margin-top: 14px;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .rail-input {
+      margin-top: 6px;
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--ink);
+      resize: none;
+      outline: none;
+      background: var(--panel);
+    }
+    .rail-input:focus { border-color: var(--ink); }
+    .rail-input--mono { font-family: var(--mono); font-size: 14px; }
+    .rail-err {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #B91C1C;
+    }
+    .rail-cta {
+      margin-top: 12px;
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .rail-cta:hover:not(:disabled) { background: #a3e635; }
+    .rail-cta:disabled { opacity: 0.5; cursor: not-allowed; }
+    .rail-cta--ghost {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      color: var(--ink);
+    }
+    .rail-cta--ghost:hover:not(:disabled) { background: var(--soft); border-color: var(--sub); }
+    .rail-cta--danger { color: #DC2626; }
+    .rail-cta--danger:hover:not(:disabled) {
+      border-color: rgba(220,38,38,0.3);
+      background: rgba(239,68,68,0.04);
+    }
+    .rail-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .rail-actions .rail-cta { margin-top: 0; }
+    .rail-notice {
+      margin: 12px 0 0;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .rail-notice--accent {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #F0FAE0;
+      color: var(--accent-text);
+    }
+
+    /* Stepper */
+    .stepper {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .step {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .step-num {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.06);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-family: var(--mono);
+    }
+    .step--current {
+      background: var(--ink);
+      color: #fff;
+    }
+    .step--current .step-num { background: rgba(255,255,255,0.18); }
+    .step--done {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+    .step--done .step-num { background: rgba(0,0,0,0.06); color: var(--accent-ink); }
+    .step-line {
+      flex: 1;
+      height: 1px;
+      background: var(--rule);
+    }
+
+    .rail-meta-row {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+    }
+    .rail-meta-label { color: var(--muted); }
+    .rail-meta-val { color: var(--ink); font-weight: 500; font-family: var(--mono); }
+
+    .rail-quote {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--bg);
+      border: 1px solid var(--rule);
+      font-size: 13px;
+      color: var(--ink);
+      font-style: italic;
+      line-height: 1.4;
+    }
+    .rail-applied {
+      margin: 8px 0 0;
+      font-size: 11px;
+      color: var(--sub);
+      font-family: var(--mono);
+    }
+
+    /* About the client */
+    .client-row {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
     .client-avatar {
-      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
-      color: #fff; font-size: 0.875rem; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
     }
-    .client-name { font-size: 0.9rem; font-weight: 600; color: #1d1d1f; margin-bottom: 0.2rem; }
-    .client-verified { display: flex; align-items: center; gap: 0.25rem; font-size: 0.73rem; color: #0f766e; font-weight: 500; }
-    .client-unverified { font-size: 0.73rem; color: #aeaeb2; }
-
-    /* ── Apply modal ──────────────────────── */
-    .overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,.55);
-      backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center;
-      z-index: 1000; padding: 1rem;
+    .client-name {
+      font-size: 14px;
+      color: var(--ink);
+      font-weight: 500;
+      margin: 0;
     }
-    .modal {
-      background: #fff; border: 1px solid #e5e5ea;
-      border-radius: 20px; width: 100%; max-width: 480px;
-      box-shadow: 0 32px 80px rgba(0,0,0,.2); overflow: hidden;
+    .client-verified {
+      margin: 2px 0 0;
+      font-size: 11.5px;
+      color: var(--accent-text);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
-    .modal-head {
-      display: flex; align-items: flex-start; gap: 0.875rem;
-      padding: 1.25rem 1.375rem 1rem; border-bottom: 1px solid #f0f0f5;
-    }
-    .modal-title { font-size: 1rem; font-weight: 700; color: #1d1d1f; margin-bottom: 0.2rem; }
-    .modal-sub   { font-size: 0.8rem; color: #6e6e73; }
-    .modal-close {
-      width: 28px; height: 28px; border-radius: 50%; background: #f5f5f7;
-      border: 1px solid #e5e5ea; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: #6e6e73; flex-shrink: 0; margin-left: auto;
-      transition: background 0.12s;
-    }
-    .modal-close:hover { background: #e5e5ea; }
-    .modal-body { padding: 1rem 1.375rem; }
-    .field { margin-bottom: 0.875rem; }
-    label { display: block; font-size: 0.78rem; font-weight: 600; color: #1d1d1f; margin-bottom: 0.3rem; }
-    .opt { font-weight: 400; color: #aeaeb2; font-size: 0.74rem; }
-    .field-input {
-      width: 100%; padding: 0.65rem 0.875rem;
-      border: 1px solid #d2d2d7; border-radius: 10px;
-      font-size: 0.875rem; outline: none; font-family: inherit; color: #1d1d1f;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .field-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
-    .field-input::placeholder { color: #aeaeb2; }
-    textarea.field-input { resize: vertical; }
-    .modal-err {
-      margin: 0 1.375rem 0.75rem;
-      background: rgba(255,59,48,.07); color: #ff3b30;
-      border: 1px solid rgba(255,59,48,.18);
-      padding: 0.6rem 0.875rem; border-radius: 9px; font-size: 0.82rem;
-    }
-    .modal-actions {
-      display: flex; gap: 0.5rem; justify-content: flex-end;
-      padding: 0.875rem 1.375rem 1.375rem; border-top: 1px solid #f0f0f5;
-    }
-    .btn-cancel {
-      background: transparent; color: #6e6e73; border: 1px solid #d2d2d7;
-      padding: 0.6rem 1.125rem; border-radius: 99px; font-size: 0.875rem;
-      font-weight: 500; cursor: pointer; font-family: inherit;
-      transition: background 0.12s;
-    }
-    .btn-cancel:hover { background: #f5f5f7; }
-    .btn-submit {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      background: #1d1d1f; color: #fff; border: none;
-      padding: 0.6rem 1.375rem; border-radius: 99px; font-size: 0.875rem;
-      font-weight: 600; cursor: pointer; font-family: inherit;
-      transition: background 0.15s, opacity 0.15s;
-    }
-    .btn-submit:hover:not(:disabled) { background: #2d2d2f; }
-    .btn-submit:disabled { opacity: 0.35; cursor: not-allowed; }
-    .spin {
-      width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.3);
-      border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+    .client-unverified {
+      margin: 2px 0 0;
+      font-size: 11.5px;
+      color: var(--sub);
     }
 
-    @media (max-width: 720px) {
-      .layout { grid-template-columns: 1fr; }
-      .right { order: -1; }
-      .hero-title { font-size: 1.35rem; }
+    /* Responsive */
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      .col-right { position: static; order: -1; }
+      .row-2 { grid-template-columns: 1fr; }
+      .body { padding: 20px; }
+      .crumb-bar { padding: 12px 20px; }
+      .hero-title { font-size: 28px; }
+    }
+    @media (max-width: 640px) {
+      .tools-grid { grid-template-columns: 1fr; }
+      .rail-actions { grid-template-columns: 1fr; }
     }
   `],
 })
@@ -609,8 +989,7 @@ export class WorkerJobDetailComponent implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
 
-  // Apply modal
-  applying = signal(false);
+  // Apply
   submitting = signal(false);
   applyError = signal<string | null>(null);
   proposedPrice: number | null = null;
@@ -619,6 +998,67 @@ export class WorkerJobDetailComponent implements OnInit {
   // Actions
   withdrawing = signal(false);
   actioning = signal(false);
+  isSaved = signal(false);
+
+  readonly steps = [
+    { id: 'applied',  label: 'Applied' },
+    { id: 'pending',  label: 'Pending review' },
+    { id: 'accepted', label: 'Accepted' },
+  ];
+
+  appStepIndex(): number {
+    const s = this.job()?.applicationStatus;
+    if (s === 'ACCEPTED') return 2;
+    if (s === 'APPLIED' || s === 'SUGGESTED' || s === 'NOTIFIED') return 1;
+    return 0;
+  }
+
+  catColor(category?: string | null): string {
+    const map: Record<string, string> = {
+      'Cleaning': '#10B981', 'Plumbing': '#3B82F6', 'Electrical': '#EAB308',
+      'Moving': '#8B5CF6', 'Gardening': '#16A34A', 'Painting': '#EC4899',
+      'Assembly': '#F59E0B', 'Mounting': '#10B981', 'Carpentry': '#A16207',
+      'HVAC': '#0EA5E9', 'Handyman': '#737373', 'Mechanical': '#475569',
+    };
+    return map[category ?? ''] ?? '#737373';
+  }
+
+  avatarColor(name?: string | null): string {
+    const colors = ['#7C3AED','#0EA5E9','#0F8A5F','#D4762A','#B83D5B','#1E7A8C','#E54C84','#5A56E0'];
+    const code = (name ?? '').charCodeAt(0) || 0;
+    return colors[code % colors.length];
+  }
+
+  keepLow(): number {
+    const lo = this.job()?.priceMin ?? 0;
+    return Math.round(lo * 0.88);
+  }
+
+  keepHigh(): number {
+    const hi = this.job()?.priceMax ?? this.job()?.priceMin ?? 0;
+    return Math.round(hi * 0.88);
+  }
+
+  toggleSave() {
+    const j = this.job();
+    if (!j) return;
+    if (this.isSaved()) {
+      this.api.unsaveJob(j.id).subscribe({ next: () => this.isSaved.set(false) });
+    } else {
+      this.api.saveJob(j.id).subscribe({ next: () => this.isSaved.set(true) });
+    }
+  }
+
+  shareJob() {
+    const j = this.job();
+    if (!j) return;
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: j.title, url }).catch(() => { /* user cancelled */ });
+    } else {
+      navigator.clipboard?.writeText(url);
+    }
+  }
 
   private mapInstance: any = null;
 
@@ -646,6 +1086,12 @@ export class WorkerJobDetailComponent implements OnInit {
         this.loading.set(false);
       },
     });
+
+    this.api.getSavedJobs().subscribe({
+      next: (saved: any[]) => {
+        this.isSaved.set(saved.some((s: any) => s.jobId === id));
+      },
+    });
   }
 
   goBack() {
@@ -655,15 +1101,6 @@ export class WorkerJobDetailComponent implements OnInit {
   }
 
   // ── Apply ────────────────────────────────────────────────────────
-
-  openApply() {
-    this.proposedPrice = null;
-    this.applyMessage = '';
-    this.applyError.set(null);
-    this.applying.set(true);
-  }
-
-  closeApply() { this.applying.set(false); }
 
   submitApply() {
     const j = this.job();
@@ -677,7 +1114,6 @@ export class WorkerJobDetailComponent implements OnInit {
     }).subscribe({
       next: (res: any) => {
         this.submitting.set(false);
-        this.applying.set(false);
         this.job.update(j => j ? {
           ...j,
           alreadyApplied: true,

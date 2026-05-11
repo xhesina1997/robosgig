@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { AnalyzeJobDto } from './dto/analyze-job.dto';
 import { CreateJobDto } from './dto/create-job.dto';
+import { SaveDraftDto } from './dto/save-draft.dto';
 
 // Simple Haversine distance calculation
 function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -165,6 +166,115 @@ export class JobsService {
     }
 
     return job;
+  }
+
+  /**
+   * Save a draft. If `dto.id` is provided and belongs to the client, updates that draft.
+   * Otherwise creates a new one. Multiple drafts per client are supported.
+   */
+  async saveDraft(dto: SaveDraftDto, clientId: string) {
+    const titleSeed = (dto.title ?? dto.rawInput ?? '').trim().slice(0, 80) || 'Untitled draft';
+    const category = dto.categorySlug
+      ? await this.prisma.category.findUnique({ where: { slug: dto.categorySlug } })
+      : null;
+
+    if (dto.id) {
+      const existing = await this.prisma.job.findUnique({ where: { id: dto.id } });
+      if (!existing || existing.clientId !== clientId || existing.status !== 'DRAFT') {
+        throw new NotFoundException('Draft not found');
+      }
+      return this.prisma.job.update({
+        where: { id: dto.id },
+        data: {
+          rawInput: dto.rawInput ?? existing.rawInput,
+          title: titleSeed,
+          description: dto.description ?? existing.description,
+          urgency: dto.urgency ?? existing.urgency,
+          categoryId: category?.id ?? existing.categoryId,
+          aiCategorySlug: dto.categorySlug ?? existing.aiCategorySlug,
+          priceMin: dto.priceMin ?? existing.priceMin,
+          priceMax: dto.priceMax ?? existing.priceMax,
+          estimatedHours: dto.estimatedHours ?? existing.estimatedHours,
+          toolsNeeded: dto.toolsNeeded ?? existing.toolsNeeded,
+          latitude: dto.latitude ?? existing.latitude,
+          longitude: dto.longitude ?? existing.longitude,
+          address: dto.address ?? existing.address,
+          city: dto.city ?? existing.city,
+          scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : existing.scheduledDate,
+        },
+        include: { category: true },
+      });
+    }
+
+    return this.prisma.job.create({
+      data: {
+        clientId,
+        rawInput: dto.rawInput ?? '',
+        title: titleSeed,
+        description: dto.description ?? dto.rawInput ?? '',
+        urgency: dto.urgency ?? 'NORMAL',
+        categoryId: category?.id ?? null,
+        aiCategorySlug: dto.categorySlug,
+        priceMin: dto.priceMin,
+        priceMax: dto.priceMax,
+        estimatedHours: dto.estimatedHours,
+        toolsNeeded: dto.toolsNeeded ?? [],
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        address: dto.address,
+        city: dto.city,
+        scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : null,
+        status: 'DRAFT',
+      },
+      include: { category: true },
+    });
+  }
+
+  async listDrafts(clientId: string) {
+    return this.prisma.job.findMany({
+      where: { clientId, status: 'DRAFT' },
+      orderBy: { updatedAt: 'desc' },
+      include: { category: true },
+    });
+  }
+
+  async deleteDraft(draftId: string, clientId: string) {
+    const draft = await this.prisma.job.findUnique({ where: { id: draftId } });
+    if (!draft || draft.clientId !== clientId || draft.status !== 'DRAFT') {
+      throw new NotFoundException('Draft not found');
+    }
+    await this.prisma.job.delete({ where: { id: draftId } });
+    return { deleted: true };
+  }
+
+  /**
+   * Convert a draft into a posted job (subject to the same free-plan caps).
+   */
+  async publishDraft(draftId: string, clientId: string) {
+    const draft = await this.prisma.job.findUnique({ where: { id: draftId } });
+    if (!draft || draft.clientId !== clientId || draft.status !== 'DRAFT') {
+      throw new NotFoundException('Draft not found');
+    }
+
+    // Same free-plan cap as createJob
+    const sub = await this.prisma.subscription.findUnique({ where: { userId: clientId } });
+    const isPaid = sub?.isActive && sub.planType === 'CLIENT_BUSINESS';
+    if (!isPaid) {
+      const activeCount = await this.prisma.job.count({
+        where: { clientId, status: { in: ['POSTED', 'ASSIGNED', 'IN_PROGRESS'] } },
+      });
+      if (activeCount >= 1) {
+        throw new ForbiddenException(
+          'Free plan limit reached. You can post 1 job on the free plan. Upgrade to Client Business for unlimited job posts.',
+        );
+      }
+    }
+
+    return this.prisma.job.update({
+      where: { id: draftId },
+      data: { status: 'POSTED' },
+      include: { category: true },
+    });
   }
 
   async deleteJob(jobId: string, clientId: string) {

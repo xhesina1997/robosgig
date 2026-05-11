@@ -77,6 +77,38 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/jobs`, data);
   }
 
+  saveJobDraft(data: {
+    id?: string;
+    rawInput?: string;
+    title?: string;
+    description?: string;
+    urgency?: 'LOW' | 'NORMAL' | 'HIGH' | 'EMERGENCY';
+    categorySlug?: string;
+    priceMin?: number;
+    priceMax?: number;
+    estimatedHours?: number;
+    toolsNeeded?: string[];
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    city?: string;
+    scheduledDate?: string;
+  }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/jobs/drafts`, data);
+  }
+
+  listJobDrafts(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/jobs/drafts`);
+  }
+
+  deleteJobDraft(id: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/jobs/drafts/${id}`);
+  }
+
+  publishJobDraft(id: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/jobs/drafts/${id}/publish`, {});
+  }
+
   getJob(id: string): Observable<unknown> {
     return this.http.get(`${this.baseUrl}/jobs/${id}`);
   }
@@ -201,6 +233,10 @@ export class ApiService {
     return this.http.delete<{ removed: boolean }>(`${this.baseUrl}/payments/me/payment-methods/${id}`);
   }
 
+  createCardSetupIntent(): Observable<{ clientSecret: string }> {
+    return this.http.post<{ clientSecret: string }>(`${this.baseUrl}/payments/me/payment-methods/setup`, {});
+  }
+
   // ── Chat ──────────────────────────────────────────────────────────
   getChatConversations(): Observable<unknown[]> {
     return this.http.get<unknown[]>(`${this.baseUrl}/chat/conversations`);
@@ -239,6 +275,10 @@ export class ApiService {
 
   getClientStats(): Observable<any> {
     return this.http.get(`${this.baseUrl}/clients/me/stats`);
+  }
+
+  getClientTransactions(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/clients/me/transactions`);
   }
 
   getWorkerStats(): Observable<any> {

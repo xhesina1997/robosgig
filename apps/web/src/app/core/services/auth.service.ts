@@ -14,8 +14,10 @@ export class AuthService {
   private router = inject(Router);
 
   private _user = signal<AuthUser | null>(this.loadFromStorage());
+  private _city = signal<string | null>(localStorage.getItem('tf_city'));
 
   readonly user = this._user.asReadonly();
+  readonly city = this._city.asReadonly();
   readonly isLoggedIn = computed(() => !!this._user());
   readonly isWorker = computed(() => this._user()?.role === 'WORKER');
   readonly isClient = computed(() => this._user()?.role === 'CLIENT');
@@ -25,27 +27,49 @@ export class AuthService {
     try { return JSON.parse(atob(token.split('.')[1])).email === 'adm@adm.com'; } catch { return false; }
   });
 
+  constructor() {
+    // Defer the HTTP refresh: calling it synchronously here triggers the
+    // auth interceptor which re-injects AuthService while we're still
+    // mid-construction → NG0200 circular DI. setTimeout escapes that stack.
+    if (this._user()) setTimeout(() => this.refreshCity(), 0);
+  }
+
+  refreshCity() {
+    const role = this._user()?.role;
+    if (role !== 'WORKER' && role !== 'CLIENT') return;
+    const req = role === 'WORKER' ? this.api.getMyWorkerProfile() : this.api.getClientProfile();
+    req.subscribe({
+      next: (p: any) => {
+        const city = p?.city ?? null;
+        this._city.set(city);
+        if (city) localStorage.setItem('tf_city', city);
+        else localStorage.removeItem('tf_city');
+      },
+    });
+  }
+
   loginWithToken(accessToken: string, role: 'CLIENT' | 'WORKER' | 'ADMIN') {
     this.setUser({ accessToken, role });
+    this.refreshCity();
   }
 
   login(email: string, password: string) {
     return this.api.login(email, password).pipe(
-      tap((res) => this.setUser(res as AuthUser))
+      tap((res) => { this.setUser(res as AuthUser); this.refreshCity(); })
     );
   }
 
   register(data: Record<string, unknown>) {
     return this.api.register(data).pipe(
       tap((res: any) => {
-        if (!res.requiresVerification) this.setUser(res as AuthUser);
+        if (!res.requiresVerification) { this.setUser(res as AuthUser); this.refreshCity(); }
       })
     );
   }
 
   verifyEmail(email: string, code: string) {
     return this.api.verifyEmail(email, code).pipe(
-      tap((res) => this.setUser(res as AuthUser))
+      tap((res) => { this.setUser(res as AuthUser); this.refreshCity(); })
     );
   }
 
@@ -55,7 +79,9 @@ export class AuthService {
 
   logout() {
     this._user.set(null);
+    this._city.set(null);
     localStorage.removeItem('tf_user');
+    localStorage.removeItem('tf_city');
     this.router.navigate(['/']);
   }
 

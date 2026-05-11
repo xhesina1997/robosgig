@@ -48,6 +48,13 @@ export class PaymentsController {
     return this.paymentsService.getSavedPaymentMethods(req.user.sub);
   }
 
+  /** Client: create a Stripe SetupIntent for inline card collection via Elements */
+  @Post('me/payment-methods/setup')
+  @ApiOperation({ summary: 'Client: create Stripe SetupIntent to add a card inline' })
+  createSetupIntent(@Request() req: { user: { sub: string } }) {
+    return this.paymentsService.createSetupIntent(req.user.sub);
+  }
+
   /** Client: remove a saved payment method */
   @Delete('me/payment-methods/:id')
   @ApiOperation({ summary: 'Client: remove a saved card' })
