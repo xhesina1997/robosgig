@@ -144,14 +144,10 @@ import { environment } from '../../../../environments/environment';
               <span class="auth-divider-line"></span>
             </div>
 
-            <div class="auth-oauth-row">
+            <div class="auth-oauth-row auth-oauth-row--single">
               <button type="button" class="auth-oauth" (click)="loginWithGoogle()">
                 <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 11v3.4h4.7c-.2 1.3-1.5 3.8-4.7 3.8a5.2 5.2 0 1 1 0-10.4c1.7 0 2.8.7 3.4 1.3l2.3-2.3C16.3 5.4 14.3 4.5 12 4.5a7.5 7.5 0 1 0 0 15c4.3 0 7.2-3 7.2-7.3 0-.5 0-.8-.1-1.2H12z"/></svg>
-                Google
-              </button>
-              <button type="button" class="auth-oauth" disabled>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 12.5c0-2.7 2.2-4 2.3-4.1-1.3-1.8-3.2-2.1-3.9-2.1-1.7-.2-3.2 1-4 1-.9 0-2.1-1-3.5-1-1.8 0-3.5 1-4.4 2.7-1.9 3.3-.5 8.1 1.3 10.7.9 1.3 2 2.7 3.4 2.6 1.4-.1 1.9-.9 3.5-.9s2.1.9 3.5.9c1.5 0 2.4-1.3 3.3-2.6 1-1.5 1.5-3 1.5-3.1-.1 0-2.9-1.1-3-4.1zM14.7 4.6c.7-.9 1.2-2.2 1.1-3.4-1.1.1-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.5z"/></svg>
-                Apple
+                Continue with Google
               </button>
             </div>
 
@@ -556,6 +552,7 @@ import { environment } from '../../../../environments/environment';
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
+    .auth-oauth-row--single { grid-template-columns: 1fr; }
     .auth-oauth {
       padding: 12px 18px;
       border-radius: 12px;
