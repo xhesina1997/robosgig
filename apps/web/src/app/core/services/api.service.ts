@@ -200,12 +200,28 @@ export class ApiService {
     return this.http.get<{ idVerified: boolean; verification: { status: string } | null }>(`${this.baseUrl}/verify/status`);
   }
 
-  createVerifySession(): Observable<{ clientSecret: string }> {
-    return this.http.post<{ clientSecret: string }>(`${this.baseUrl}/verify/session`, {});
+  createVerifySession(country: string): Observable<{ method: 'STRIPE'; clientSecret: string } | { method: 'MANUAL' }> {
+    return this.http.post<{ method: 'STRIPE'; clientSecret: string } | { method: 'MANUAL' }>(`${this.baseUrl}/verify/session`, { country });
+  }
+
+  submitManualVerification(body: { country: string; idFrontUrl: string; idBackUrl?: string | null; selfieUrl: string }): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/verify/manual`, body);
+  }
+
+  getCloudinarySignature(folder: string): Observable<{ cloudName: string; apiKey: string; timestamp: number; folder: string; signature: string }> {
+    return this.http.post<{ cloudName: string; apiKey: string; timestamp: number; folder: string; signature: string }>(`${this.baseUrl}/cloudinary/signature`, { folder });
   }
 
   getAdminVerifications(): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/verify/admin/all`);
+  }
+
+  approveVerification(id: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.baseUrl}/verify/admin/${id}/approve`, {});
+  }
+
+  rejectVerification(id: string, reason?: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.baseUrl}/verify/admin/${id}/reject`, { reason });
   }
 
   // ── Payments ──────────────────────────────────────────────────────

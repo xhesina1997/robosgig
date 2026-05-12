@@ -1,5 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -9,6 +10,12 @@ interface VerificationEntry {
   userId: string;
   stripeSessionId: string | null;
   status: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  method: 'STRIPE' | 'MANUAL';
+  country: string | null;
+  idFrontUrl: string | null;
+  idBackUrl: string | null;
+  selfieUrl: string | null;
+  rejectionReason: string | null;
   submittedAt: string;
   reviewedAt: string | null;
   user: {
@@ -23,7 +30,7 @@ interface VerificationEntry {
 @Component({
   selector: 'app-admin-verifications',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="page">
       <div class="admin-nav">
@@ -50,7 +57,7 @@ interface VerificationEntry {
       <div class="page-header">
         <div class="inner">
           <h1 class="page-title">ID Verifications</h1>
-          <p class="page-sub">Stripe Identity handles verification automatically</p>
+          <p class="page-sub">Stripe-supported countries auto-verify; manual submissions wait for your review.</p>
         </div>
       </div>
 
@@ -79,22 +86,81 @@ interface VerificationEntry {
                   <div class="card-meta">
                     <span class="card-name">{{ fullName(v) }}</span>
                     <span class="card-email">{{ v.user.email }}</span>
-                    <span class="card-role" [class.worker]="v.user.role === 'WORKER'">{{ v.user.role }}</span>
+                    <div class="card-pills">
+                      <span class="card-role" [class.worker]="v.user.role === 'WORKER'">{{ v.user.role }}</span>
+                      <span class="card-method" [class.manual]="v.method === 'MANUAL'">
+                        {{ v.method === 'MANUAL' ? 'Manual' : 'Stripe' }}
+                      </span>
+                      @if (v.country) {
+                        <span class="card-country">{{ v.country }}</span>
+                      }
+                    </div>
                   </div>
                   <div class="card-status" [class]="'status-' + v.status.toLowerCase()">
                     {{ v.status }}
                   </div>
                 </div>
 
+                @if (v.method === 'MANUAL' && (v.idFrontUrl || v.idBackUrl || v.selfieUrl)) {
+                  <div class="doc-grid">
+                    @if (v.idFrontUrl) {
+                      <a class="doc-tile" [href]="v.idFrontUrl" target="_blank" rel="noopener">
+                        <img [src]="v.idFrontUrl" alt="ID front"/>
+                        <span class="doc-tile-lbl">ID front</span>
+                      </a>
+                    }
+                    @if (v.idBackUrl) {
+                      <a class="doc-tile" [href]="v.idBackUrl" target="_blank" rel="noopener">
+                        <img [src]="v.idBackUrl" alt="ID back"/>
+                        <span class="doc-tile-lbl">ID back</span>
+                      </a>
+                    }
+                    @if (v.selfieUrl) {
+                      <a class="doc-tile" [href]="v.selfieUrl" target="_blank" rel="noopener">
+                        <img [src]="v.selfieUrl" alt="Selfie"/>
+                        <span class="doc-tile-lbl">Selfie</span>
+                      </a>
+                    }
+                  </div>
+                }
+
                 <div class="card-info">
                   <span>Submitted: {{ v.submittedAt | date:'dd MMM yyyy, HH:mm' }}</span>
                   @if (v.reviewedAt) {
                     <span>Reviewed: {{ v.reviewedAt | date:'dd MMM yyyy, HH:mm' }}</span>
                   }
+                  @if (v.rejectionReason) {
+                    <span class="reason">Reason: {{ v.rejectionReason }}</span>
+                  }
                   @if (v.stripeSessionId) {
                     <span class="session-id">Session: {{ v.stripeSessionId }}</span>
                   }
                 </div>
+
+                @if (v.method === 'MANUAL' && v.status === 'PENDING') {
+                  @if (rejectingId() === v.id) {
+                    <div class="card-reject-row">
+                      <input
+                        class="card-reject-input"
+                        type="text"
+                        placeholder="Reason (shown to the user)"
+                        [(ngModel)]="rejectReason"
+                        name="rejectReason"
+                      />
+                      <button class="card-btn card-btn--cancel" (click)="cancelReject()" [disabled]="acting() === v.id" type="button">Cancel</button>
+                      <button class="card-btn card-btn--reject" (click)="confirmReject(v.id)" [disabled]="acting() === v.id" type="button">
+                        @if (acting() === v.id) { Rejecting… } @else { Confirm reject }
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="card-actions">
+                      <button class="card-btn card-btn--reject" (click)="startReject(v.id)" [disabled]="acting() === v.id" type="button">Reject</button>
+                      <button class="card-btn card-btn--approve" (click)="approve(v.id)" [disabled]="acting() === v.id" type="button">
+                        @if (acting() === v.id) { Approving… } @else { Approve }
+                      </button>
+                    </div>
+                  }
+                }
 
               </div>
             }
@@ -158,6 +224,93 @@ interface VerificationEntry {
 
     .card-info { display: flex; flex-wrap: wrap; gap: 0.75rem; padding: 0 1.25rem 1.25rem; font-size: 0.78rem; color: #71717a; }
     .session-id { font-family: monospace; font-size: 0.72rem; color: #a1a1aa; }
+    .reason { color: #b91c1c; font-weight: 500; }
+
+    .card-pills { display: inline-flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.15rem; }
+    .card-method {
+      display: inline-flex; align-items: center;
+      font-size: 0.68rem; font-weight: 600;
+      background: #f4f4f5; color: #52525b;
+      padding: 0.1rem 0.5rem; border-radius: 99px;
+    }
+    .card-method.manual { background: #fef3c7; color: #92400e; }
+    .card-country {
+      font-size: 0.68rem; font-weight: 600;
+      background: #ecfeff; color: #0e7490;
+      padding: 0.1rem 0.5rem; border-radius: 99px;
+      font-family: monospace;
+    }
+
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      padding: 0 1.25rem 1rem;
+    }
+    @media (max-width: 600px) { .doc-grid { grid-template-columns: 1fr 1fr; } }
+    .doc-tile {
+      display: block;
+      border: 1px solid #e4e4e7;
+      border-radius: 10px;
+      overflow: hidden;
+      text-decoration: none;
+      background: #fafafa;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .doc-tile:hover { border-color: #a1a1aa; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .doc-tile img { display: block; width: 100%; height: 110px; object-fit: cover; }
+    .doc-tile-lbl {
+      display: block;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.7rem;
+      color: #71717a;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .card-actions {
+      display: flex; gap: 0.5rem; justify-content: flex-end;
+      padding: 0 1.25rem 1.25rem;
+    }
+    .card-reject-row {
+      display: flex; gap: 0.5rem; align-items: center;
+      padding: 0 1.25rem 1.25rem;
+    }
+    .card-reject-input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #e4e4e7;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      outline: none;
+    }
+    .card-reject-input:focus { border-color: #18181b; }
+
+    .card-btn {
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      border: 1px solid transparent;
+      transition: background 0.15s;
+    }
+    .card-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .card-btn--approve {
+      background: #18181b; color: #fff; border-color: #18181b;
+    }
+    .card-btn--approve:hover:not(:disabled) { background: #3f3f46; }
+    .card-btn--reject {
+      background: #fff; color: #b91c1c; border-color: #fecaca;
+    }
+    .card-btn--reject:hover:not(:disabled) { background: #fef2f2; }
+    .card-btn--cancel {
+      background: #fff; color: #52525b; border-color: #e4e4e7;
+    }
+    .card-btn--cancel:hover:not(:disabled) { background: #f4f4f5; }
   `],
 })
 export class AdminVerificationsComponent implements OnInit {
@@ -167,6 +320,9 @@ export class AdminVerificationsComponent implements OnInit {
   verifications = signal<VerificationEntry[]>([]);
   loading = signal(true);
   activeTab = signal<'PENDING' | 'VERIFIED' | 'REJECTED' | 'ALL'>('PENDING');
+  acting = signal<string | null>(null);
+  rejectingId = signal<string | null>(null);
+  rejectReason = '';
 
   tabs = [
     { label: 'Pending',  value: 'PENDING'  as const },
@@ -201,5 +357,44 @@ export class AdminVerificationsComponent implements OnInit {
   initials(v: VerificationEntry) {
     const p = v.user.workerProfile ?? v.user.clientProfile;
     return p ? `${p.firstName[0]}${p.lastName[0]}`.toUpperCase() : '?';
+  }
+
+  approve(id: string) {
+    this.acting.set(id);
+    this.api.approveVerification(id).subscribe({
+      next: () => {
+        this.verifications.update(list =>
+          list.map(v => v.id === id ? { ...v, status: 'VERIFIED' as const, reviewedAt: new Date().toISOString() } : v),
+        );
+        this.acting.set(null);
+      },
+      error: () => this.acting.set(null),
+    });
+  }
+
+  startReject(id: string) {
+    this.rejectingId.set(id);
+    this.rejectReason = '';
+  }
+
+  cancelReject() {
+    this.rejectingId.set(null);
+    this.rejectReason = '';
+  }
+
+  confirmReject(id: string) {
+    this.acting.set(id);
+    const reason = this.rejectReason.trim() || undefined;
+    this.api.rejectVerification(id, reason).subscribe({
+      next: () => {
+        this.verifications.update(list =>
+          list.map(v => v.id === id ? { ...v, status: 'REJECTED' as const, reviewedAt: new Date().toISOString(), rejectionReason: reason ?? null } : v),
+        );
+        this.acting.set(null);
+        this.rejectingId.set(null);
+        this.rejectReason = '';
+      },
+      error: () => this.acting.set(null),
+    });
   }
 }

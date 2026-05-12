@@ -16,6 +16,7 @@ import { ClientsModule } from '../clients/clients.module';
 import { ReportsModule } from '../reports/reports.module';
 import { RevolutModule } from '../revolut/revolut.module';
 import { EmailModule } from '../email/email.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { EmailModule } from '../email/email.module';
     ReportsModule,
     RevolutModule,
     EmailModule,
+    CloudinaryModule,
   ],
 })
 export class AppModule {}

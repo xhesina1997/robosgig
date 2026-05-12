@@ -1,9 +1,19 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 import { Resend } from 'resend';
 import Stripe from 'stripe';
+
+/**
+ * Stripe Identity supported countries (ISO 3166-1 alpha-2). All other countries
+ * fall through to manual admin review.
+ */
+const STRIPE_IDENTITY_COUNTRIES = new Set([
+  'AT', 'AU', 'BE', 'BG', 'CA', 'CH', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI',
+  'FR', 'GB', 'GR', 'HR', 'HU', 'IE', 'IT', 'JP', 'LT', 'LU', 'LV', 'MT', 'MX',
+  'NL', 'NO', 'NZ', 'PL', 'PT', 'RO', 'SE', 'SG', 'SI', 'SK', 'US',
+]);
 
 @Injectable()
 export class VerifyService {
@@ -30,10 +40,30 @@ export class VerifyService {
     };
   }
 
-  async createSession(userId: string) {
+  /**
+   * Starts a verification flow. Country is required so we can choose Stripe
+   * Identity (supported countries) vs manual admin review (everywhere else).
+   * Returns either `{ method: 'STRIPE', clientSecret }` or `{ method: 'MANUAL' }`.
+   */
+  async createSession(userId: string, country?: string | null) {
     const existing = await this.prisma.identityVerification.findUnique({ where: { userId } });
     if (existing?.status === 'VERIFIED') {
       throw new BadRequestException('Already verified');
+    }
+    if (!country) {
+      throw new BadRequestException('Country is required');
+    }
+
+    const cc = country.toUpperCase();
+
+    if (!STRIPE_IDENTITY_COUNTRIES.has(cc)) {
+      // No Stripe session — frontend should upload docs via submitManual.
+      await this.prisma.identityVerification.upsert({
+        where: { userId },
+        create: { userId, status: 'PENDING', method: 'MANUAL', country: cc, stripeSessionId: null },
+        update: { status: 'PENDING', method: 'MANUAL', country: cc, stripeSessionId: null, submittedAt: new Date(), reviewedAt: null, rejectionReason: null },
+      });
+      return { method: 'MANUAL' as const };
     }
 
     const session = await this.stripe.client.identity.verificationSessions.create({
@@ -49,12 +79,83 @@ export class VerifyService {
 
     await this.prisma.identityVerification.upsert({
       where: { userId },
-      create: { userId, stripeSessionId: session.id, status: 'PENDING' },
-      update: { stripeSessionId: session.id, status: 'PENDING', submittedAt: new Date(), reviewedAt: null },
+      create: { userId, stripeSessionId: session.id, status: 'PENDING', method: 'STRIPE', country: cc },
+      update: { stripeSessionId: session.id, status: 'PENDING', method: 'STRIPE', country: cc, submittedAt: new Date(), reviewedAt: null, rejectionReason: null },
     });
 
+    return { method: 'STRIPE' as const, clientSecret: session.client_secret };
+  }
 
-    return { clientSecret: session.client_secret };
+  /**
+   * Receives Cloudinary URLs from the frontend after a non-Stripe-country user
+   * uploads their ID + selfie. Sets status PENDING for admin review.
+   */
+  async submitManual(
+    userId: string,
+    dto: { country: string; idFrontUrl: string; idBackUrl?: string | null; selfieUrl: string },
+  ) {
+    const existing = await this.prisma.identityVerification.findUnique({ where: { userId } });
+    if (existing?.status === 'VERIFIED') {
+      throw new BadRequestException('Already verified');
+    }
+    if (!dto.idFrontUrl || !dto.selfieUrl) {
+      throw new BadRequestException('ID front and selfie are required');
+    }
+
+    return this.prisma.identityVerification.upsert({
+      where: { userId },
+      create: {
+        userId,
+        status: 'PENDING',
+        method: 'MANUAL',
+        country: dto.country.toUpperCase(),
+        idFrontUrl: dto.idFrontUrl,
+        idBackUrl: dto.idBackUrl ?? null,
+        selfieUrl: dto.selfieUrl,
+      },
+      update: {
+        status: 'PENDING',
+        method: 'MANUAL',
+        country: dto.country.toUpperCase(),
+        idFrontUrl: dto.idFrontUrl,
+        idBackUrl: dto.idBackUrl ?? null,
+        selfieUrl: dto.selfieUrl,
+        rejectionReason: null,
+        submittedAt: new Date(),
+        reviewedAt: null,
+      },
+    });
+  }
+
+  /** Admin: approve a manual submission. Flips user.idVerified, fires email. */
+  async adminApprove(verificationId: string) {
+    const v = await this.prisma.identityVerification.findUnique({ where: { id: verificationId } });
+    if (!v) throw new NotFoundException('Verification not found');
+    if (v.method !== 'MANUAL') throw new BadRequestException('Only manual submissions can be approved by admin');
+
+    await this.prisma.$transaction([
+      this.prisma.identityVerification.update({
+        where: { id: verificationId },
+        data: { status: 'VERIFIED', reviewedAt: new Date(), rejectionReason: null },
+      }),
+      this.prisma.user.update({ where: { id: v.userId }, data: { idVerified: true } }),
+    ]);
+
+    await this.sendVerifiedEmail(v.userId);
+    return { ok: true };
+  }
+
+  /** Admin: reject a manual submission with optional reason. */
+  async adminReject(verificationId: string, reason?: string) {
+    const v = await this.prisma.identityVerification.findUnique({ where: { id: verificationId } });
+    if (!v) throw new NotFoundException('Verification not found');
+    if (v.method !== 'MANUAL') throw new BadRequestException('Only manual submissions can be rejected by admin');
+
+    await this.prisma.identityVerification.update({
+      where: { id: verificationId },
+      data: { status: 'REJECTED', reviewedAt: new Date(), rejectionReason: reason ?? null },
+    });
+    return { ok: true };
   }
 
   async listAll() {

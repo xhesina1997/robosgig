@@ -334,12 +334,23 @@ model Message {
 
 // ─── Identity Verification ───────────────────────────────────────────────────
 
+enum VerificationMethod {
+  STRIPE
+  MANUAL
+}
+
 model IdentityVerification {
   id               String             @id @default(cuid())
   userId           String             @unique
   user             User               @relation(fields: [userId], references: [id])
   stripeSessionId  String?            @unique
   status           VerificationStatus @default(PENDING)
+  method           VerificationMethod @default(STRIPE)
+  country          String?
+  idFrontUrl       String?
+  idBackUrl        String?
+  selfieUrl        String?
+  rejectionReason  String?
   submittedAt      DateTime           @default(now())
   reviewedAt       DateTime?
 }

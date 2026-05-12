@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Headers,
+  Controller, Get, Post, Body, Param, Headers,
   UseGuards, Request, Req, HttpCode,
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
@@ -23,8 +23,21 @@ export class VerifyController {
   @Post('session')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  createSession(@Request() req: { user: { sub: string } }) {
-    return this.verify.createSession(req.user.sub);
+  createSession(
+    @Request() req: { user: { sub: string } },
+    @Body() body: { country?: string },
+  ) {
+    return this.verify.createSession(req.user.sub, body?.country);
+  }
+
+  @Post('manual')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  submitManual(
+    @Request() req: { user: { sub: string } },
+    @Body() body: { country: string; idFrontUrl: string; idBackUrl?: string | null; selfieUrl: string },
+  ) {
+    return this.verify.submitManual(req.user.sub, body);
   }
 
   @Get('admin/all')
@@ -32,6 +45,23 @@ export class VerifyController {
   @ApiBearerAuth()
   listAll() {
     return this.verify.listAll();
+  }
+
+  @Post('admin/:id/approve')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  adminApprove(@Param('id') id: string) {
+    return this.verify.adminApprove(id);
+  }
+
+  @Post('admin/:id/reject')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  adminReject(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.verify.adminReject(id, body?.reason);
   }
 
   @Post('webhook')
