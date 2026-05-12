@@ -34,6 +34,61 @@
           <span class="online-dot"></span>
           Online@if (auth.city()) { · {{ auth.city() }} }
         </div>
+
+        <div class="notif-menu">
+          <button
+            class="notif-btn"
+            [class.notif-btn--open]="notifsOpen()"
+            (click)="toggleNotifs($event)"
+            [attr.aria-expanded]="notifsOpen()"
+            aria-haspopup="menu"
+            type="button"
+            aria-label="Notifications"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+            @if (notifs.unread() > 0) {
+              <span class="notif-dot">{{ notifs.unread() > 9 ? '9+' : notifs.unread() }}</span>
+            }
+          </button>
+          @if (notifsOpen()) {
+            <div class="notif-pop" role="menu">
+              <div class="notif-head">
+                <span class="notif-head-title">Notifications</span>
+                @if (notifs.unread() > 0) {
+                  <button class="notif-mark" (click)="notifs.markAllRead()" type="button">Mark all read</button>
+                }
+              </div>
+              @if (notifs.loading() && notifs.notifications().length === 0) {
+                <p class="notif-empty">Loading…</p>
+              } @else if (notifs.notifications().length === 0) {
+                <p class="notif-empty">You’re all caught up.</p>
+              } @else {
+                <div class="notif-list">
+                  @for (n of notifs.notifications(); track n.id) {
+                    <a
+                      class="notif-item"
+                      [class.notif-item--unread]="!n.read"
+                      [routerLink]="n.link"
+                      (click)="onNotifClick(n)"
+                      role="menuitem"
+                    >
+                      <span class="notif-item-dot" [class.notif-item-dot--on]="!n.read"></span>
+                      <span class="notif-item-main">
+                        <span class="notif-item-title">{{ n.title }}</span>
+                        @if (n.body) { <span class="notif-item-body">{{ n.body }}</span> }
+                        <span class="notif-item-time">{{ formatNotifTime(n.createdAt) }}</span>
+                      </span>
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
         <div class="user-menu">
           <button
             class="user-avatar"

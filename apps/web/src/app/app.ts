@@ -3,6 +3,7 @@ import { RouterModule, Router, NavigationStart, NavigationEnd, NavigationCancel,
 import { CommonModule } from '@angular/common';
 import { AuthService } from './core/services/auth.service';
 import { ChatService } from './core/services/chat.service';
+import { NotificationsService, AppNotification } from './core/services/notifications.service';
 import { ChatWidgetComponent } from './shared/chat-widget.component';
 
 @Component({
@@ -13,21 +14,51 @@ import { ChatWidgetComponent } from './shared/chat-widget.component';
 })
 export class App {
   auth = inject(AuthService);
+  notifs = inject(NotificationsService);
   private chat = inject(ChatService);
   private router = inject(Router);
 
   loading = signal(false);
   menuOpen = signal(false);
   userMenuOpen = signal(false);
+  notifsOpen = signal(false);
 
   toggleUserMenu(event: MouseEvent) {
     event.stopPropagation();
     this.userMenuOpen.update(v => !v);
+    this.notifsOpen.set(false);
+  }
+
+  toggleNotifs(event: MouseEvent) {
+    event.stopPropagation();
+    const next = !this.notifsOpen();
+    this.notifsOpen.set(next);
+    this.userMenuOpen.set(false);
+    if (next) this.notifs.loadList();
+  }
+
+  onNotifClick(n: AppNotification) {
+    this.notifs.markRead(n.id);
+    this.notifsOpen.set(false);
+  }
+
+  formatNotifTime(iso: string): string {
+    const now = Date.now();
+    const t = new Date(iso).getTime();
+    const m = Math.round((now - t) / 60_000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const d = Math.round(h / 24);
+    if (d < 7) return `${d}d ago`;
+    return new Date(iso).toLocaleDateString();
   }
 
   @HostListener('document:click')
-  closeUserMenu() {
+  closeMenus() {
     if (this.userMenuOpen()) this.userMenuOpen.set(false);
+    if (this.notifsOpen()) this.notifsOpen.set(false);
   }
 
   signOut() {
@@ -49,6 +80,7 @@ export class App {
         this.loading.set(true);
         this.menuOpen.set(false);
         this.userMenuOpen.set(false);
+        this.notifsOpen.set(false);
       }
       if (e instanceof NavigationEnd || e instanceof NavigationCancel || e instanceof NavigationError) {
         setTimeout(() => this.loading.set(false), 200);

@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, Logger, ForbiddenEx
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Resend } from 'resend';
 import Stripe from 'stripe';
 
@@ -24,6 +25,7 @@ export class VerifyService {
     private prisma: PrismaService,
     private stripe: StripeService,
     private config: ConfigService,
+    private notifications: NotificationsService,
   ) {
     this.resend = new Resend(this.config.get<string>('RESEND_API_KEY') ?? 'placeholder');
   }
@@ -147,6 +149,13 @@ export class VerifyService {
     ]);
 
     await this.sendVerifiedEmail(v.userId);
+    this.notifications.create({
+      userId: v.userId,
+      type: 'ID_VERIFIED',
+      title: 'Identity verified',
+      body: 'Your ID was approved. Your profile now shows the verified badge.',
+      link: '/worker/profile',
+    });
     return { ok: true };
   }
 
@@ -159,6 +168,13 @@ export class VerifyService {
     await this.prisma.identityVerification.update({
       where: { id: verificationId },
       data: { status: 'REJECTED', reviewedAt: new Date(), rejectionReason: reason ?? null },
+    });
+    this.notifications.create({
+      userId: v.userId,
+      type: 'ID_REJECTED',
+      title: 'ID verification declined',
+      body: reason ?? 'Please try again with a clearer document and selfie.',
+      link: '/worker/profile',
     });
     return { ok: true };
   }
@@ -221,6 +237,13 @@ export class VerifyService {
       ]);
 
       await this.sendVerifiedEmail(userId);
+      this.notifications.create({
+        userId,
+        type: 'ID_VERIFIED',
+        title: 'Identity verified',
+        body: 'Stripe confirmed your ID. Your profile now shows the verified badge.',
+        link: '/worker/profile',
+      });
     }
 
     if (event.type === 'identity.verification_session.requires_input') {
@@ -229,6 +252,16 @@ export class VerifyService {
         where: { stripeSessionId: session.id },
         data: { status: 'REJECTED', reviewedAt: new Date() },
       });
+      const userId = session.metadata?.userId;
+      if (userId) {
+        this.notifications.create({
+          userId,
+          type: 'ID_REJECTED',
+          title: 'ID verification failed',
+          body: 'Stripe couldn’t verify your document. Try again with a clearer photo.',
+          link: '/worker/profile',
+        });
+      }
     }
   }
 

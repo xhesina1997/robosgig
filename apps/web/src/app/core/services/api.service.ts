@@ -224,6 +224,20 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${this.baseUrl}/verify/admin/${id}/reject`, { reason });
   }
 
+  // ── Notifications ──────────────────────────────────────────────
+  listNotifications(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/notifications`);
+  }
+  getUnreadNotifications(): Observable<{ count: number }> {
+    return this.http.get<{ count: number }>(`${this.baseUrl}/notifications/unread-count`);
+  }
+  markNotificationRead(id: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.baseUrl}/notifications/${id}/read`, {});
+  }
+  markAllNotificationsRead(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.baseUrl}/notifications/read-all`, {});
+  }
+
   // ── Payments ──────────────────────────────────────────────────────
   createJobPaymentSession(jobId: string): Observable<{ url: string }> {
     return this.http.post<{ url: string }>(`${this.baseUrl}/payments/jobs/${jobId}/checkout`, {});

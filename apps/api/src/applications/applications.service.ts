@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 import { RevolutService } from '../revolut/revolut.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ApplicationsService {
@@ -13,6 +14,7 @@ export class ApplicationsService {
     private revolut: RevolutService,
     private config: ConfigService,
     private email: EmailService,
+    private notifications: NotificationsService,
   ) {}
 
   async apply(userId: string, jobId: string, dto: { proposedPrice?: number; message?: string }) {
@@ -69,6 +71,16 @@ export class ApplicationsService {
         jobId: job.id,
       });
     }
+
+    // In-app notification for the client (email already handled above; skip duplicate)
+    this.notifications.create({
+      userId: job.clientId,
+      type: 'APPLICATION_NEW',
+      title: 'New application',
+      body: `${workerProfile.firstName} ${workerProfile.lastName} applied to "${job.title}".`,
+      link: `/dashboard/client`,
+      email: false,
+    });
 
     return application;
   }
@@ -132,6 +144,31 @@ export class ApplicationsService {
       jobTitle: application.job.title,
       clientName: client ? `${client.firstName} ${client.lastName}` : 'A client',
     });
+
+    // In-app: notify the accepted worker
+    this.notifications.create({
+      userId: (application.worker as any).userId,
+      type: 'APPLICATION_ACCEPTED',
+      title: 'You got hired',
+      body: `Your application for "${application.job.title}" was accepted${client ? ' by ' + client.firstName : ''}.`,
+      link: '/dashboard/worker',
+      email: false,
+    });
+
+    // Also notify the other (rejected) applicants
+    const rejected = await this.prisma.jobApplication.findMany({
+      where: { jobId: application.jobId, id: { not: applicationId }, status: 'REJECTED' },
+      select: { worker: { select: { userId: true } } },
+    });
+    for (const r of rejected) {
+      this.notifications.create({
+        userId: (r.worker as any).userId,
+        type: 'APPLICATION_REJECTED',
+        title: 'Application not selected',
+        body: `The client chose another worker for "${application.job.title}". Browse new jobs nearby.`,
+        link: '/worker/jobs',
+      });
+    }
 
     return updated;
   }
@@ -201,15 +238,25 @@ export class ApplicationsService {
   async rejectApplication(userId: string, applicationId: string) {
     const application = await this.prisma.jobApplication.findUnique({
       where: { id: applicationId },
-      include: { job: true },
+      include: { job: true, worker: { select: { userId: true } } },
     });
     if (!application) throw new NotFoundException('Application not found');
     if (application.job.clientId !== userId) throw new ForbiddenException('Not your job');
 
-    return this.prisma.jobApplication.update({
+    const updated = await this.prisma.jobApplication.update({
       where: { id: applicationId },
       data: { status: 'REJECTED' },
     });
+
+    this.notifications.create({
+      userId: (application.worker as any).userId,
+      type: 'APPLICATION_REJECTED',
+      title: 'Application declined',
+      body: `The client declined your application for "${application.job.title}".`,
+      link: '/worker/jobs',
+    });
+
+    return updated;
   }
 
   async completeJob(userId: string, jobId: string) {
@@ -300,6 +347,24 @@ export class ApplicationsService {
         await this.prisma.workerProfile.update({
           where: { id: acceptedApp.workerId },
           data: { totalJobs: { increment: 1 } },
+        });
+      }
+    }
+
+    // Notify the worker that the job was marked complete + payout was released
+    if (acceptedApp) {
+      const workerApp = await this.prisma.jobApplication.findUnique({
+        where: { id: acceptedApp.id },
+        include: { worker: { select: { userId: true } } },
+      });
+      const workerUserId = (workerApp?.worker as any)?.userId;
+      if (workerUserId) {
+        this.notifications.create({
+          userId: workerUserId,
+          type: 'JOB_COMPLETED',
+          title: 'Job marked complete',
+          body: `The client closed "${job.title}". Payout has been released.`,
+          link: '/dashboard/worker',
         });
       }
     }

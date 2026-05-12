@@ -84,6 +84,7 @@ model User {
   messages      Message[]
   verification  IdentityVerification?
   reports       Report[]
+  notifications Notification[]
 
   idVerified Boolean @default(false)
 
@@ -392,4 +393,33 @@ model PlatformSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+enum NotificationType {
+  JOB_NEW
+  APPLICATION_NEW
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  MESSAGE_NEW
+  JOB_COMPLETED
+  PAYMENT_RELEASED
+  ID_VERIFIED
+  ID_REJECTED
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  body      String?
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, read])
 }
