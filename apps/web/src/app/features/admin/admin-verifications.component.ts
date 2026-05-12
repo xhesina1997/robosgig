@@ -16,6 +16,7 @@ interface VerificationEntry {
   idBackUrl: string | null;
   selfieUrl: string | null;
   rejectionReason: string | null;
+  documentType: string | null;
   submittedAt: string;
   reviewedAt: string | null;
   user: {
@@ -154,8 +155,14 @@ interface VerificationEntry {
                     </div>
                   } @else {
                     <div class="card-actions">
+                      <select class="card-doc-select" [(ngModel)]="approveDocType[v.id]" [name]="'docType-' + v.id">
+                        <option value="">Document type…</option>
+                        <option value="passport">Passport</option>
+                        <option value="id_card">National ID card</option>
+                        <option value="driving_license">Driver's licence</option>
+                      </select>
                       <button class="card-btn card-btn--reject" (click)="startReject(v.id)" [disabled]="acting() === v.id" type="button">Reject</button>
-                      <button class="card-btn card-btn--approve" (click)="approve(v.id)" [disabled]="acting() === v.id" type="button">
+                      <button class="card-btn card-btn--approve" (click)="approve(v.id)" [disabled]="acting() === v.id || !approveDocType[v.id]" type="button">
                         @if (acting() === v.id) { Approving… } @else { Approve }
                       </button>
                     </div>
@@ -311,6 +318,20 @@ interface VerificationEntry {
       background: #fff; color: #52525b; border-color: #e4e4e7;
     }
     .card-btn--cancel:hover:not(:disabled) { background: #f4f4f5; }
+
+    .card-doc-select {
+      margin-right: auto;
+      padding: 0.4rem 0.7rem;
+      border: 1px solid #e4e4e7;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      background: #fff;
+      color: #18181b;
+      outline: none;
+      cursor: pointer;
+    }
+    .card-doc-select:focus { border-color: #18181b; }
   `],
 })
 export class AdminVerificationsComponent implements OnInit {
@@ -323,6 +344,7 @@ export class AdminVerificationsComponent implements OnInit {
   acting = signal<string | null>(null);
   rejectingId = signal<string | null>(null);
   rejectReason = '';
+  approveDocType: Record<string, string> = {};
 
   tabs = [
     { label: 'Pending',  value: 'PENDING'  as const },
@@ -360,11 +382,13 @@ export class AdminVerificationsComponent implements OnInit {
   }
 
   approve(id: string) {
+    const docType = this.approveDocType[id] || undefined;
+    if (!docType) return;
     this.acting.set(id);
-    this.api.approveVerification(id).subscribe({
+    this.api.approveVerification(id, docType).subscribe({
       next: () => {
         this.verifications.update(list =>
-          list.map(v => v.id === id ? { ...v, status: 'VERIFIED' as const, reviewedAt: new Date().toISOString() } : v),
+          list.map(v => v.id === id ? { ...v, status: 'VERIFIED' as const, reviewedAt: new Date().toISOString(), documentType: docType } : v),
         );
         this.acting.set(null);
       },

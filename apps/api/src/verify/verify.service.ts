@@ -128,7 +128,7 @@ export class VerifyService {
   }
 
   /** Admin: approve a manual submission. Flips user.idVerified, fires email. */
-  async adminApprove(verificationId: string) {
+  async adminApprove(verificationId: string, documentType?: string | null) {
     const v = await this.prisma.identityVerification.findUnique({ where: { id: verificationId } });
     if (!v) throw new NotFoundException('Verification not found');
     if (v.method !== 'MANUAL') throw new BadRequestException('Only manual submissions can be approved by admin');
@@ -136,7 +136,12 @@ export class VerifyService {
     await this.prisma.$transaction([
       this.prisma.identityVerification.update({
         where: { id: verificationId },
-        data: { status: 'VERIFIED', reviewedAt: new Date(), rejectionReason: null },
+        data: {
+          status: 'VERIFIED',
+          reviewedAt: new Date(),
+          rejectionReason: null,
+          documentType: documentType ?? v.documentType ?? null,
+        },
       }),
       this.prisma.user.update({ where: { id: v.userId }, data: { idVerified: true } }),
     ]);
@@ -188,10 +193,26 @@ export class VerifyService {
       const userId = session.metadata?.userId;
       if (!userId) return;
 
+      // Pull the verification report to learn the document type (passport / id_card /
+      // driving_license). We deliberately do NOT store PII (name, dob, doc number).
+      let documentType: string | null = null;
+      try {
+        const expanded = await this.stripe.client.identity.verificationSessions.retrieve(
+          session.id,
+          { expand: ['last_verification_report'] },
+        );
+        const report = expanded.last_verification_report as Stripe.Identity.VerificationReport | string | null;
+        if (report && typeof report !== 'string') {
+          documentType = report.document?.type ?? null;
+        }
+      } catch (err) {
+        this.logger.warn(`Could not fetch verification report for ${session.id}: ${(err as Error).message}`);
+      }
+
       await this.prisma.$transaction([
         this.prisma.identityVerification.updateMany({
           where: { stripeSessionId: session.id },
-          data: { status: 'VERIFIED', reviewedAt: new Date() },
+          data: { status: 'VERIFIED', reviewedAt: new Date(), documentType: documentType ?? undefined },
         }),
         this.prisma.user.update({
           where: { id: userId },

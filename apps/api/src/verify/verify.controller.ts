@@ -50,8 +50,11 @@ export class VerifyController {
   @Post('admin/:id/approve')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  adminApprove(@Param('id') id: string) {
-    return this.verify.adminApprove(id);
+  adminApprove(
+    @Param('id') id: string,
+    @Body() body: { documentType?: string },
+  ) {
+    return this.verify.adminApprove(id, body?.documentType);
   }
 
   @Post('admin/:id/reject')

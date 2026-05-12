@@ -347,6 +347,7 @@ model IdentityVerification {
   status           VerificationStatus @default(PENDING)
   method           VerificationMethod @default(STRIPE)
   country          String?
+  documentType     String?
   idFrontUrl       String?
   idBackUrl        String?
   selfieUrl        String?

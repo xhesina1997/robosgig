@@ -216,8 +216,8 @@ export class ApiService {
     return this.http.get<any[]>(`${this.baseUrl}/verify/admin/all`);
   }
 
-  approveVerification(id: string): Observable<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>(`${this.baseUrl}/verify/admin/${id}/approve`, {});
+  approveVerification(id: string, documentType?: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.baseUrl}/verify/admin/${id}/approve`, { documentType });
   }
 
   rejectVerification(id: string, reason?: string): Observable<{ ok: boolean }> {

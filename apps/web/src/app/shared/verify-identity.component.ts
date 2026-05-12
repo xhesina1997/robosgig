@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../core/services/api.service';
@@ -61,9 +61,38 @@ const COUNTRIES: { code: string; name: string }[] = [
   imports: [CommonModule, FormsModule],
   template: `
     @if (status() === 'VERIFIED') {
-      <div class="verified-badge">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        ID Verified
+      <div class="verified-card">
+        <div class="verified-card-icon">
+          @switch (documentType()) {
+            @case ('passport') {
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><circle cx="12" cy="11" r="3"/><path d="M8 18h8"/></svg>
+            }
+            @case ('id_card') {
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><path d="M13 10h6M13 14h4"/></svg>
+            }
+            @case ('driving_license') {
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><path d="M13 10h6M13 14h4"/><circle cx="18" cy="17.5" r="1"/></svg>
+            }
+            @default {
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v7c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>
+            }
+          }
+        </div>
+        <div class="verified-card-main">
+          <div class="verified-card-row">
+            <span class="verified-card-title">ID Verified</span>
+            <span class="verified-card-tick">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+            </span>
+          </div>
+          <div class="verified-card-sub">
+            <span class="verified-card-doc">{{ documentLabel() }}</span>
+            @if (country) {
+              <span class="verified-card-sep">·</span>
+              <span class="verified-card-country">{{ countryName() }}</span>
+            }
+          </div>
+        </div>
       </div>
     } @else {
       <div class="verify-box">
@@ -196,6 +225,67 @@ const COUNTRIES: { code: string; name: string }[] = [
       font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 99px;
     }
 
+    /* Verified-card display */
+    .verified-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      border: 1px solid #D6EAA0;
+      background: linear-gradient(135deg, #F8FCEE 0%, #F0FAE0 100%);
+      border-radius: 14px;
+      max-width: 420px;
+    }
+    .verified-card-icon {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid #D6EAA0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-text);
+    }
+    .verified-card-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .verified-card-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .verified-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+    }
+    .verified-card-tick {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .verified-card-sub {
+      font-size: 12px;
+      color: var(--accent-text);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 500;
+    }
+    .verified-card-doc { letter-spacing: -0.005em; }
+    .verified-card-sep { color: var(--muted); }
+    .verified-card-country {
+      font-family: 'Geist Mono', ui-monospace, monospace;
+      letter-spacing: 0.02em;
+    }
+
     .verify-box {
       background: var(--panel); border: 1px solid var(--rule);
       border-radius: 14px; padding: 18px;
@@ -297,11 +387,27 @@ export class VerifyIdentityComponent implements OnInit {
 
   status = signal<'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('NONE');
   rejectionReason = signal<string | null>(null);
+  documentType = signal<string | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
 
   country = '';
   countries = COUNTRIES;
+
+  documentLabel = computed(() => {
+    switch (this.documentType()) {
+      case 'passport': return 'Passport';
+      case 'id_card': return 'National ID card';
+      case 'driving_license': return 'Driver’s licence';
+      default: return 'Government-issued ID';
+    }
+  });
+
+  countryName = computed(() => {
+    const c = this.country;
+    if (!c) return '';
+    return COUNTRIES.find((x) => x.code === c)?.name ?? c;
+  });
 
   idFrontUrl = signal<string | null>(null);
   idBackUrl = signal<string | null>(null);
@@ -316,6 +422,11 @@ export class VerifyIdentityComponent implements OnInit {
         } else if (data.verification) {
           this.status.set(data.verification.status);
           this.rejectionReason.set(data.verification.rejectionReason ?? null);
+          this.documentType.set(data.verification.documentType ?? null);
+          if (data.verification.country) this.country = data.verification.country;
+        }
+        if (data.idVerified && data.verification) {
+          this.documentType.set(data.verification.documentType ?? null);
           if (data.verification.country) this.country = data.verification.country;
         }
       },
