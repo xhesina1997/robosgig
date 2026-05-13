@@ -69,9 +69,22 @@ interface JobDetail {
             </svg>
             {{ isSaved() ? 'Saved' : 'Save' }}
           </button>
-          <button class="crumb-btn" (click)="shareJob()" type="button">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 11l8-4M8 13l8 4"/></svg>
-            Share
+          <button
+            class="crumb-btn"
+            [class.crumb-btn--ok]="shareState() !== 'idle'"
+            (click)="shareJob()"
+            type="button"
+          >
+            @if (shareState() === 'copied') {
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+              Link copied
+            } @else if (shareState() === 'shared') {
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+              Shared
+            } @else {
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 11l8-4M8 13l8 4"/></svg>
+              Share
+            }
           </button>
         }
       </div>
@@ -453,6 +466,11 @@ interface JobDetail {
       transition: border-color 0.15s;
     }
     .crumb-back:hover, .crumb-btn:hover { border-color: var(--sub); }
+    .crumb-btn--ok {
+      border-color: var(--rg-accent, #84CC16) !important;
+      color: var(--rg-accent-text, #4D7C0F);
+      background: var(--rg-accent-bg, rgba(132, 204, 22, 0.14));
+    }
     .crumb-path {
       font-size: 12px;
       color: var(--sub);
@@ -988,6 +1006,7 @@ export class WorkerJobDetailComponent implements OnInit {
   job = signal<JobDetail | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+  shareState = signal<'idle' | 'copied' | 'shared'>('idle');
 
   // Apply
   submitting = signal(false);
@@ -1049,14 +1068,39 @@ export class WorkerJobDetailComponent implements OnInit {
     }
   }
 
-  shareJob() {
+  async shareJob() {
     const j = this.job();
     if (!j) return;
     const url = window.location.href;
+    const flash = (kind: 'copied' | 'shared') => {
+      this.shareState.set(kind);
+      setTimeout(() => this.shareState.set('idle'), 1800);
+    };
+    // Prefer native share sheet (mobile + Safari); fall back to clipboard.
     if (navigator.share) {
-      navigator.share({ title: j.title, url }).catch(() => { /* user cancelled */ });
-    } else {
-      navigator.clipboard?.writeText(url);
+      try {
+        await navigator.share({ title: j.title, url });
+        flash('shared');
+        return;
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return; // user cancelled — no feedback
+        // share() unsupported for this payload → fall through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      flash('copied');
+    } catch {
+      // Old browsers / insecure context — final fallback via execCommand
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); flash('copied'); } catch { /* give up */ }
+      document.body.removeChild(ta);
     }
   }
 

@@ -146,6 +146,21 @@ interface Column {
 
                     <p class="mini-title">{{ app.job.title }}</p>
 
+                    @if (col.id === 'completed') {
+                      <span
+                        class="mini-status"
+                        [class.mini-status--ok]="app.status === 'COMPLETED'"
+                        [class.mini-status--reject]="app.status === 'REJECTED'"
+                        [class.mini-status--withdraw]="app.status === 'WITHDRAWN'"
+                      >
+                        @switch (app.status) {
+                          @case ('COMPLETED') { Completed · paid out }
+                          @case ('REJECTED')  { Not selected }
+                          @case ('WITHDRAWN') { Withdrawn }
+                        }
+                      </span>
+                    }
+
                     <div class="mini-foot">
                       <span class="mini-loc">
                         {{ app.job.city || 'Vienna' }}
@@ -153,6 +168,7 @@ interface Column {
                       <span
                         class="mini-pay"
                         [class.mini-pay--accent]="col.id === 'accepted'"
+                        [class.mini-pay--muted]="app.status === 'REJECTED' || app.status === 'WITHDRAWN'"
                       >€{{ offer(app) }}</span>
                     </div>
 
@@ -663,6 +679,29 @@ interface Column {
       font-variant-numeric: tabular-nums;
     }
     .mini-pay--accent { color: var(--accent-text); }
+    .mini-pay--muted { color: var(--rg-sub, #A3A3A3); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+    .mini-status {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    .mini-status--ok {
+      background: var(--rg-accent-bg, rgba(132, 204, 22, 0.14));
+      color: var(--rg-accent-text, #4D7C0F);
+    }
+    .mini-status--reject {
+      background: rgba(220, 38, 38, 0.10);
+      color: #B91C1C;
+    }
+    .mini-status--withdraw {
+      background: rgba(10, 10, 10, 0.06);
+      color: var(--rg-muted, #737373);
+    }
 
     .mini-note {
       font-size: 11px;
@@ -1023,7 +1062,11 @@ export class WorkerDashboardComponent implements OnInit {
   );
 
   statsRow = computed(() => {
-    const earned = this.byColumn().completed.reduce((s, a) => s + this.offer(a), 0);
+    // Only true COMPLETED jobs count as earned — REJECTED / WITHDRAWN also
+    // live in the "completed" column for history, but no money changed hands.
+    const earned = this.byColumn().completed
+      .filter((a) => a.status === 'COMPLETED')
+      .reduce((s, a) => s + this.offer(a), 0);
     const pipelineApps = [...this.byColumn().request, ...this.byColumn().applied];
     const pipeline = pipelineApps.reduce((s, a) => s + this.offer(a), 0);
     return [
@@ -1097,7 +1140,11 @@ export class WorkerDashboardComponent implements OnInit {
   }
 
   colSum(apps: Application[]): number {
-    return apps.reduce((s, a) => s + this.offer(a), 0);
+    // Skip REJECTED / WITHDRAWN — they live in the "completed" column for
+    // history but no money is in play for them.
+    return apps
+      .filter((a) => a.status !== 'REJECTED' && a.status !== 'WITHDRAWN')
+      .reduce((s, a) => s + this.offer(a), 0);
   }
 
   private statusToCol(status: string): ColId | null {
