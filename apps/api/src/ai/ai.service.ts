@@ -214,6 +214,7 @@ Only include fields clearly implied. "summary" max 60 chars describes what was e
     workers: Array<{
       id: string;
       skills: string[];
+      customSkills?: string[];
       rating: number;
       totalJobs: number;
       hourlyRate: number | null;
@@ -224,15 +225,17 @@ Only include fields clearly implied. "summary" max 60 chars describes what was e
     if (workers.length === 0) return [];
 
     const workerList = workers
-      .map(
-        (w, i) =>
-          `Worker ${i + 1} (id: ${w.id}):
-  - Skills: ${w.skills.join(', ')}
+      .map((w, i) => {
+        const cat = w.skills.length ? w.skills.join(', ') : '(none)';
+        const custom = w.customSkills?.length ? w.customSkills.join(', ') : '(none)';
+        return `Worker ${i + 1} (id: ${w.id}):
+  - Categorized skills: ${cat}
+  - Self-described skills: ${custom}
   - Rating: ${w.rating}/5 (${w.totalJobs} jobs completed)
   - Hourly rate: ${w.hourlyRate ? `€${w.hourlyRate}/hr` : 'negotiable'}
   - Distance: ${w.distanceKm.toFixed(1)} km
-  - Available now: ${w.isAvailable}`
-      )
+  - Available now: ${w.isAvailable}`;
+      })
       .join('\n\n');
 
     const prompt = `You are matching workers to a job on a local task marketplace.
@@ -248,7 +251,14 @@ Available workers:
 ${workerList}
 
 Score each worker from 0–100 based on: skill match (40%), rating (25%), distance (20%), price fit (15%).
+For skill match, weigh categorized skills the most, but ALSO consider self-described skills — they may
+indicate transferable experience (e.g. "tile installation" implies plumbing/handyman fit). If a worker
+has no categorized match but their self-described skills clearly fit the job, give partial credit.
 Penalize heavily if not available and urgency is HIGH or EMERGENCY.
+
+REASONS FORMAT: 2 or 3 short tags, MAX 5 words each. Examples: "Great skill match", "Close by",
+"Highly rated", "Partial skill fit", "Within budget". DO NOT write sentences. DO NOT quote skill
+names. Tags only.
 
 Respond ONLY with a valid JSON array (no markdown):
 [

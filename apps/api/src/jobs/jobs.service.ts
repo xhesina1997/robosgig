@@ -31,28 +31,44 @@ export class JobsService {
     // 1. Let AI parse the raw input
     const analysis = await this.ai.analyzeJob(dto.rawInput, dto.city || 'Vienna', dto.country || 'Austria');
 
-    // 2. Find nearby workers with relevant category
+    // 2. Pull available workers. Strategy: first prefer workers with a
+    //    categorized skill in the matching category, then top up the
+    //    candidate pool with any other available workers so newcomers who
+    //    only have custom skills still get scored by the AI.
     const category = await this.prisma.category.findUnique({
       where: { slug: analysis.categorySlug },
     });
 
-    const workers = await this.prisma.workerProfile.findMany({
-      where: {
-        isAvailable: true,
-        ...(category
-          ? {
-              skills: {
-                some: { skill: { categoryId: category.id } },
-              },
-            }
-          : {}),
-      },
-      include: {
-        skills: { include: { skill: { include: { category: true } } } },
-        user: { select: { email: true } },
-      },
-      take: 20, // limit candidates before AI scoring
-    });
+    const include = {
+      skills: { include: { skill: { include: { category: true } } } },
+      user: { select: { email: true } },
+    } as const;
+
+    const matched = category
+      ? await this.prisma.workerProfile.findMany({
+          where: {
+            isAvailable: true,
+            skills: { some: { skill: { categoryId: category.id } } },
+          },
+          include,
+          orderBy: { rating: 'desc' },
+          take: 20,
+        })
+      : [];
+
+    let workers = matched;
+    if (workers.length < 20) {
+      const fillers = await this.prisma.workerProfile.findMany({
+        where: {
+          isAvailable: true,
+          id: { notIn: workers.map((w) => w.id) },
+        },
+        include,
+        orderBy: { rating: 'desc' },
+        take: 20 - workers.length,
+      });
+      workers = [...workers, ...fillers];
+    }
 
     // 3. Calculate distance and prepare worker data for AI scoring
     const clientLat = dto.latitude ?? 48.2082; // Vienna center as fallback
@@ -61,6 +77,7 @@ export class JobsService {
     const workerData = workers.map((w) => ({
       id: w.id,
       skills: w.skills.map((ws) => ws.skill.name),
+      customSkills: w.customSkills,
       rating: w.rating,
       totalJobs: w.totalJobs,
       hourlyRate: w.hourlyRate,
@@ -87,7 +104,10 @@ export class JobsService {
           hourlyRate: worker.hourlyRate,
           city: worker.city,
           distanceKm: Math.round(distance * 10) / 10,
-          skills: workerData.find((w) => w.id === score.workerId)?.skills ?? [],
+          skills: [
+            ...(workerData.find((w) => w.id === score.workerId)?.skills ?? []),
+            ...(workerData.find((w) => w.id === score.workerId)?.customSkills ?? []),
+          ],
           matchScore: score.score,
           matchReasons: score.reasons,
           isAvailable: worker.isAvailable,
