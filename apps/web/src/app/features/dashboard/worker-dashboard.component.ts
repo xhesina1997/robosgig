@@ -67,7 +67,7 @@ interface Column {
             Edit profile
           </a>
           <a routerLink="/pricing" class="action-pill action-pill--primary">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#84CC16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h7l-1 8 9-12h-7z"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--rg-accent, #84CC16)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h7l-1 8 9-12h-7z"/></svg>
             Upgrade to Pro
           </a>
         </div>
@@ -307,16 +307,16 @@ interface Column {
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA;
-      --panel: #FFFFFF;
-      --ink: #0A0A0A;
-      --muted: #737373;
-      --sub: #A3A3A3;
-      --rule: #E8E8E5;
-      --accent: #84CC16;
-      --accent-ink: #0A0A0A;
-      --accent-text: #4D7C0F;
-      --col-bg: #F5F5F3;
+      --bg: var(--rg-bg, #fafafa);
+      --panel: var(--rg-panel, #FFFFFF);
+      --ink: var(--rg-ink, #0A0A0A);
+      --muted: var(--rg-muted, #737373);
+      --sub: var(--rg-sub, #A3A3A3);
+      --rule: var(--rg-rule, #E8E8E5);
+      --accent: var(--rg-accent, #84CC16);
+      --accent-ink: var(--rg-ink, #0A0A0A);
+      --accent-text: var(--rg-accent-text, #4D7C0F);
+      --col-bg: var(--rg-soft, #F5F5F3);
       --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
       display: block;
@@ -389,12 +389,12 @@ interface Column {
     }
     .action-pill:hover { border-color: var(--sub); }
     .action-pill--primary {
-      background: var(--ink);
+      background: var(--rg-invert-bg, #0A0A0A);
       border: none;
-      color: #fff;
+      color: var(--rg-invert-fg, #fff);
       font-weight: 600;
     }
-    .action-pill--primary:hover { background: #262626; }
+    .action-pill--primary:hover { background: var(--rg-invert-hover, #262626); }
 
     /* ── Hero bar ─────────────────────────── */
     .hero {
@@ -419,8 +419,8 @@ interface Column {
     .hero-next-icon {
       width: 40px; height: 40px;
       border-radius: 10px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -462,7 +462,7 @@ interface Column {
       flex-shrink: 0;
       transition: background 0.15s;
     }
-    .hero-next-cta:hover { background: #a3e635; }
+    .hero-next-cta:hover { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
 
     .hero-stat {
       display: flex;
@@ -547,8 +547,8 @@ interface Column {
       height: 18px;
       padding: 0 6px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 10.5px;
       font-weight: 600;
     }
@@ -601,14 +601,14 @@ interface Column {
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     .mini:hover {
-      border-color: #D4D4D1;
+      border-color: var(--rg-rule, #D4D4D1);
     }
     .mini--active {
-      border-color: #D4D4D1;
+      border-color: var(--rg-rule, #D4D4D1);
       box-shadow: 0 4px 14px rgba(10,10,10,0.06);
     }
     .mini--active:hover {
-      border-color: #A3A3A3;
+      border-color: var(--rg-sub, #A3A3A3);
     }
 
     .mini-top {
@@ -700,17 +700,17 @@ interface Column {
       color: var(--accent-ink);
       font-weight: 600;
     }
-    .mini-btn--accept:hover { background: #a3e635; }
+    .mini-btn--accept:hover { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
     .mini-btn--chat {
       width: 100%;
       margin-top: 4px;
       padding: 7px;
-      background: var(--ink);
+      background: var(--rg-invert-bg, #0A0A0A);
       border: none;
-      color: #fff;
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
-    .mini-btn--chat:hover { background: #262626; }
+    .mini-btn--chat:hover { background: var(--rg-invert-hover, #262626); }
 
     /* ── Load more ────────────────────────── */
     .load-more-row {
@@ -744,7 +744,7 @@ interface Column {
     }
     .load-ring-sm {
       width: 12px; height: 12px;
-      border: 2px solid #D4D4D1;
+      border: 2px solid var(--rg-rule, #D4D4D1);
       border-top-color: var(--ink);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -961,13 +961,13 @@ interface Column {
     .modal-decline { background: transparent; color: #dc2626; border: 1px solid rgba(239,68,68,0.3); }
     .modal-decline:hover { background: rgba(239,68,68,0.06); }
     .modal-accept { background: var(--accent); color: var(--accent-ink); border: none; font-weight: 600; }
-    .modal-accept:hover { background: #a3e635; }
-    .modal-chat-btn { background: var(--ink); color: #fff; border: none; font-weight: 600; }
-    .modal-chat-btn:hover { background: #262626; }
+    .modal-accept:hover { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
+    .modal-chat-btn { background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff); border: none; font-weight: 600; }
+    .modal-chat-btn:hover { background: var(--rg-invert-hover, #262626); }
     .modal-withdraw { background: transparent; color: var(--muted); border: 1px solid var(--rule); }
     .modal-withdraw:hover { border-color: #dc2626; color: #dc2626; background: rgba(239,68,68,0.04); }
-    .modal-browse { background: var(--ink); color: #fff; border: none; font-weight: 600; }
-    .modal-browse:hover { background: #262626; }
+    .modal-browse { background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff); border: none; font-weight: 600; }
+    .modal-browse:hover { background: var(--rg-invert-hover, #262626); }
 
     /* ── Responsive ───────────────────────── */
     @media (max-width: 1100px) {
@@ -996,10 +996,10 @@ export class WorkerDashboardComponent implements OnInit {
   selectedApp = signal<Application | null>(null);
 
   readonly columns: Column[] = [
-    { id: 'request',   label: 'Requests',  hint: 'Client picked you — accept or pass.',       dot: '#84CC16', solid: true },
+    { id: 'request',   label: 'Requests',  hint: 'Client picked you — accept or pass.',       dot: 'var(--rg-accent, #84CC16)', solid: true },
     { id: 'applied',   label: 'Applied',   hint: 'Waiting on client decision.',               dot: '#3B82F6' },
-    { id: 'accepted',  label: 'Active',    hint: 'Confirmed work — show up + message client.', dot: '#0A0A0A', solid: true },
-    { id: 'completed', label: 'Completed', hint: 'Paid out · review history.',                 dot: '#737373' },
+    { id: 'accepted',  label: 'Active',    hint: 'Confirmed work — show up + message client.', dot: 'var(--rg-ink, #0A0A0A)', solid: true },
+    { id: 'completed', label: 'Completed', hint: 'Paid out · review history.',                 dot: 'var(--rg-muted, #737373)' },
   ];
 
   byColumn = computed<Record<ColId, Application[]>>(() => {
@@ -1139,8 +1139,8 @@ export class WorkerDashboardComponent implements OnInit {
       'Cleaning': '#10B981', 'Plumbing': '#3B82F6', 'Electrical': '#EAB308',
       'Moving': '#8B5CF6', 'Gardening': '#16A34A', 'Painting': '#EC4899',
       'Assembly': '#F59E0B', 'Mounting': '#10B981', 'Carpentry': '#A16207',
-      'HVAC': '#0EA5E9', 'Handyman': '#737373', 'Mechanical': '#475569',
+      'HVAC': '#0EA5E9', 'Handyman': 'var(--rg-muted, #737373)', 'Mechanical': '#475569',
     };
-    return map[category ?? ''] ?? '#737373';
+    return map[category ?? ''] ?? 'var(--rg-muted, #737373)';
   }
 }

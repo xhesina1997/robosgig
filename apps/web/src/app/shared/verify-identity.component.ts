@@ -212,10 +212,10 @@ const COUNTRIES: { code: string; name: string }[] = [
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA; --panel: #FFFFFF; --ink: #0A0A0A;
-      --muted: #737373; --sub: #A3A3A3; --rule: #E8E8E5;
-      --accent: #84CC16; --accent-text: #4D7C0F; --accent-bg: #F0FAE0;
-      --soft: #F5F5F3;
+      --bg: var(--rg-bg, #fafafa); --panel: var(--rg-panel, #FFFFFF); --ink: #0A0A0A;
+      --muted: var(--rg-muted, #737373); --sub: #A3A3A3; --rule: #E8E8E5;
+      --accent: var(--rg-accent, #84CC16); --accent-text: #4D7C0F; --accent-bg: #F0FAE0;
+      --soft: var(--rg-soft, #F5F5F3);
     }
     * { box-sizing: border-box; }
 
@@ -241,7 +241,7 @@ const COUNTRIES: { code: string; name: string }[] = [
       height: 44px;
       flex-shrink: 0;
       border-radius: 12px;
-      background: #fff;
+      background: var(--rg-panel, #fff);
       border: 1px solid #D6EAA0;
       display: inline-flex;
       align-items: center;
@@ -365,13 +365,13 @@ const COUNTRIES: { code: string; name: string }[] = [
 
     .verify-btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      background: var(--ink); color: #fff; border: none;
+      background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff); border: none;
       padding: 11px 18px; border-radius: 10px;
       font-size: 13px; font-weight: 500; cursor: pointer;
       font-family: inherit; transition: background 0.15s;
       align-self: flex-start;
     }
-    .verify-btn:hover:not(:disabled) { background: #1F1F1F; }
+    .verify-btn:hover:not(:disabled) { background: var(--rg-invert-hover, #1f1f1f); }
     .verify-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
     .spinner {

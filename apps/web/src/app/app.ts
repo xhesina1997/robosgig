@@ -1,13 +1,15 @@
 import { Component, inject, effect, signal, HostListener } from '@angular/core';
 import { RouterModule, Router, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from './core/services/auth.service';
 import { ChatService } from './core/services/chat.service';
+import { ThemeService } from './core/services/theme.service';
 import { NotificationsService, AppNotification } from './core/services/notifications.service';
 import { ChatWidgetComponent } from './shared/chat-widget.component';
 
 @Component({
-  imports: [RouterModule, CommonModule, ChatWidgetComponent],
+  imports: [RouterModule, CommonModule, TranslateModule, ChatWidgetComponent],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -67,6 +69,9 @@ export class App {
   }
 
   constructor() {
+    // Eager-init the ThemeService so saved theme + accent apply on boot.
+    inject(ThemeService);
+
     effect(() => {
       if (this.auth.isLoggedIn()) {
         this.chat.connect();

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AnalyzeJobDto } from './dto/analyze-job.dto';
 import { CreateJobDto } from './dto/create-job.dto';
 import { SaveDraftDto } from './dto/save-draft.dto';
@@ -22,7 +23,8 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): num
 export class JobsService {
   constructor(
     private prisma: PrismaService,
-    private ai: AiService
+    private ai: AiService,
+    private notifications: NotificationsService,
   ) {}
 
   async analyzeAndPreview(dto: AnalyzeJobDto) {
@@ -163,6 +165,26 @@ export class JobsService {
           status: 'NOTIFIED',
         },
       });
+
+      // Notify the worker that a client picked them directly
+      const workerProfile = await this.prisma.workerProfile.findUnique({
+        where: { id: dto.directAssignWorkerId },
+        select: { userId: true },
+      });
+      const clientProfile = await this.prisma.clientProfile.findUnique({
+        where: { userId: clientId },
+        select: { firstName: true, lastName: true },
+      });
+      if (workerProfile) {
+        const clientName = clientProfile ? `${clientProfile.firstName} ${clientProfile.lastName}` : 'A client';
+        this.notifications.create({
+          userId: workerProfile.userId,
+          type: 'APPLICATION_NEW',
+          title: 'New direct request',
+          body: `${clientName} picked you for "${job.title}". Accept or pass on it from your dashboard.`,
+          link: '/dashboard/worker',
+        });
+      }
     }
 
     return job;

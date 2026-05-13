@@ -249,17 +249,17 @@ const CATEGORY_COLORS: Record<string, string> = {
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA;
-      --panel: #FFFFFF;
-      --ink: #0A0A0A;
-      --muted: #737373;
-      --sub: #A3A3A3;
-      --rule: #E8E8E5;
-      --accent: #84CC16;
-      --accent-text: #4D7C0F;
-      --accent-bg: #F0FAE0;
-      --soft: #F5F5F3;
-      --positive: #15803D;
+      --bg: var(--rg-bg, #fafafa);
+      --panel: var(--rg-panel, #FFFFFF);
+      --ink: var(--rg-ink, #0A0A0A);
+      --muted: var(--rg-muted, #737373);
+      --sub: var(--rg-sub, #A3A3A3);
+      --rule: var(--rg-rule, #E8E8E5);
+      --accent: var(--rg-accent, #84CC16);
+      --accent-text: var(--rg-accent-text, #4D7C0F);
+      --accent-bg: var(--rg-accent-bg, #F0FAE0);
+      --soft: var(--rg-soft, #F5F5F3);
+      --positive: var(--rg-positive, #15803D);
       --rate-bg: #EEF0FF;
       --rate-br: #C7D2FE;
       --rate-ink: #3F3BC4;
@@ -323,7 +323,7 @@ const CATEGORY_COLORS: Record<string, string> = {
     .wpm-av {
       position: relative; flex-shrink: 0;
       width: 72px; height: 72px; border-radius: 999px;
-      background: var(--ink); color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff);
       display: inline-flex; align-items: center; justify-content: center;
       font-size: 22px; font-weight: 600; letter-spacing: -0.01em;
     }
@@ -384,7 +384,7 @@ const CATEGORY_COLORS: Record<string, string> = {
       padding: 14px 24px;
       display: grid; grid-template-columns: repeat(4, 1fr);
       border-bottom: 1px solid var(--rule);
-      background: #FCFCFA;
+      background: var(--rg-soft, #FCFCFA);
     }
     .wpm-trust-cell {
       display: flex; flex-direction: column; gap: 2px;
@@ -455,7 +455,7 @@ const CATEGORY_COLORS: Record<string, string> = {
       margin-top: 12px; padding-left: 12px;
       border-left: 2px solid var(--accent);
       font-style: italic; font-size: 13.5px;
-      color: #404040; line-height: 1.55;
+      color: var(--rg-ink, #404040); line-height: 1.55;
     }
 
     /* About */
@@ -484,14 +484,14 @@ const CATEGORY_COLORS: Record<string, string> = {
       display: inline-flex; align-items: center; gap: 4px;
     }
     .wpm-review-job { color: var(--muted); margin-left: 4px; }
-    .wpm-review-body { font-size: 12.5px; color: #404040; line-height: 1.5; font-style: italic; }
+    .wpm-review-body { font-size: 12.5px; color: var(--rg-ink, #404040); line-height: 1.5; font-style: italic; }
 
     /* Empty */
     .wpm-empty {
       padding: 14px 16px;
       border: 1px dashed var(--rule); border-radius: 10px;
       font-size: 12.5px; color: var(--muted); line-height: 1.5;
-      background: #FCFCFA;
+      background: var(--rg-soft, #FCFCFA);
       display: flex; gap: 10px; align-items: flex-start;
     }
     .wpm-empty-ic { flex-shrink: 0; color: var(--sub); margin-top: 1px; display: inline-flex; }
@@ -538,14 +538,14 @@ const CATEGORY_COLORS: Record<string, string> = {
     .wpm-btn-primary {
       flex: 1;
       padding: 11px 18px; border-radius: 10px;
-      border: none; background: var(--ink); color: #fff;
+      border: none; background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff);
       font-size: 13px; font-weight: 500;
       cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       transition: background 0.15s;
       font-family: inherit;
     }
-    .wpm-btn-primary:hover { background: #1F1F1F; }
+    .wpm-btn-primary:hover { background: var(--rg-invert-hover, #1f1f1f); }
 
     @media (max-width: 600px) {
       .wpm-root { padding: 0; }

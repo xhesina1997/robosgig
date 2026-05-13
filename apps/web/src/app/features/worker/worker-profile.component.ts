@@ -378,7 +378,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                           <div class="wi-step" [class.wi-step--focus]="step.focus && step.status === 'todo'">
                             <span class="wi-step-dot wi-step-dot--{{ step.status }}">
                               @if (step.status === 'done') {
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#84CC16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--rg-accent, #84CC16)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
                               } @else if (step.status === 'in-review') {
                                 <span class="wi-step-pulse"></span>
                               } @else {
@@ -810,8 +810,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                     <div class="we-subhead">
                       <div>
                         <p class="wp-eyebrow" style="margin:0">Earnings &amp; activity</p>
-                        <p class="we-subhead-title">Wallet</p>
-                        <p class="we-subhead-sub">Where your money sits, lands, and leaves.</p>
+                        <p class="we-subhead-title">Earnings</p>
+                        <p class="we-subhead-sub">What you've earned, what's pending, and what's landed.</p>
                       </div>
                       <div class="we-actions">
                         <div class="we-range">
@@ -848,37 +848,35 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                               </p>
                             }
                           </div>
-                          <!-- Spark placeholder -->
                           <svg class="we-spark" width="200" height="60" viewBox="0 0 200 60" preserveAspectRatio="none">
-                            <path d="M0 50 Q40 45 60 38 T120 22 T180 12" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M0 50 Q40 45 60 38 T120 22 T180 12 L200 12 L200 60 L0 60 Z" fill="rgba(132,204,22,0.18)" stroke="none"/>
-                            <circle cx="180" cy="12" r="3" fill="var(--ink)"/>
+                            <path [attr.d]="sparkLinePath()" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path [attr.d]="sparkAreaPath()" fill="rgba(132,204,22,0.18)" stroke="none"/>
+                            <circle [attr.cx]="sparkLastPoint().x" [attr.cy]="sparkLastPoint().y" r="3" fill="var(--ink)"/>
                           </svg>
                         </div>
 
-                        <!-- Category split (visual placeholder) -->
-                        <div class="we-split">
-                          <div class="we-split-bar">
-                            <div class="we-split-seg" style="width:62%;background:var(--ink)"></div>
-                            <div class="we-split-seg" style="width:20%;background:var(--accent)"></div>
-                            <div class="we-split-seg" style="width:12%;background:#F59E0B"></div>
-                            <div class="we-split-seg" style="width:6%;background:#A3A3A3"></div>
+                        @if (categorySplit().length > 0) {
+                          <div class="we-split">
+                            <div class="we-split-bar">
+                              @for (c of categorySplit(); track c.name) {
+                                <div class="we-split-seg" [style.width.%]="c.pct" [style.background]="c.color"></div>
+                              }
+                            </div>
+                            <div class="we-split-legend">
+                              @for (c of categorySplit(); track c.name) {
+                                <span><span class="we-split-dot" [style.background]="c.color"></span> {{ c.name }} {{ c.pct }}%</span>
+                              }
+                            </div>
                           </div>
-                          <div class="we-split-legend">
-                            <span><span class="we-split-dot" style="background:var(--ink)"></span> Plumbing 62%</span>
-                            <span><span class="we-split-dot" style="background:var(--accent)"></span> Cleaning 20%</span>
-                            <span><span class="we-split-dot" style="background:#F59E0B"></span> Electrical 12%</span>
-                            <span><span class="we-split-dot" style="background:#A3A3A3"></span> General 6%</span>
-                          </div>
-                        </div>
+                        }
                       </div>
 
                       <!-- 2x2 stats -->
                       <div class="we-stat-grid">
                         <div class="we-stat">
-                          <p class="we-stat-label">Available to withdraw</p>
-                          <p class="we-stat-val we-stat-val--accent we-stat-val--mono">€{{ stats() ? stats().totalEarned.toFixed(2) : '—' }}</p>
-                          <p class="we-stat-sub">payout in 1 business day</p>
+                          <p class="we-stat-label">This month</p>
+                          <p class="we-stat-val we-stat-val--accent we-stat-val--mono">€{{ stats() ? stats().thisMonth.toFixed(2) : '—' }}</p>
+                          <p class="we-stat-sub">{{ thisMonthLabel() }}</p>
                         </div>
                         <div class="we-stat">
                           <p class="we-stat-label">In escrow</p>
@@ -886,9 +884,9 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                           <p class="we-stat-sub">{{ stats()?.pendingPayout ? 'active job(s)' : 'none active' }}</p>
                         </div>
                         <div class="we-stat">
-                          <p class="we-stat-label">Lifetime payout</p>
-                          <p class="we-stat-val we-stat-val--mono">€{{ stats() ? stats().totalEarned.toFixed(0) : '—' }}</p>
-                          <p class="we-stat-sub">across {{ stats()?.jobsCompleted ?? 0 }} jobs</p>
+                          <p class="we-stat-label">Awaiting funding</p>
+                          <p class="we-stat-val we-stat-val--mono">€{{ stats() ? stats().awaitingPayout.toFixed(2) : '—' }}</p>
+                          <p class="we-stat-sub">{{ awaitingPayoutLabel() }}</p>
                         </div>
                         <div class="we-stat">
                           <p class="we-stat-label">Avg per job</p>
@@ -939,9 +937,24 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                             <span class="we-tx-count">0</span>
                           </div>
                           <div class="we-tx-filters">
-                            <button class="we-pill we-pill--active" type="button">All</button>
-                            <button class="we-pill" type="button">Income</button>
-                            <button class="we-pill" type="button">Payouts</button>
+                            <button
+                              class="we-pill"
+                              [class.we-pill--active]="txFilter() === 'all'"
+                              (click)="txFilter.set('all')"
+                              type="button"
+                            >All</button>
+                            <button
+                              class="we-pill"
+                              [class.we-pill--active]="txFilter() === 'completed'"
+                              (click)="txFilter.set('completed')"
+                              type="button"
+                            >Completed</button>
+                            <button
+                              class="we-pill"
+                              [class.we-pill--active]="txFilter() === 'pending'"
+                              (click)="txFilter.set('pending')"
+                              type="button"
+                            >Pending</button>
                           </div>
                         </div>
 
@@ -992,20 +1005,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                         <div class="we-payout-auto">
                           <p class="we-payout-auto-label">Auto-payout</p>
                           <p class="we-payout-auto-text">
-                            Funds clear from escrow 24h after job completion.
-                            Auto-withdraw sweeps your balance every Monday.
+                            Payouts are sent straight to your chosen method as soon as the client marks a job complete — usually within minutes. No manual withdrawal needed.
                           </p>
-                          <div class="we-payout-toggle-row">
-                            <span class="we-payout-toggle-label">Auto-withdraw weekly</span>
-                            <button
-                              class="wp-toggle"
-                              [class.wp-toggle--on]="autoWithdraw()"
-                              (click)="autoWithdraw.set(!autoWithdraw())"
-                              type="button"
-                            >
-                              <span class="wp-toggle-knob"></span>
-                            </button>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -1040,16 +1041,16 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA;
-      --panel: #FFFFFF;
-      --ink: #0A0A0A;
-      --muted: #737373;
-      --sub: #A3A3A3;
-      --rule: #E8E8E5;
-      --accent: #84CC16;
-      --accent-ink: #0A0A0A;
-      --accent-text: #4D7C0F;
-      --soft: #F5F5F3;
+      --bg: var(--rg-bg, #fafafa);
+      --panel: var(--rg-panel, #FFFFFF);
+      --ink: var(--rg-ink, #0A0A0A);
+      --muted: var(--rg-muted, #737373);
+      --sub: var(--rg-sub, #A3A3A3);
+      --rule: var(--rg-rule, #E8E8E5);
+      --accent: var(--rg-accent, #84CC16);
+      --accent-ink: var(--rg-ink, #0A0A0A);
+      --accent-text: var(--rg-accent-text, #4D7C0F);
+      --soft: var(--rg-soft, #F5F5F3);
       --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
       display: block;
@@ -1114,11 +1115,11 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .hdr-btn--primary {
       padding: 8px 16px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
-    .hdr-btn--primary:hover:not(:disabled) { background: #262626; }
+    .hdr-btn--primary:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .hdr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* ── Tabs ─────────────────────────────── */
@@ -1176,7 +1177,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       overflow: hidden;
     }
     .ws-section--danger {
-      border-color: #FECACA;
+      border-color: var(--rg-danger-rule, #FECACA);
     }
     .ws-head {
       padding: 20px 24px 16px;
@@ -1186,8 +1187,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border-bottom: 1px solid var(--rule);
     }
     .ws-head--danger {
-      background: #FEF2F2;
-      border-bottom-color: #FECACA;
+      background: var(--rg-danger-bg, #FEF2F2);
+      border-bottom-color: var(--rg-danger-rule, #FECACA);
     }
     .ws-head-icon {
       width: 32px;
@@ -1201,7 +1202,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       flex-shrink: 0;
     }
     .ws-head-icon--danger {
-      background: #FFFFFF;
+      background: var(--rg-panel, #FFFFFF);
       color: #DC2626;
     }
     .ws-head-main { flex: 1; }
@@ -1293,7 +1294,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .ws-set-pill {
       padding: 2px 8px;
       border-radius: 999px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-size: 10.5px;
       font-weight: 600;
@@ -1331,22 +1332,22 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       padding: 9px 16px;
       border-radius: 10px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 12.5px;
       font-family: var(--font);
       font-weight: 500;
       cursor: pointer;
       transition: background 0.15s;
     }
-    .ws-save-btn:hover:not(:disabled) { background: #262626; }
+    .ws-save-btn:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .ws-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .ws-save-btn--lime {
       background: var(--accent);
       color: var(--accent-ink);
       font-weight: 600;
     }
-    .ws-save-btn--lime:hover:not(:disabled) { background: #a3e635; }
+    .ws-save-btn--lime:hover:not(:disabled) { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
     .ws-save-btn--ghost {
       background: var(--panel);
       color: var(--ink);
@@ -1443,7 +1444,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       padding: 16px 18px;
       border: 1px solid rgba(132,204,22,0.4);
       border-radius: 12px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       display: flex;
       gap: 12px;
       align-items: center;
@@ -1474,8 +1475,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 
     /* Danger / delete */
     .ws-danger-list {
-      background: #FEF2F2;
-      border: 1px solid #FECACA;
+      background: var(--rg-danger-bg, #FEF2F2);
+      border: 1px solid var(--rg-danger-rule, #FECACA);
       border-radius: 10px;
       padding: 14px 16px;
     }
@@ -1525,7 +1526,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       gap: 8px;
       transition: background 0.15s;
     }
-    .ws-delete-btn:hover { background: #FEF2F2; }
+    .ws-delete-btn:hover { background: var(--rg-danger-bg, #FEF2F2); }
     .ws-delete-btn--solid {
       border: none;
       background: #DC2626;
@@ -1551,7 +1552,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .ws-delete-typed-word {
       font-family: var(--mono);
-      background: #FEF2F2;
+      background: var(--rg-danger-bg, #FEF2F2);
       color: #DC2626;
       padding: 2px 6px;
       border-radius: 4px;
@@ -1628,8 +1629,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       transition: all 0.12s;
     }
     .we-range-btn--active {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
     .we-btn {
@@ -1650,11 +1651,11 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .we-btn--primary {
       padding: 8px 16px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
-    .we-btn--primary:hover { background: #262626; }
+    .we-btn--primary:hover { background: var(--rg-invert-hover, #262626); }
 
     /* Hero grid */
     .we-hero-grid {
@@ -1815,8 +1816,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       height: 18px;
       padding: 0 6px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 10.5px;
       font-weight: 600;
     }
@@ -1832,8 +1833,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       cursor: pointer;
     }
     .we-pill--active {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       border-color: var(--ink);
     }
     .we-tx-empty {
@@ -1872,8 +1873,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .we-payout-bank {
       padding: 14px 16px;
       border-radius: 12px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -1894,7 +1895,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .we-payout-bank-label {
       font-size: 10.5px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       letter-spacing: 0.14em;
       text-transform: uppercase;
     }
@@ -1916,7 +1917,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       display: flex;
       justify-content: space-between;
       font-size: 10.5px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
     }
 
     .we-payout-add {
@@ -2141,7 +2142,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
-    .wi-step-pill--done       { background: #F0FAE0; color: var(--accent-text); }
+    .wi-step-pill--done       { background: var(--rg-accent-bg, #F0FAE0); color: var(--accent-text); }
     .wi-step-pill--in-review  { background: #FEF3C7; color: #92400E; }
     .wi-step-pill--todo       { background: var(--panel); color: var(--muted); border: 1px solid var(--rule); }
     .wi-step-pill--optional   { background: var(--soft); color: var(--muted); }
@@ -2149,14 +2150,14 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       padding: 6px 12px;
       border-radius: 999px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 11.5px;
       font-family: var(--font);
       font-weight: 500;
       cursor: pointer;
     }
-    .wi-step-btn:hover { background: #262626; }
+    .wi-step-btn:hover { background: var(--rg-invert-hover, #262626); }
 
     /* Trust footer */
     .wi-trust {
@@ -2253,8 +2254,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       width: 56px;
       height: 56px;
       border-radius: 14px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -2283,7 +2284,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       margin-top: 8px;
       padding: 3px 9px;
       border-radius: 999px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-size: 11px;
       font-weight: 500;
@@ -2393,7 +2394,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border-radius: 8px;
       max-height: 200px;
       overflow-y: auto;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 16px var(--rg-hover, rgba(0,0,0,0.05));
     }
     .wp-loc-opt {
       display: block;
@@ -2414,7 +2415,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       gap: 6px;
       padding: 6px 10px;
       border-radius: 8px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-size: 11.5px;
     }
@@ -2469,7 +2470,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       width: 16px;
       height: 16px;
       border-radius: 999px;
-      background: #fff;
+      background: var(--rg-panel, #fff);
       transition: left 0.15s, background 0.15s;
     }
     .wp-toggle--on .wp-toggle-knob {
@@ -2482,7 +2483,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border-radius: 8px;
       font-size: 12.5px;
     }
-    .wp-banner--ok { background: #F0FAE0; color: var(--accent-text); }
+    .wp-banner--ok { background: var(--rg-accent-bg, #F0FAE0); color: var(--accent-text); }
     .wp-banner--err { background: rgba(220,38,38,0.06); color: #B91C1C; }
 
     /* ── Skills card ───────────────────────── */
@@ -2523,9 +2524,9 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .wp-chip:hover { border-color: var(--sub); }
     .wp-chip--active {
-      border-color: var(--ink);
-      background: var(--ink);
-      color: #fff;
+      border-color: var(--rg-invert-bg, #0A0A0A);
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
     .wp-chip-check { color: var(--accent); font-size: 10px; }
@@ -2554,7 +2555,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       cursor: pointer;
       transition: background 0.15s;
     }
-    .wp-add-btn:hover:not(:disabled) { background: #a3e635; }
+    .wp-add-btn:hover:not(:disabled) { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
     .wp-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .wp-browse {
@@ -2649,8 +2650,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 
     /* ── Card ─────────────────────────────── */
     .card {
-      background: #fff;
-      border: 1.5px solid #e4e4e7;
+      background: var(--rg-panel, #fff);
+      border: 1.5px solid var(--rg-rule, #e4e4e7);
       border-radius: 16px;
       padding: 1.5rem;
     }
@@ -2662,14 +2663,14 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       gap: 0.875rem;
       padding-bottom: 1.25rem;
       margin-bottom: 1.25rem;
-      border-bottom: 1px solid #f4f4f5;
+      border-bottom: 1px solid var(--rg-soft, #F4F4F5);
     }
     .avatar-circle {
       width: 52px;
       height: 52px;
       border-radius: 50%;
-      background: #18181b;
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2678,8 +2679,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       flex-shrink: 0;
       letter-spacing: 0.02em;
     }
-    .avatar-name { font-size: 0.95rem; font-weight: 600; color: #18181b; margin: 0 0 0.15rem; }
-    .avatar-email { font-size: 0.8rem; color: #a1a1aa; margin: 0 0 0.3rem; }
+    .avatar-name { font-size: 0.95rem; font-weight: 600; color: var(--rg-ink, #18181b); margin: 0 0 0.15rem; }
+    .avatar-email { font-size: 0.8rem; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); margin: 0 0 0.3rem; }
     .badge-verified {
       display: inline-flex;
       align-items: center;
@@ -2691,7 +2692,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       padding: 0.15rem 0.5rem;
       border-radius: 6px;
     }
-    .badge-unverified { font-size: 0.68rem; color: #a1a1aa; }
+    .badge-unverified { font-size: 0.68rem; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); }
 
     /* ── Section label ────────────────────── */
     .section-label {
@@ -2699,15 +2700,15 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       font-weight: 700;
       letter-spacing: 0.07em;
       text-transform: uppercase;
-      color: #71717a;
+      color: var(--rg-muted, #71717A);
       margin-bottom: 0.75rem;
     }
 
     /* ── Fields ───────────────────────────── */
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; }
     .field { margin-bottom: 0.75rem; }
-    label { display: block; font-size: 0.78rem; font-weight: 500; color: #18181b; margin-bottom: 0.3rem; }
-    .field-hint { font-weight: 400; color: #a1a1aa; margin-left: 0.35rem; }
+    label { display: block; font-size: 0.78rem; font-weight: 500; color: var(--rg-ink, #18181b); margin-bottom: 0.3rem; }
+    .field-hint { font-weight: 400; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); margin-left: 0.35rem; }
 
     .input-icon-wrap { position: relative; }
     .input-icon {
@@ -2715,24 +2716,24 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       left: 0.7rem;
       top: 50%;
       transform: translateY(-50%);
-      color: #a1a1aa;
+      color: var(--rg-sub, var(--rg-sub, #a1a1aa));
       pointer-events: none;
     }
     .field-input {
       width: 100%;
       padding: 0.6rem 0.875rem;
-      border: 1.5px solid #e4e4e7;
+      border: 1.5px solid var(--rg-rule, #e4e4e7);
       border-radius: 10px;
       font-size: 0.875rem;
       outline: none;
       font-family: inherit;
-      color: #18181b;
-      background: #fff;
+      color: var(--rg-ink, #18181b);
+      background: var(--rg-panel, #fff);
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     .field-input.with-icon { padding-left: 2rem; }
-    .field-input:focus { border-color: #18181b; box-shadow: 0 0 0 3px rgba(24,24,27,0.07); }
-    .field-input::placeholder { color: #a1a1aa; }
+    .field-input:focus { border-color: var(--rg-ink, #18181b); box-shadow: 0 0 0 3px rgba(24,24,27,0.07); }
+    .field-input::placeholder { color: var(--rg-sub, var(--rg-sub, #a1a1aa)); }
     textarea.field-input { resize: vertical; }
 
     /* ── Availability ─────────────────────── */
@@ -2742,15 +2743,15 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       justify-content: space-between;
       padding: 0.875rem 0;
       margin-bottom: 1rem;
-      border-top: 1px solid #f4f4f5;
-      border-bottom: 1px solid #f4f4f5;
+      border-top: 1px solid var(--rg-soft, #F4F4F5);
+      border-bottom: 1px solid var(--rg-soft, #F4F4F5);
     }
-    .avail-title { font-size: 0.875rem; font-weight: 600; color: #18181b; margin: 0 0 0.1rem; }
-    .avail-sub { font-size: 0.72rem; color: #a1a1aa; margin: 0; }
+    .avail-title { font-size: 0.875rem; font-weight: 600; color: var(--rg-ink, #18181b); margin: 0 0 0.1rem; }
+    .avail-sub { font-size: 0.72rem; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); margin: 0; }
 
     .toggle {
       width: 44px; height: 24px;
-      background: #d4d4d8;
+      background: var(--rg-rule, #D4D4D8);
       border-radius: 12px;
       border: none;
       cursor: pointer;
@@ -2764,7 +2765,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       position: absolute;
       top: 2px; left: 2px;
       width: 20px; height: 20px;
-      background: #fff;
+      background: var(--rg-panel, #fff);
       border-radius: 50%;
       transition: transform 0.2s;
       box-shadow: 0 1px 4px rgba(0,0,0,0.18);
@@ -2792,8 +2793,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       align-items: center;
       justify-content: center;
       gap: 0.4rem;
-      background: #18181b;
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       border: none;
       padding: 0.7rem;
       border-radius: 99px;
@@ -2803,7 +2804,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       transition: background 0.15s;
       font-family: inherit;
     }
-    .save-btn:hover:not(:disabled) { background: #27272a; }
+    .save-btn:hover:not(:disabled) { background: var(--rg-invert-hover, #27272a); }
     .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .spinner {
       width: 13px; height: 13px;
@@ -2816,7 +2817,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Skills ───────────────────────────── */
-    .skills-hint { font-size: 0.8rem; color: #a1a1aa; margin: -0.4rem 0 0.875rem; }
+    .skills-hint { font-size: 0.8rem; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); margin: -0.4rem 0 0.875rem; }
 
     .skills-wrap {
       display: flex;
@@ -2829,9 +2830,9 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      background: #f4f4f5;
-      border: 1.5px solid #e4e4e7;
-      color: #18181b;
+      background: var(--rg-soft, #F4F4F5);
+      border: 1.5px solid var(--rg-rule, #e4e4e7);
+      color: var(--rg-ink, #18181b);
       padding: 0.25rem 0.5rem 0.25rem 0.65rem;
       border-radius: 99px;
       font-size: 0.75rem;
@@ -2850,13 +2851,13 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       background: none;
       border: none;
       cursor: pointer;
-      color: #a1a1aa;
+      color: var(--rg-sub, var(--rg-sub, #a1a1aa));
       padding: 0;
       border-radius: 50%;
       transition: background 0.12s, color 0.12s;
     }
-    .skill-x:hover { background: rgba(0,0,0,0.07); color: #18181b; }
-    .no-skills { font-size: 0.82rem; color: #a1a1aa; margin: 0; }
+    .skill-x:hover { background: var(--rg-hover, rgba(0,0,0,0.07)); color: var(--rg-ink, #18181b); }
+    .no-skills { font-size: 0.82rem; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); margin: 0; }
 
     /* ── Custom skill input ───────────────── */
     .custom-skill-row {
@@ -2869,8 +2870,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
-      background: #18181b;
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       border: none;
       padding: 0.6rem 0.875rem;
       border-radius: 10px;
@@ -2882,7 +2883,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       transition: background 0.15s;
       flex-shrink: 0;
     }
-    .add-btn:hover:not(:disabled) { background: #27272a; }
+    .add-btn:hover:not(:disabled) { background: var(--rg-invert-hover, #27272a); }
     .add-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
     /* ── Predefined skill groups ──────────── */
@@ -2892,23 +2893,23 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       font-weight: 700;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: #a1a1aa;
+      color: var(--rg-sub, var(--rg-sub, #a1a1aa));
       margin: 0 0 0.35rem;
     }
     .skill-options { display: flex; flex-wrap: wrap; gap: 0.3rem; }
     .skill-opt {
-      background: #f4f4f5;
-      border: 1.5px solid #e4e4e7;
+      background: var(--rg-soft, #F4F4F5);
+      border: 1.5px solid var(--rg-rule, #e4e4e7);
       border-radius: 99px;
       padding: 0.22rem 0.65rem;
       font-size: 0.75rem;
       font-weight: 500;
       cursor: pointer;
-      color: #3f3f46;
+      color: var(--rg-ink, #3F3F46);
       transition: all 0.12s;
       font-family: inherit;
     }
-    .skill-opt:hover:not(:disabled) { border-color: #18181b; color: #18181b; background: rgba(0,0,0,0.03); }
+    .skill-opt:hover:not(:disabled) { border-color: var(--rg-ink, #18181b); color: var(--rg-ink, #18181b); background: var(--rg-hover, rgba(0,0,0,0.03)); }
     .skill-opt--owned { opacity: 0.35; cursor: default; }
 
     /* ── Location picker ──────────────────── */
@@ -2917,22 +2918,22 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .loc-gps-btn {
       width: 38px; height: 38px;
       flex-shrink: 0;
-      border: 1.5px solid #e4e4e7;
+      border: 1.5px solid var(--rg-rule, #e4e4e7);
       border-radius: 10px;
-      background: #fff;
+      background: var(--rg-panel, #fff);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #71717a;
+      color: var(--rg-muted, #71717A);
       transition: border-color 0.15s, color 0.15s;
     }
-    .loc-gps-btn:hover:not(:disabled) { border-color: #18181b; color: #18181b; }
+    .loc-gps-btn:hover:not(:disabled) { border-color: var(--rg-ink, #18181b); color: var(--rg-ink, #18181b); }
     .loc-gps-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .loc-spinner {
       width: 12px; height: 12px;
-      border: 2px solid #e4e4e7;
-      border-top-color: #18181b;
+      border: 2px solid var(--rg-rule, #e4e4e7);
+      border-top-color: var(--rg-ink, #18181b);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       display: inline-block;
@@ -2941,8 +2942,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       position: absolute;
       top: calc(100% + 4px);
       left: 0; right: 0;
-      background: #fff;
-      border: 1.5px solid #e4e4e7;
+      background: var(--rg-panel, #fff);
+      border: 1.5px solid var(--rg-rule, #e4e4e7);
       border-radius: 12px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.1);
       z-index: 100;
@@ -2958,17 +2959,17 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       padding: 0.625rem 0.875rem;
       background: none;
       border: none;
-      border-bottom: 1px solid #f4f4f5;
+      border-bottom: 1px solid var(--rg-soft, #F4F4F5);
       cursor: pointer;
       font-size: 0.8rem;
-      color: #3f3f46;
+      color: var(--rg-ink, #3F3F46);
       text-align: left;
       font-family: inherit;
       line-height: 1.4;
       transition: background 0.1s;
     }
     .loc-option:last-child { border-bottom: none; }
-    .loc-option:hover { background: #f8f8f8; }
+    .loc-option:hover { background: var(--rg-bg, #f8f8f8); }
     .loc-confirmed {
       display: flex;
       align-items: center;
@@ -2979,7 +2980,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       font-weight: 500;
     }
     .loc-coords {
-      color: #a1a1aa;
+      color: var(--rg-sub, var(--rg-sub, #a1a1aa));
       font-weight: 400;
       font-size: 0.7rem;
       font-family: monospace;
@@ -2992,30 +2993,30 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       align-items: center;
       gap: 1rem;
       padding: 6rem 2rem;
-      color: #a1a1aa;
+      color: var(--rg-sub, var(--rg-sub, #a1a1aa));
       font-size: 0.875rem;
     }
     .load-ring {
       width: 30px; height: 30px;
-      border: 2.5px solid #e4e4e7;
-      border-top-color: #18181b;
+      border: 2.5px solid var(--rg-rule, #e4e4e7);
+      border-top-color: var(--rg-ink, #18181b);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
 
     .field-row { margin-bottom: 0.875rem; }
-    .field-label { display: block; font-size: 0.75rem; font-weight: 600; color: #71717a; margin-bottom: 0.3rem; }
-    .field-input { width: 100%; padding: 0.5rem 0.75rem; border: 1.5px solid #e4e4e7; border-radius: 8px; font-size: 0.875rem; color: #18181b; font-family: inherit; outline: none; transition: border-color 0.15s; }
-    .field-input:focus { border-color: #18181b; }
-    .btn-save-pw { margin-top: 0.25rem; width: 100%; padding: 0.575rem; border-radius: 10px; background: #18181b; color: #fff; font-size: 0.875rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.15s; }
-    .btn-save-pw:hover:not(:disabled) { background: #3f3f46; }
+    .field-label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--rg-muted, #71717A); margin-bottom: 0.3rem; }
+    .field-input { width: 100%; padding: 0.5rem 0.75rem; border: 1.5px solid var(--rg-rule, #e4e4e7); border-radius: 8px; font-size: 0.875rem; color: var(--rg-ink, #18181b); font-family: inherit; outline: none; transition: border-color 0.15s; }
+    .field-input:focus { border-color: var(--rg-ink, #18181b); }
+    .btn-save-pw { margin-top: 0.25rem; width: 100%; padding: 0.575rem; border-radius: 10px; background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff); font-size: 0.875rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.15s; }
+    .btn-save-pw:hover:not(:disabled) { background: var(--rg-ink, #3F3F46); }
     .btn-save-pw:disabled { opacity: 0.5; cursor: not-allowed; }
     .pw-error { font-size: 0.8rem; color: #dc2626; margin: 0.5rem 0 0; }
     .pw-success { font-size: 0.8rem; color: #16a34a; margin: 0.5rem 0 0; }
     /* ── Stripe Connect ─────────────────────── */
     /* ── Payout methods ───────────────────────── */
     .payout-methods-header { margin-bottom: 0.875rem; }
-    .payout-hint { font-size: 0.78rem; color: #a1a1aa; margin: 0.2rem 0 0; }
+    .payout-hint { font-size: 0.78rem; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); margin: 0.2rem 0 0; }
     .payout-card { padding: 1.125rem 1.25rem; }
     .payout-card-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
     .payout-icon {
@@ -3026,8 +3027,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .paypal-icon  { background: #eff6ff; color: #003087; }
     .revolut-icon { background: #f5f3ff; color: #5b21b6; }
     .stripe-icon  { background: #faf5ff; color: #7c3aed; }
-    .payout-method-name { font-size: 0.875rem; font-weight: 600; color: #18181b; margin: 0 0 0.15rem; }
-    .payout-method-sub  { font-size: 0.72rem; color: #a1a1aa; margin: 0; }
+    .payout-method-name { font-size: 0.875rem; font-weight: 600; color: var(--rg-ink, #18181b); margin: 0 0 0.15rem; }
+    .payout-method-sub  { font-size: 0.72rem; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); margin: 0; }
     .payout-set-badge {
       margin-left: auto; font-size: 0.7rem; font-weight: 700;
       color: #16a34a; background: #dcfce7; padding: 0.2rem 0.6rem;
@@ -3046,13 +3047,13 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 
     .stats-card { margin-top: 1.25rem; }
     .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.875rem; margin-top: 0.75rem; }
-    .stat-box { background: #f4f4f5; border-radius: 10px; padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; }
+    .stat-box { background: var(--rg-soft, #F4F4F5); border-radius: 10px; padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; }
     .stat-box--green .stat-val { color: #15803d; }
     .stat-box--amber .stat-val { color: #b45309; }
-    .stat-val { font-size: 1.2rem; font-weight: 700; color: #18181b; }
-    .stat-lbl { font-size: 0.72rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.04em; }
-    .connect-desc { font-size: 0.875rem; color: #71717a; margin: 0.25rem 0 1rem; line-height: 1.6; }
-    .connect-loading { display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; color: #a1a1aa; }
+    .stat-val { font-size: 1.2rem; font-weight: 700; color: var(--rg-ink, #18181b); }
+    .stat-lbl { font-size: 0.72rem; color: var(--rg-muted, #71717A); text-transform: uppercase; letter-spacing: 0.04em; }
+    .connect-desc { font-size: 0.875rem; color: var(--rg-muted, #71717A); margin: 0.25rem 0 1rem; line-height: 1.6; }
+    .connect-loading { display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); }
     .connect-error { font-size: 0.8rem; color: #dc2626; margin-top: 0.75rem; }
     .btn-connect {
       display: inline-flex; align-items: center; gap: 0.45rem;
@@ -3090,22 +3091,22 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       animation: spin 0.7s linear infinite; display: inline-block; flex-shrink: 0;
     }
 
-    .delete-desc { font-size: 0.875rem; color: #71717a; margin: 0.5rem 0 1rem; }
-    .delete-warn { font-size: 0.875rem; color: #3f3f46; margin: 0.5rem 0 1rem; }
+    .delete-desc { font-size: 0.875rem; color: var(--rg-muted, #71717A); margin: 0.5rem 0 1rem; }
+    .delete-warn { font-size: 0.875rem; color: var(--rg-ink, #3F3F46); margin: 0.5rem 0 1rem; }
     .delete-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
     .btn-delete-account {
       padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
-      background: #fff; border: 1.5px solid #e4e4e7; color: #dc2626; cursor: pointer;
+      background: var(--rg-panel, #fff); border: 1.5px solid var(--rg-rule, #e4e4e7); color: #dc2626; cursor: pointer;
       transition: background 0.15s;
     }
-    .btn-delete-account:hover { background: #fef2f2; border-color: #fca5a5; }
+    .btn-delete-account:hover { background: var(--rg-danger-bg, #FEF2F2); border-color: #fca5a5; }
     .btn-report {
       display: inline-flex; align-items: center; gap: 0.4rem;
       padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
-      background: #fafafa; border: 1.5px solid #e4e4e7; color: #3f3f46; cursor: pointer;
+      background: var(--rg-bg, #fafafa); border: 1.5px solid var(--rg-rule, #e4e4e7); color: var(--rg-ink, #3F3F46); cursor: pointer;
       transition: all 0.15s;
     }
-    .btn-report:hover { background: #f4f4f5; border-color: #a1a1aa; }
+    .btn-report:hover { background: var(--rg-soft, #F4F4F5); border-color: var(--rg-sub, var(--rg-sub, #a1a1aa)); }
     .btn-delete-confirm {
       padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
       background: #dc2626; border: none; color: #fff; cursor: pointer; transition: background 0.15s;
@@ -3114,7 +3115,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .btn-delete-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-cancel {
       padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500;
-      background: transparent; border: 1.5px solid #e4e4e7; color: #71717a; cursor: pointer;
+      background: transparent; border: 1.5px solid var(--rg-rule, #e4e4e7); color: var(--rg-muted, #71717A); cursor: pointer;
     }
     .delete-error { color: #dc2626; font-size: 0.8rem; margin-top: 0.5rem; }
 
@@ -3303,10 +3304,10 @@ export class WorkerProfileComponent implements OnInit {
       'Cleaning': '#10B981', 'Plumbing': '#3B82F6', 'Electrical': '#EAB308',
       'Moving': '#8B5CF6', 'Gardening': '#16A34A', 'Painting': '#EC4899',
       'Assembly': '#F59E0B', 'Mounting': '#10B981', 'Carpentry': '#A16207',
-      'HVAC': '#0EA5E9', 'Handyman': '#737373', 'Mechanical': '#475569',
-      'General Tasks': '#737373', 'General': '#737373',
+      'HVAC': '#0EA5E9', 'Handyman': 'var(--rg-muted, #737373)', 'Mechanical': '#475569',
+      'General Tasks': 'var(--rg-muted, #737373)', 'General': 'var(--rg-muted, #737373)',
     };
-    return map[category ?? ''] ?? '#737373';
+    return map[category ?? ''] ?? 'var(--rg-muted, #737373)';
   }
 
   // ── Identity checklist ─────────────────────────
@@ -3369,6 +3370,53 @@ export class WorkerProfileComponent implements OnInit {
     const s = this.stats();
     if (!s || !s.jobsCompleted) return '0';
     return (s.totalEarned / s.jobsCompleted).toFixed(0);
+  });
+
+  thisMonthLabel = computed(() => {
+    const m = new Date().toLocaleString('en-US', { month: 'long' });
+    return `earned so far in ${m}`;
+  });
+
+  awaitingPayoutLabel = computed(() => {
+    const s = this.stats();
+    const count = s?.awaitingPayoutCount ?? 0;
+    if (count > 0) return `${count} job${count === 1 ? '' : 's'} awaiting client funding`;
+    return 'all caught up';
+  });
+
+  txFilter = signal<'all' | 'completed' | 'pending'>('all');
+
+  // Real category split for the worker earnings bar
+  categorySplit = computed(() => {
+    const palette = ['var(--rg-ink, #0A0A0A)', 'var(--rg-accent, #84CC16)', '#F59E0B', 'var(--rg-sub, #A3A3A3)'];
+    const cats = ((this.stats() as any)?.byCategory ?? []) as Array<{ name: string; amount: number; pct: number }>;
+    return cats.map((c, i) => ({ ...c, color: palette[i] ?? 'var(--rg-sub, #A3A3A3)' }));
+  });
+
+  // Real sparkline path
+  private sparkPoints = computed(() => {
+    const months = ((this.stats() as any)?.byMonth ?? []) as Array<{ amount: number; label: string }>;
+    const w = 200, h = 60, pad = 6;
+    if (months.length === 0) return [{ x: 0, y: h - pad }, { x: w, y: h - pad }];
+    const max = Math.max(...months.map((m) => m.amount), 1);
+    const xs = months.length > 1 ? w / (months.length - 1) : w;
+    return months.map((m, i) => ({
+      x: months.length > 1 ? Math.round(i * xs) : w,
+      y: Math.round(h - pad - (m.amount / max) * (h - pad * 2)),
+    }));
+  });
+  sparkLinePath = computed(() =>
+    this.sparkPoints().map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' '),
+  );
+  sparkAreaPath = computed(() => {
+    const pts = this.sparkPoints();
+    if (pts.length === 0) return '';
+    const last = pts[pts.length - 1];
+    return `${pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ')} L${last.x} 60 L0 60 Z`;
+  });
+  sparkLastPoint = computed(() => {
+    const pts = this.sparkPoints();
+    return pts[pts.length - 1] ?? { x: 0, y: 60 };
   });
 
   formatIban(iban: string): string {

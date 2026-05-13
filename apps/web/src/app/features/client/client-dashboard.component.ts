@@ -68,7 +68,7 @@ interface ClientDashboard {
             <button class="stat-tab" [class.stat-tab--active]="filter() === 'ALL'" (click)="setFilter('ALL')" type="button">
               <span class="stat-val">
                 {{ data()!.stats.total }}
-                @if (filter() === 'ALL') { <span class="stat-dot" style="background:#0A0A0A"></span> }
+                @if (filter() === 'ALL') { <span class="stat-dot" style="background:var(--rg-ink, #0A0A0A)"></span> }
               </span>
               <span class="stat-label">All jobs</span>
             </button>
@@ -87,9 +87,9 @@ interface ClientDashboard {
               <span class="stat-label">In progress</span>
             </button>
             <button class="stat-tab" [class.stat-tab--active]="filter() === 'COMPLETED'" (click)="setFilter('COMPLETED')" type="button">
-              <span class="stat-val" style="color:#737373">
+              <span class="stat-val" style="color:var(--rg-muted, #737373)">
                 {{ data()!.stats.completed }}
-                @if (filter() === 'COMPLETED') { <span class="stat-dot" style="background:#737373"></span> }
+                @if (filter() === 'COMPLETED') { <span class="stat-dot" style="background:var(--rg-muted, #737373)"></span> }
               </span>
               <span class="stat-label">Completed</span>
             </button>
@@ -156,7 +156,7 @@ interface ClientDashboard {
                           <span
                             class="apps-chip"
                             [class.apps-chip--has]="job.applications.length > 0"
-                          >{{ job.applications.length }} application{{ job.applications.length === 1 ? '' : 's' }}</span>
+                          >{{ jobActivityLabel(job) }}</span>
                         } @else if (statusGroup(job.status) === 'progress') {
                           <span class="progress-note">In progress</span>
                         } @else if (statusGroup(job.status) === 'completed') {
@@ -227,7 +227,7 @@ interface ClientDashboard {
                           } @else {
                             <div class="apps-head">
                               <span class="apps-head-label">
-                                Applications · <span class="apps-head-count">{{ job.applications.length }}</span>
+                                {{ jobActivityLabel(job) }}
                               </span>
                               <span class="apps-head-sort">sorted by best match</span>
                             </div>
@@ -274,6 +274,12 @@ interface ClientDashboard {
                                       </div>
                                     } @else if (app.status === 'ACCEPTED') {
                                       <span class="app-hired">✓ Hired</span>
+                                    } @else if (app.status === 'NOTIFIED') {
+                                      <span class="app-requested">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                        Request sent
+                                      </span>
+                                      <span class="app-awaiting">Awaiting response</span>
                                     } @else {
                                       <span class="app-passed">{{ statusLabel(app.status).toLowerCase() }}</span>
                                     }
@@ -392,17 +398,17 @@ interface ClientDashboard {
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA;
-      --panel: #FFFFFF;
-      --ink: #0A0A0A;
-      --muted: #737373;
-      --sub: #A3A3A3;
-      --rule: #E8E8E5;
-      --accent: #84CC16;
-      --accent-ink: #0A0A0A;
-      --accent-text: #4D7C0F;
-      --soft: #F5F5F3;
-      --positive: #15803D;
+      --bg: var(--rg-bg, #fafafa);
+      --panel: var(--rg-panel, #FFFFFF);
+      --ink: var(--rg-ink, #0A0A0A);
+      --muted: var(--rg-muted, #737373);
+      --sub: var(--rg-sub, #A3A3A3);
+      --rule: var(--rg-rule, #E8E8E5);
+      --accent: var(--rg-accent, #84CC16);
+      --accent-ink: var(--rg-ink, #0A0A0A);
+      --accent-text: var(--rg-accent-text, #4D7C0F);
+      --soft: var(--rg-soft, #F5F5F3);
+      --positive: var(--rg-positive, #15803D);
       --warn: #B45309;
       --info: #3B82F6;
       --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -458,7 +464,7 @@ interface ClientDashboard {
       gap: 4px;
       padding: 2px 8px;
       border-radius: 999px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-weight: 500;
     }
@@ -484,12 +490,12 @@ interface ClientDashboard {
     }
     .action-pill:hover { border-color: var(--sub); }
     .action-pill--primary {
-      background: var(--ink);
+      background: var(--rg-invert-bg, #0A0A0A);
       border: none;
-      color: #fff;
+      color: var(--rg-invert-fg, #fff);
       padding: 8px 16px;
     }
-    .action-pill--primary:hover { background: #262626; }
+    .action-pill--primary:hover { background: var(--rg-invert-hover, #262626); }
     .action-plus {
       display: inline-flex;
       align-items: center;
@@ -527,7 +533,7 @@ interface ClientDashboard {
       transition: background 0.12s, border-color 0.12s;
       position: relative;
     }
-    .stat-tab:hover { background: rgba(0,0,0,0.02); }
+    .stat-tab:hover { background: var(--rg-hover, rgba(0,0,0,0.02)); }
     .stat-tab--active {
       background: var(--panel);
       border-color: var(--rule);
@@ -593,8 +599,8 @@ interface ClientDashboard {
       height: 18px;
       padding: 0 6px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 10.5px;
       font-weight: 600;
       letter-spacing: 0;
@@ -620,7 +626,7 @@ interface ClientDashboard {
       overflow: hidden;
       transition: border-color 0.15s;
     }
-    .job-card:has(.job-body) { border-color: #D4D4D1; }
+    .job-card:has(.job-body) { border-color: var(--rg-rule, #D4D4D1); }
 
     .job-row {
       width: 100%;
@@ -699,8 +705,8 @@ interface ClientDashboard {
       font-weight: 500;
     }
     .apps-chip--has {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
     }
     .progress-note {
       font-size: 11.5px;
@@ -771,8 +777,8 @@ interface ClientDashboard {
     .worker-avatar-sm {
       width: 36px; height: 36px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -812,14 +818,14 @@ interface ClientDashboard {
       padding: 8px 14px;
       border-radius: 999px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 12px;
       font-family: var(--font);
       font-weight: 500;
       cursor: pointer;
     }
-    .btn-ink-pill:hover:not(:disabled) { background: #262626; }
+    .btn-ink-pill:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .btn-ink-pill:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* Applications block */
@@ -856,15 +862,15 @@ interface ClientDashboard {
       align-items: start;
     }
     .app-row--accepted {
-      border-color: #D4D4D1;
+      border-color: var(--rg-rule, #D4D4D1);
       background: var(--soft);
     }
 
     .app-avatar {
       width: 40px; height: 40px;
       border-radius: 10px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -891,7 +897,7 @@ interface ClientDashboard {
       gap: 3px;
       padding: 1px 7px;
       border-radius: 999px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-size: 9.5px;
       font-weight: 600;
@@ -972,22 +978,22 @@ interface ClientDashboard {
       padding: 7px 14px;
       border-radius: 999px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 11.5px;
       font-family: var(--font);
       font-weight: 500;
       cursor: pointer;
     }
-    .app-btn-accept:hover { background: #262626; }
+    .app-btn-accept:hover { background: var(--rg-invert-hover, #262626); }
     .app-hired {
       display: inline-flex;
       align-items: center;
       gap: 5px;
       padding: 5px 10px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.06em;
@@ -998,6 +1004,27 @@ interface ClientDashboard {
       font-size: 11px;
       color: var(--sub);
       margin-top: 4px;
+    }
+    .app-requested {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--rg-accent-bg, #F0FAE0);
+      color: var(--rg-accent-text, #4D7C0F);
+      border: 1px solid var(--rg-accent-br, #D6EAA0);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .app-awaiting {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: var(--mono, 'Geist Mono', monospace);
     }
 
     /* Completed strip */
@@ -1049,8 +1076,8 @@ interface ClientDashboard {
     .star-btn:hover { transform: scale(1.15); }
     .star-active { color: #F59E0B; }
     .btn-review {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       border: none;
       padding: 8px 16px;
       border-radius: 999px;
@@ -1059,7 +1086,7 @@ interface ClientDashboard {
       cursor: pointer;
       font-family: var(--font);
     }
-    .btn-review:hover:not(:disabled) { background: #262626; }
+    .btn-review:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .btn-review:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* Footer actions */
@@ -1141,13 +1168,13 @@ interface ClientDashboard {
       gap: 6px;
       padding: 9px 18px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
     }
-    .empty-cta:hover { background: #262626; }
+    .empty-cta:hover { background: var(--rg-invert-hover, #262626); }
     .filter-empty {
       padding: 40px 24px;
       border: 1px dashed var(--rule);
@@ -1198,7 +1225,7 @@ interface ClientDashboard {
     }
     .load-ring-sm {
       width: 12px; height: 12px;
-      border: 2px solid #D4D4D1;
+      border: 2px solid var(--rg-rule, #D4D4D1);
       border-top-color: var(--ink);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -1401,6 +1428,18 @@ export class ClientDashboardComponent implements OnInit {
     return 'completed';
   }
 
+  jobActivityLabel(job: Job): string {
+    const apps = job.applications ?? [];
+    const requests = apps.filter((a) => a.status === 'NOTIFIED' || a.status === 'SUGGESTED').length;
+    const applied = apps.filter((a) => a.status === 'APPLIED').length;
+    if (applied > 0 && requests > 0) {
+      return `${applied} application${applied === 1 ? '' : 's'} · ${requests} request${requests === 1 ? '' : 's'}`;
+    }
+    if (applied > 0) return `${applied} application${applied === 1 ? '' : 's'}`;
+    if (requests > 0) return `${requests} request${requests === 1 ? '' : 's'} sent`;
+    return '0 applications';
+  }
+
   setRating(jobId: string, rating: number) {
     this.reviewRatings.update((r) => ({ ...r, [jobId]: rating }));
   }
@@ -1418,7 +1457,7 @@ export class ClientDashboardComponent implements OnInit {
       'Cleaning': '#14b8a6', 'Plumbing': '#2563eb', 'Electrical': '#f59e0b',
       'Moving': '#8b5cf6', 'Gardening': '#16a34a', 'Painting': '#f97316',
     };
-    return map[category ?? ''] ?? '#a1a1aa';
+    return map[category ?? ''] ?? 'var(--rg-sub, var(--rg-sub, #a1a1aa))';
   }
 
   statusLabel(status: string): string {

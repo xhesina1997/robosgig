@@ -189,7 +189,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                           <div class="ci-step" [class.ci-step--focus]="step.focus && step.status === 'todo'">
                             <span class="ci-step-dot ci-step-dot--{{ step.status }}">
                               @if (step.status === 'done') {
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#84CC16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--rg-accent, #84CC16)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
                               } @else {
                                 {{ i + 1 }}
                               }
@@ -406,35 +406,34 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                             }
                           </div>
                           <svg class="cw-spark" width="200" height="60" viewBox="0 0 200 60" preserveAspectRatio="none">
-                            <path d="M0 50 Q40 38 60 32 T120 18 T180 8" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M0 50 Q40 38 60 32 T120 18 T180 8 L200 8 L200 60 L0 60 Z" fill="rgba(10,10,10,0.06)" stroke="none"/>
-                            <circle cx="180" cy="8" r="3" fill="var(--ink)"/>
+                            <path [attr.d]="sparkLinePath()" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path [attr.d]="sparkAreaPath()" fill="rgba(10,10,10,0.06)" stroke="none"/>
+                            <circle [attr.cx]="sparkLastPoint().x" [attr.cy]="sparkLastPoint().y" r="3" fill="var(--ink)"/>
                           </svg>
                         </div>
 
-                        <!-- Category split (visual approximation) -->
-                        <div class="cw-split">
-                          <div class="cw-split-bar">
-                            <div class="cw-split-seg" style="width:44%;background:var(--ink)"></div>
-                            <div class="cw-split-seg" style="width:26%;background:var(--accent)"></div>
-                            <div class="cw-split-seg" style="width:18%;background:#F59E0B"></div>
-                            <div class="cw-split-seg" style="width:12%;background:#A3A3A3"></div>
+                        @if (categorySplit().length > 0) {
+                          <div class="cw-split">
+                            <div class="cw-split-bar">
+                              @for (c of categorySplit(); track c.name) {
+                                <div class="cw-split-seg" [style.width.%]="c.pct" [style.background]="c.color"></div>
+                              }
+                            </div>
+                            <div class="cw-split-legend">
+                              @for (c of categorySplit(); track c.name) {
+                                <span><span class="cw-split-dot" [style.background]="c.color"></span> {{ c.name }} {{ c.pct }}%</span>
+                              }
+                            </div>
                           </div>
-                          <div class="cw-split-legend">
-                            <span><span class="cw-split-dot" style="background:var(--ink)"></span> Plumbing 44%</span>
-                            <span><span class="cw-split-dot" style="background:var(--accent)"></span> Cleaning 26%</span>
-                            <span><span class="cw-split-dot" style="background:#F59E0B"></span> Electrical 18%</span>
-                            <span><span class="cw-split-dot" style="background:#A3A3A3"></span> Other 12%</span>
-                          </div>
-                        </div>
+                        }
                       </div>
 
                       <!-- 2x2 stats -->
                       <div class="cw-stat-grid">
                         <div class="cw-stat">
-                          <p class="cw-stat-label">Wallet balance</p>
-                          <p class="cw-stat-val cw-stat-val--accent cw-stat-val--mono">€{{ stats() ? walletBalance() : '—' }}</p>
-                          <p class="cw-stat-sub">ready to spend</p>
+                          <p class="cw-stat-label">This month</p>
+                          <p class="cw-stat-val cw-stat-val--accent cw-stat-val--mono">€{{ stats() ? stats().thisMonth.toFixed(2) : '—' }}</p>
+                          <p class="cw-stat-sub">{{ thisMonthLabel() }}</p>
                         </div>
                         <div class="cw-stat">
                           <p class="cw-stat-label">Held in escrow</p>
@@ -442,9 +441,9 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                           <p class="cw-stat-sub">{{ stats()?.jobsActive ?? 0 }} job{{ stats()?.jobsActive === 1 ? '' : 's' }} in progress</p>
                         </div>
                         <div class="cw-stat">
-                          <p class="cw-stat-label">Total spent</p>
-                          <p class="cw-stat-val cw-stat-val--mono">€{{ stats() ? stats().totalSpent.toFixed(0) : '—' }}</p>
-                          <p class="cw-stat-sub">all time</p>
+                          <p class="cw-stat-label">Awaiting funding</p>
+                          <p class="cw-stat-val cw-stat-val--mono">€{{ stats() ? stats().awaitingFunding.toFixed(2) : '—' }}</p>
+                          <p class="cw-stat-sub">{{ awaitingLabel() }}</p>
                         </div>
                         <div class="cw-stat">
                           <p class="cw-stat-label">Avg per job</p>
@@ -492,10 +491,24 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                             <span class="cw-tx-count">0</span>
                           </div>
                           <div class="cw-tx-filters">
-                            <button class="cw-pill cw-pill--active" type="button">All</button>
-                            <button class="cw-pill" type="button">Payments</button>
-                            <button class="cw-pill" type="button">Top-ups</button>
-                            <button class="cw-pill" type="button">Refunds</button>
+                            <button
+                              class="cw-pill"
+                              [class.cw-pill--active]="txFilter() === 'all'"
+                              (click)="txFilter.set('all')"
+                              type="button"
+                            >All</button>
+                            <button
+                              class="cw-pill"
+                              [class.cw-pill--active]="txFilter() === 'payments'"
+                              (click)="txFilter.set('payments')"
+                              type="button"
+                            >Payments</button>
+                            <button
+                              class="cw-pill"
+                              [class.cw-pill--active]="txFilter() === 'escrow'"
+                              (click)="txFilter.set('escrow')"
+                              type="button"
+                            >Escrow</button>
                           </div>
                         </div>
                         <div class="cw-tx-empty">
@@ -546,19 +559,22 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                         <div class="cw-payout-auto">
                           <p class="cw-payout-auto-label">Monthly budget</p>
                           <p class="cw-payout-auto-text">
-                            Track how much you're spending each month.
-                            We'll email you at 90% and pause auto top-ups at 100% — active jobs always go through.
+                            Set a soft spend target — we'll email you when you hit it. Active jobs are never blocked.
                           </p>
-                          <div class="cw-payout-toggle-row">
-                            <span class="cw-payout-toggle-label">Auto top-up at low balance</span>
-                            <button
-                              class="cw-toggle"
-                              [class.cw-toggle--on]="autoTopup()"
-                              (click)="autoTopup.set(!autoTopup())"
-                              type="button"
-                            >
-                              <span class="cw-toggle-knob"></span>
-                            </button>
+                          <div class="cw-budget-row">
+                            <label class="cw-budget-input-wrap">
+                              <span class="cw-budget-prefix">€</span>
+                              <input
+                                class="cw-budget-input"
+                                type="number"
+                                min="0"
+                                step="10"
+                                placeholder="e.g. 200"
+                                [(ngModel)]="budgetTarget"
+                                name="budgetTarget"
+                              />
+                            </label>
+                            <span class="cw-budget-suffix">/ month</span>
                           </div>
                         </div>
                       </div>
@@ -765,16 +781,16 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA;
-      --panel: #FFFFFF;
-      --ink: #0A0A0A;
-      --muted: #737373;
-      --sub: #A3A3A3;
-      --rule: #E8E8E5;
-      --accent: #84CC16;
-      --accent-ink: #0A0A0A;
-      --accent-text: #4D7C0F;
-      --soft: #F5F5F3;
+      --bg: var(--rg-bg, #fafafa);
+      --panel: var(--rg-panel, #FFFFFF);
+      --ink: var(--rg-ink, #0A0A0A);
+      --muted: var(--rg-muted, #737373);
+      --sub: var(--rg-sub, #A3A3A3);
+      --rule: var(--rg-rule, #E8E8E5);
+      --accent: var(--rg-accent, #84CC16);
+      --accent-ink: var(--rg-ink, #0A0A0A);
+      --accent-text: var(--rg-accent-text, #4D7C0F);
+      --soft: var(--rg-soft, #F5F5F3);
       --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
       display: block;
@@ -851,11 +867,11 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .hdr-btn--primary {
       padding: 8px 16px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
-    .hdr-btn--primary:hover:not(:disabled) { background: #262626; }
+    .hdr-btn--primary:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .hdr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* Tabs */
@@ -907,8 +923,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .cp-avatar {
       width: 56px; height: 56px;
       border-radius: 14px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -937,7 +953,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       margin-top: 8px;
       padding: 3px 9px;
       border-radius: 999px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-size: 11px;
       font-weight: 500;
@@ -1013,7 +1029,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border-radius: 8px;
       max-height: 200px;
       overflow-y: auto;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 16px var(--rg-hover, rgba(0,0,0,0.05));
       z-index: 5;
     }
     .cp-loc-opt {
@@ -1035,7 +1051,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       gap: 6px;
       padding: 6px 10px;
       border-radius: 8px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-size: 11.5px;
     }
@@ -1045,7 +1061,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border-radius: 8px;
       font-size: 12.5px;
     }
-    .cp-banner--ok { background: #F0FAE0; color: var(--accent-text); }
+    .cp-banner--ok { background: var(--rg-accent-bg, #F0FAE0); color: var(--accent-text); }
     .cp-banner--err { background: rgba(220,38,38,0.06); color: #B91C1C; }
 
     /* Activity stat grid */
@@ -1137,8 +1153,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       cursor: pointer;
     }
     .cw-range-btn--active {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
     .cw-btn {
@@ -1158,11 +1174,11 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .cw-btn--primary {
       padding: 8px 16px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
-    .cw-btn--primary:hover { background: #262626; }
+    .cw-btn--primary:hover { background: var(--rg-invert-hover, #262626); }
 
     .cw-hero-grid {
       display: grid;
@@ -1314,8 +1330,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       height: 18px;
       padding: 0 6px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 10.5px;
       font-weight: 600;
     }
@@ -1331,8 +1347,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       cursor: pointer;
     }
     .cw-pill--active {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       border-color: var(--ink);
     }
     .cw-tx-empty {
@@ -1370,8 +1386,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .cw-payout-bank {
       padding: 14px 16px;
       border-radius: 12px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -1392,7 +1408,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .cw-payout-bank-label {
       font-size: 10.5px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       letter-spacing: 0.14em;
       text-transform: uppercase;
     }
@@ -1414,7 +1430,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       display: flex;
       justify-content: space-between;
       font-size: 10.5px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
     }
     .cw-payout-add {
       padding: 8px;
@@ -1478,12 +1494,50 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       width: 16px;
       height: 16px;
       border-radius: 999px;
-      background: #fff;
+      background: var(--rg-panel, #fff);
       transition: left 0.15s, background 0.15s;
     }
     .cw-toggle--on .cw-toggle-knob {
       left: 18px;
       background: var(--accent);
+    }
+
+    .cw-budget-row {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cw-budget-input-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      background: var(--panel);
+      width: 140px;
+    }
+    .cw-budget-input-wrap:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(10,10,10,0.06); }
+    .cw-budget-prefix {
+      font-family: var(--mono, 'Geist Mono', monospace);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .cw-budget-input {
+      border: none;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      font-family: var(--mono, 'Geist Mono', monospace);
+      font-size: 13px;
+      color: var(--ink);
+      padding: 0;
+    }
+    .cw-budget-input::placeholder { color: var(--sub); }
+    .cw-budget-suffix {
+      font-size: 12px;
+      color: var(--muted);
     }
 
     @media (max-width: 1080px) {
@@ -1620,7 +1674,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
-    .ci-step-pill--done     { background: #F0FAE0; color: var(--accent-text); }
+    .ci-step-pill--done     { background: var(--rg-accent-bg, #F0FAE0); color: var(--accent-text); }
     .ci-step-pill--todo     { background: var(--panel); color: var(--muted); border: 1px solid var(--rule); }
     .ci-step-pill--optional { background: var(--soft); color: var(--muted); }
 
@@ -1690,7 +1744,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border-radius: 14px;
       overflow: hidden;
     }
-    .cs-section--danger { border-color: #FECACA; }
+    .cs-section--danger { border-color: var(--rg-danger-rule, #FECACA); }
     .cs-head {
       padding: 20px 24px 16px;
       display: flex;
@@ -1699,8 +1753,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border-bottom: 1px solid var(--rule);
     }
     .cs-head--danger {
-      background: #FEF2F2;
-      border-bottom-color: #FECACA;
+      background: var(--rg-danger-bg, #FEF2F2);
+      border-bottom-color: var(--rg-danger-rule, #FECACA);
     }
     .cs-head-icon {
       width: 32px;
@@ -1714,7 +1768,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       flex-shrink: 0;
     }
     .cs-head-icon--danger {
-      background: #FFFFFF;
+      background: var(--rg-panel, #FFFFFF);
       color: #DC2626;
     }
     .cs-head-main { flex: 1; }
@@ -1759,8 +1813,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       padding: 9px 16px;
       border-radius: 10px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 12.5px;
       font-family: var(--font);
       font-weight: 500;
@@ -1768,14 +1822,14 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       transition: background 0.15s;
       margin-top: 8px;
     }
-    .cs-save-btn:hover:not(:disabled) { background: #262626; }
+    .cs-save-btn:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .cs-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .cs-save-btn--lime {
       background: var(--accent);
       color: var(--accent-ink);
       font-weight: 600;
     }
-    .cs-save-btn--lime:hover:not(:disabled) { background: #a3e635; }
+    .cs-save-btn--lime:hover:not(:disabled) { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
     .cs-save-btn--ghost {
       background: var(--panel);
       color: var(--ink);
@@ -1954,15 +2008,15 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       padding: 9px 14px;
       border-radius: 10px;
       border: none;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 12.5px;
       font-family: var(--font);
       font-weight: 500;
       cursor: pointer;
       transition: background 0.15s;
     }
-    .cp-pm-add-btn:hover:not(:disabled) { background: #1F1F1F; }
+    .cp-pm-add-btn:hover:not(:disabled) { background: var(--rg-invert-hover, #1f1f1f); }
     .cp-pm-add-btn:disabled { opacity: 0.65; cursor: not-allowed; }
     .cp-pm-add-btn--ghost {
       background: var(--panel);
@@ -2079,7 +2133,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       padding: 16px 18px;
       border: 1px solid rgba(132,204,22,0.4);
       border-radius: 12px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       display: flex;
       gap: 12px;
       align-items: center;
@@ -2110,8 +2164,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
 
     /* Danger / delete */
     .cs-danger-list {
-      background: #FEF2F2;
-      border: 1px solid #FECACA;
+      background: var(--rg-danger-bg, #FEF2F2);
+      border: 1px solid var(--rg-danger-rule, #FECACA);
       border-radius: 10px;
       padding: 14px 16px;
     }
@@ -2160,7 +2214,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       align-items: center;
       gap: 8px;
     }
-    .cs-delete-btn:hover { background: #FEF2F2; }
+    .cs-delete-btn:hover { background: var(--rg-danger-bg, #FEF2F2); }
     .cs-delete-btn--solid {
       border: none;
       background: #DC2626;
@@ -2186,7 +2240,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .cs-delete-typed-word {
       font-family: var(--mono);
-      background: #FEF2F2;
+      background: var(--rg-danger-bg, #FEF2F2);
       color: #DC2626;
       padding: 2px 6px;
       border-radius: 4px;
@@ -2351,6 +2405,8 @@ export class ClientProfileComponent implements OnInit {
   readonly spendRanges = ['7d', '30d', '90d', 'All'] as const;
   spendRange = signal<'7d' | '30d' | '90d' | 'All'>('All');
   autoTopup = signal(false);
+  budgetTarget: number | null = null;
+  txFilter = signal<'all' | 'payments' | 'escrow'>('all');
 
   spentWhole = computed(() => {
     const v = this.stats()?.totalSpent ?? 0;
@@ -2370,9 +2426,50 @@ export class ClientProfileComponent implements OnInit {
     if (!s || !s.jobsPosted) return 0;
     return Math.round((s.jobsCompleted / s.jobsPosted) * 100);
   });
-  walletBalance = computed(() => {
-    // Not tracked on the backend yet — show 0 placeholder for now.
-    return (0).toFixed(2);
+  private sparkPoints = computed(() => {
+    const months = (this.stats()?.byMonth ?? []) as Array<{ amount: number; label: string }>;
+    const w = 200, h = 60, pad = 6;
+    if (months.length === 0) {
+      return [{ x: 0, y: h - pad }, { x: w, y: h - pad }];
+    }
+    const max = Math.max(...months.map((m) => m.amount), 1);
+    const xs = months.length > 1 ? (w / (months.length - 1)) : w;
+    return months.map((m, i) => ({
+      x: months.length > 1 ? Math.round(i * xs) : w,
+      y: Math.round(h - pad - (m.amount / max) * (h - pad * 2)),
+    }));
+  });
+  sparkLinePath = computed(() => {
+    const pts = this.sparkPoints();
+    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ');
+  });
+  sparkAreaPath = computed(() => {
+    const pts = this.sparkPoints();
+    if (pts.length === 0) return '';
+    const last = pts[pts.length - 1];
+    return `${pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ')} L${last.x} 60 L0 60 Z`;
+  });
+  sparkLastPoint = computed(() => {
+    const pts = this.sparkPoints();
+    return pts[pts.length - 1] ?? { x: 0, y: 60 };
+  });
+
+  categorySplit = computed(() => {
+    const palette = ['var(--rg-ink, #0A0A0A)', 'var(--rg-accent, #84CC16)', '#F59E0B', 'var(--rg-sub, #A3A3A3)'];
+    const cats = (this.stats()?.byCategory ?? []) as Array<{ name: string; amount: number; pct: number }>;
+    return cats.map((c, i) => ({ ...c, color: palette[i] ?? 'var(--rg-sub, #A3A3A3)' }));
+  });
+
+  thisMonthLabel = computed(() => {
+    const m = new Date().toLocaleString('en-US', { month: 'long' });
+    return `spent so far in ${m}`;
+  });
+  awaitingLabel = computed(() => {
+    const s = this.stats();
+    if (!s) return '—';
+    const n = Math.max(0, (s.jobsActive ?? 0));
+    if (s.awaitingFunding > 0) return `${n} job${n === 1 ? '' : 's'} to fund`;
+    return 'all jobs funded';
   });
   defaultCard = computed(() => this.paymentMethods()[0] ?? null);
 
@@ -2427,8 +2524,8 @@ export class ClientProfileComponent implements OnInit {
           base: {
             fontFamily: '"Geist", "Inter", system-ui, sans-serif',
             fontSize: '14px',
-            color: '#0A0A0A',
-            '::placeholder': { color: '#A3A3A3' },
+            color: 'var(--rg-ink, #0A0A0A)',
+            '::placeholder': { color: 'var(--rg-sub, #A3A3A3)' },
           },
           invalid: { color: '#B91C1C' },
         },

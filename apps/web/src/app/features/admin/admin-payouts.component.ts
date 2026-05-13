@@ -191,7 +191,7 @@ import { AuthService } from '../../core/services/auth.service';
   `,
   styles: [`
     * { box-sizing: border-box; }
-    .page { min-height: 100vh; background: #f8f8f8; padding-bottom: 4rem; }
+    .page { min-height: 100vh; background: var(--rg-bg, var(--rg-bg, #F8F8F8)); padding-bottom: 4rem; }
     .inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
 
     .admin-nav { background: #18181b; padding: 0 1.5rem; }

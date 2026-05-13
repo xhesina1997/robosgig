@@ -451,8 +451,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
                         @if (w.hourlyRate) { <span class="rate">€{{ w.hourlyRate }}/hr</span> }
                         <span class="match-score">{{ w.matchScore }}%</span>
                         @if (auth.isLoggedIn()) {
-                          <button class="btn-assign" (click)="confirmJob(w.id, w.firstName); $event.stopPropagation()">
-                            Make a request
+                          <button class="btn-assign" (click)="requestWorker(w.id, w.firstName); $event.stopPropagation()" title="Posts your job and sends {{ w.firstName }} a direct request">
+                            Hire {{ w.firstName }} →
                           </button>
                         }
                       </div>
@@ -542,20 +542,42 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
         </div>
       }
 
+      @if (pendingRequest(); as p) {
+        <div class="cm-overlay" (click)="cancelRequest()">
+          <div class="cm-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+            <div class="cm-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </div>
+            <h3 class="cm-title">Post job &amp; hire {{ p.firstName }}?</h3>
+            <p class="cm-body">
+              We'll post your job and send <strong>{{ p.firstName }}</strong> a direct request.
+              They'll be the only worker contacted at first — if they decline, the job stays live for others to apply.
+            </p>
+            <div class="cm-actions">
+              <button class="cm-btn cm-btn--ghost" (click)="cancelRequest()" type="button">Cancel</button>
+              <button class="cm-btn cm-btn--primary" (click)="confirmRequest()" type="button">
+                Yes, hire {{ p.firstName }}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
     </div>
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA;
-      --panel: #FFFFFF;
-      --ink: #0A0A0A;
-      --muted: #737373;
-      --sub: #A3A3A3;
-      --rule: #E8E8E5;
-      --accent: #84CC16;
-      --accent-ink: #0A0A0A;
-      --accent-text: #4D7C0F;
-      --soft: #F5F5F3;
+      --bg: var(--rg-bg, #fafafa);
+      --panel: var(--rg-panel, #FFFFFF);
+      --ink: var(--rg-ink, #0A0A0A);
+      --muted: var(--rg-muted, #737373);
+      --sub: var(--rg-sub, #A3A3A3);
+      --rule: var(--rg-rule, #E8E8E5);
+      --accent: var(--rg-accent, #84CC16);
+      --accent-ink: var(--rg-ink, #0A0A0A);
+      --accent-text: var(--rg-accent-text, #4D7C0F);
+      --soft: var(--rg-soft, #F5F5F3);
       --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
       display: block;
@@ -591,7 +613,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       border: 1px solid #D9F0A3;
       padding: 4px 10px;
@@ -683,7 +705,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--accent-text);
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       border: 1px solid #D9F0A3;
       padding: 2px 8px;
       border-radius: 999px;
@@ -749,7 +771,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       transition: all 0.12s;
     }
     .example-chip:hover {
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       border-color: #D9F0A3;
       color: var(--accent-text);
     }
@@ -760,8 +782,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       align-items: center;
       justify-content: center;
       gap: 6px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       border: none;
       padding: 13px 18px;
       border-radius: 12px;
@@ -771,7 +793,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       font-family: var(--font);
       transition: background 0.15s, transform 0.1s;
     }
-    .submit-btn:hover:not(:disabled) { background: #262626; }
+    .submit-btn:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .submit-btn:active:not(:disabled) { transform: scale(0.99); }
     .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -864,8 +886,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       width: 22px;
       height: 22px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -1038,7 +1060,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       margin-top: 10px;
       padding: 5px 10px;
       border-radius: 8px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-size: 11.5px;
       font-weight: 500;
@@ -1074,8 +1096,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       transition: background 0.15s, color 0.15s;
     }
     .pj-urg-btn--on {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
     }
     .pj-urg-label { font-weight: 500; }
     .pj-urg-sub {
@@ -1083,7 +1105,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       color: var(--sub);
       font-family: var(--mono);
     }
-    .pj-urg-btn--on .pj-urg-sub { color: #A3A3A3; }
+    .pj-urg-btn--on .pj-urg-sub { color: var(--rg-sub, #A3A3A3); }
 
     .pj-comp-foot {
       display: flex;
@@ -1093,7 +1115,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       padding: 16px 22px;
       border-top: 1px solid var(--rule);
       margin-top: 22px;
-      background: #FCFCFA;
+      background: var(--rg-soft, #FCFCFA);
       flex-wrap: wrap;
     }
     .pj-foot-note {
@@ -1115,7 +1137,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       animation: pjFlashIn 180ms ease-out both;
     }
     .pj-draft-flash--ok {
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
     }
     .pj-draft-flash--err {
@@ -1148,10 +1170,10 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .pj-btn--ghost:hover { border-color: var(--sub); }
     .pj-btn--primary {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
     }
-    .pj-btn--primary:hover:not(:disabled) { background: #262626; }
+    .pj-btn--primary:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .pj-btn--primary:disabled {
       background: var(--soft);
       color: var(--muted);
@@ -1196,8 +1218,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       flex-shrink: 0;
     }
     .pj-rail-num--active {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
     }
     .pj-rail-step-label {
       font-size: 13px;
@@ -1219,7 +1241,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .pj-rail-tips li {
       font-size: 12.5px;
-      color: #404040;
+      color: var(--rg-ink, #404040);
       line-height: 1.5;
       margin-bottom: 8px;
       padding-left: 14px;
@@ -1276,7 +1298,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       min-height: calc(100vh - 52px);
       padding: 2rem;
       text-align: center;
-      background: #f5f5f7;
+      background: var(--rg-bg, var(--rg-bg, #F5F5F7));
     }
 
     /* ── Robot character ──────────────────── */
@@ -1314,7 +1336,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .ant-stick {
       width: 3px; height: 14px;
-      background: #3f3f46;
+      background: var(--rg-ink, #3F3F46);
       border-radius: 2px;
     }
 
@@ -1334,7 +1356,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       top: 50%; transform: translateY(-50%);
       width: 9px; height: 9px;
       border-radius: 50%;
-      background: #3f3f46;
+      background: var(--rg-ink, #3F3F46);
     }
     .r-ear-l { left: -5px; }
     .r-ear-r { right: -5px; }
@@ -1367,7 +1389,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .r-pupil {
       width: 5px; height: 5px;
       border-radius: 50%;
-      background: #fff;
+      background: var(--rg-panel, #fff);
       position: absolute;
       top: 2px; left: 4px;
     }
@@ -1385,7 +1407,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
 
     /* Neck */
-    .r-neck { width: 18px; height: 7px; background: #27272a; border-radius: 0 0 6px 6px; }
+    .r-neck { width: 18px; height: 7px; background: var(--rg-ink-hover, #27272a); border-radius: 0 0 6px 6px; }
 
     /* Body */
     .r-body {
@@ -1418,7 +1440,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       position: absolute;
       top: 2px;
       width: 15px; height: 30px;
-      background: #27272a;
+      background: var(--rg-ink-hover, #27272a);
       border-radius: 8px;
     }
     .r-arm-l {
@@ -1443,8 +1465,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     /* Legs */
     .r-legs { display: flex; gap: 10px; margin-top: 4px; }
     .r-leg { display: flex; flex-direction: column; align-items: center; }
-    .r-leg > div:first-child { width: 16px; height: 18px; background: #27272a; border-radius: 7px 7px 0 0; }
-    .r-foot { width: 21px; height: 9px; background: #3f3f46; border-radius: 0 0 6px 6px; }
+    .r-leg > div:first-child { width: 16px; height: 18px; background: var(--rg-ink-hover, #27272a); border-radius: 7px 7px 0 0; }
+    .r-foot { width: 21px; height: 9px; background: var(--rg-ink, #3F3F46); border-radius: 0 0 6px 6px; }
 
     /* Thinking bubbles */
     .think-dot {
@@ -1509,11 +1531,11 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       color: var(--accent-ink);
     }
     .phase-done .phase-icon { background: var(--accent); color: var(--accent-ink); }
-    .phase-active .phase-icon { background: var(--ink); color: #fff; }
+    .phase-active .phase-icon { background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff); }
     .phase-pulse-dot {
       width: 6px; height: 6px;
       border-radius: 50%;
-      background: #fff;
+      background: var(--rg-panel, #fff);
       animation: phasePulse 1s ease-in-out infinite;
     }
     @keyframes phasePulse {
@@ -1570,12 +1592,12 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .confirmed-title {
       font-size: 1.75rem;
       font-weight: 700;
-      color: #1d1d1f;
+      color: var(--rg-ink, var(--rg-ink, #1D1D1F));
       margin-bottom: 0.5rem;
       letter-spacing: -0.025em;
     }
     .confirmed-sub {
-      color: #6e6e73;
+      color: var(--rg-muted, var(--rg-muted, #6E6E73));
       font-size: 0.95rem;
       max-width: 360px;
       margin-bottom: 1.75rem;
@@ -1598,22 +1620,22 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border: none;
       font-size: 0.83rem;
       font-weight: 500;
-      color: #6e6e73;
+      color: var(--rg-muted, var(--rg-muted, #6E6E73));
       cursor: pointer;
       font-family: inherit;
       padding: 0;
       margin-bottom: 0.75rem;
       transition: color 0.12s;
     }
-    .back-link:hover { color: #1d1d1f; }
+    .back-link:hover { color: var(--rg-ink, var(--rg-ink, #1D1D1F)); }
     .preview-heading {
       font-size: 1.4rem;
       font-weight: 700;
       letter-spacing: -0.02em;
-      color: #1d1d1f;
+      color: var(--rg-ink, var(--rg-ink, #1D1D1F));
       margin-bottom: 0.25rem;
     }
-    .preview-summary { font-size: 0.9rem; color: #6e6e73; }
+    .preview-summary { font-size: 0.9rem; color: var(--rg-muted, var(--rg-muted, #6E6E73)); }
 
     .preview-grid {
       display: grid;
@@ -1624,18 +1646,18 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     @media (max-width: 640px) { .preview-grid { grid-template-columns: 1fr; } }
 
     .pcard {
-      background: #fff;
+      background: var(--rg-panel, #fff);
       border-radius: 16px;
-      border: 1px solid #e5e5ea;
+      border: 1px solid var(--rg-rule, var(--rg-rule, #E5E5EA));
       padding: 1.375rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px var(--rg-hover, rgba(0,0,0,0.05));
     }
     .card-label {
       font-size: 0.68rem;
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #6e6e73;
+      color: var(--rg-muted, var(--rg-muted, #6E6E73));
       margin-bottom: 0.875rem;
     }
     .badge-row { display: flex; gap: 0.375rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
@@ -1663,12 +1685,12 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .urg-normal { background: rgba(20,184,166,0.1); color: #1a7f37; }
     .urg-high { background: rgba(255,159,10,0.1); color: #b25000; }
     .urg-emergency { background: rgba(255,59,48,0.08); color: #c0392b; }
-    .urg-low { background: rgba(0,0,0,0.06); color: #6e6e73; }
+    .urg-low { background: var(--rg-hover, rgba(0,0,0,0.06)); color: var(--rg-muted, var(--rg-muted, #6E6E73)); }
 
     .edit-hint {
       font-size: 0.65rem;
       font-weight: 400;
-      color: #aeaeb2;
+      color: var(--rg-sub, var(--rg-sub, #AEAEB2));
       margin-left: 0.5rem;
       letter-spacing: 0;
       text-transform: none;
@@ -1682,7 +1704,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       outline: none;
       font-size: 1.05rem;
       font-weight: 700;
-      color: #1d1d1f;
+      color: var(--rg-ink, var(--rg-ink, #1D1D1F));
       letter-spacing: -0.01em;
       font-family: inherit;
       margin-bottom: 0.4rem;
@@ -1690,7 +1712,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border-bottom: 1.5px solid transparent;
       transition: border-color 0.15s;
     }
-    .inline-title:hover { border-bottom-color: #e5e5ea; }
+    .inline-title:hover { border-bottom-color: var(--rg-rule, var(--rg-rule, #E5E5EA)); }
     .inline-title:focus { border-bottom-color: #6366f1; }
 
     .inline-desc {
@@ -1700,7 +1722,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border: none;
       outline: none;
       font-size: 0.875rem;
-      color: #6e6e73;
+      color: var(--rg-muted, var(--rg-muted, #6E6E73));
       line-height: 1.6;
       font-family: inherit;
       resize: none;
@@ -1711,7 +1733,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       transition: border-color 0.15s;
       min-height: 4.8rem;
     }
-    .inline-desc:hover { border-bottom-color: #e5e5ea; }
+    .inline-desc:hover { border-bottom-color: var(--rg-rule, var(--rg-rule, #E5E5EA)); }
     .inline-desc:focus { border-bottom-color: #6366f1; }
 
     .price-range-row {
@@ -1722,16 +1744,16 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .currency {
       font-size: 0.875rem;
       font-weight: 600;
-      color: #3f3f46;
+      color: var(--rg-ink, #3F3F46);
     }
-    .price-sep { color: #aeaeb2; font-size: 0.875rem; padding: 0 0.1rem; }
+    .price-sep { color: var(--rg-sub, var(--rg-sub, #AEAEB2)); font-size: 0.875rem; padding: 0 0.1rem; }
     .inline-number {
       background: transparent;
       border: none;
       outline: none;
       font-size: 0.875rem;
       font-weight: 700;
-      color: #3f3f46;
+      color: var(--rg-ink, #3F3F46);
       font-family: inherit;
       width: 5ch;
       min-width: 3ch;
@@ -1740,7 +1762,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       border-bottom: 1.5px solid transparent;
       transition: border-color 0.15s;
     }
-    .inline-number:hover { border-bottom-color: #e5e5ea; }
+    .inline-number:hover { border-bottom-color: var(--rg-rule, var(--rg-rule, #E5E5EA)); }
     .inline-number:focus { border-bottom-color: #6366f1; }
     .inline-number::-webkit-inner-spin-button,
     .inline-number::-webkit-outer-spin-button { opacity: 0; }
@@ -1750,10 +1772,10 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       outline: none;
       font-size: 0.875rem;
       font-weight: 600;
-      color: #3f3f46;
+      color: var(--rg-ink, #3F3F46);
       font-family: inherit;
       padding: 0;
-      border-bottom: 1.5px solid #e5e5ea;
+      border-bottom: 1.5px solid var(--rg-rule, var(--rg-rule, #E5E5EA));
       transition: border-color 0.15s;
       width: auto;
     }
@@ -1770,29 +1792,29 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: #aeaeb2;
+      color: var(--rg-sub, var(--rg-sub, #AEAEB2));
     }
     .meta-value {
       font-size: 0.95rem;
       font-weight: 700;
-      color: #1d1d1f;
+      color: var(--rg-ink, var(--rg-ink, #1D1D1F));
     }
     .price { color: #2563eb; }
     .tools-row { margin-top: 0.25rem; }
     .tools-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.375rem; }
     .tool-chip {
-      background: #f5f5f7;
-      border: 1px solid #e5e5ea;
+      background: var(--rg-bg, var(--rg-bg, #F5F5F7));
+      border: 1px solid var(--rg-rule, var(--rg-rule, #E5E5EA));
       border-radius: 6px;
       padding: 0.15rem 0.55rem;
       font-size: 0.75rem;
-      color: #6e6e73;
+      color: var(--rg-muted, var(--rg-muted, #6E6E73));
     }
 
     /* Workers */
     .workers-list { display: flex; flex-direction: column; gap: 0.5rem; }
     .worker-row {
-      border: 1px solid #e5e5ea;
+      border: 1px solid var(--rg-rule, var(--rg-rule, #E5E5EA));
       border-radius: 12px;
       padding: 0.875rem;
       transition: border-color 0.15s, background 0.15s;
@@ -1814,7 +1836,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: #1d1d1f;
+      background: var(--rg-ink, var(--rg-ink, #1D1D1F));
       color: #fff;
       display: flex;
       align-items: center;
@@ -1827,26 +1849,26 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     .w-name {
       font-size: 0.875rem;
       font-weight: 600;
-      color: #1d1d1f;
+      color: var(--rg-ink, var(--rg-ink, #1D1D1F));
       display: flex;
       align-items: center;
       gap: 0.3rem;
       margin-bottom: 0.2rem;
     }
     .verified-tag { color: #14b8a6; font-size: 0.75rem; }
-    .w-stats { font-size: 0.73rem; color: #aeaeb2; margin-bottom: 0.3rem; }
+    .w-stats { font-size: 0.73rem; color: var(--rg-sub, var(--rg-sub, #AEAEB2)); margin-bottom: 0.3rem; }
     .reasons { display: flex; flex-wrap: wrap; gap: 0.25rem; }
     .reason-chip {
-      background: #f5f5f7;
-      border: 1px solid #e5e5ea;
-      color: #6e6e73;
+      background: var(--rg-bg, var(--rg-bg, #F5F5F7));
+      border: 1px solid var(--rg-rule, var(--rg-rule, #E5E5EA));
+      color: var(--rg-muted, var(--rg-muted, #6E6E73));
       padding: 0.1rem 0.45rem;
       border-radius: 4px;
       font-size: 0.68rem;
       font-weight: 500;
     }
     .w-right { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
-    .rate { font-size: 0.8rem; font-weight: 700; color: #1d1d1f; }
+    .rate { font-size: 0.8rem; font-weight: 700; color: var(--rg-ink, var(--rg-ink, #1D1D1F)); }
     .match-score { font-size: 0.68rem; color: #14b8a6; font-weight: 700; }
     .btn-assign {
       margin-top: 0.25rem;
@@ -1863,7 +1885,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       white-space: nowrap;
     }
     .btn-assign:hover { background: #6366f1; color: #fff; }
-    .no-workers { color: #aeaeb2; font-size: 0.875rem; text-align: center; padding: 1.5rem 0; }
+    .no-workers { color: var(--rg-sub, var(--rg-sub, #AEAEB2)); font-size: 0.875rem; text-align: center; padding: 1.5rem 0; }
 
     /* Actions */
     .preview-actions {
@@ -1885,8 +1907,8 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      background: #18181b;
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       border: none;
       padding: 0.6rem 1.375rem;
       border-radius: 980px;
@@ -1896,14 +1918,14 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       font-family: inherit;
       transition: background 0.15s;
     }
-    .btn-primary-pill:hover:not(:disabled) { background: #27272a; }
+    .btn-primary-pill:hover:not(:disabled) { background: var(--rg-invert-hover, #27272a); }
     .btn-primary-pill:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-ghost-pill {
       display: inline-flex;
       align-items: center;
       background: transparent;
       border: 1px solid #d2d2d7;
-      color: #1d1d1f;
+      color: var(--rg-ink, var(--rg-ink, #1D1D1F));
       padding: 0.6rem 1.375rem;
       border-radius: 980px;
       font-size: 0.875rem;
@@ -1912,7 +1934,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       font-family: inherit;
       transition: all 0.12s;
     }
-    .btn-ghost-pill:hover { background: rgba(0,0,0,0.04); }
+    .btn-ghost-pill:hover { background: var(--rg-hover, rgba(0,0,0,0.04)); }
 
     /* ── Location picker ──────────────────── */
     .loc-divider { height: 1px; background: var(--rule); margin: 14px 0; }
@@ -2004,7 +2026,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       margin-top: 8px;
       padding: 4px 10px;
       border-radius: 8px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       font-size: 11.5px;
       color: var(--accent-text);
       font-weight: 500;
@@ -2048,9 +2070,9 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
     }
     .access-chip:hover { border-color: var(--sub); }
     .access-chip-on {
-      border-color: var(--ink);
-      background: var(--ink);
-      color: #fff;
+      border-color: var(--rg-invert-bg, #0A0A0A);
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
 
@@ -2062,7 +2084,7 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       display: flex; align-items: center; justify-content: center; padding: 1.5rem;
     }
     .limit-card {
-      background: #fff; border-radius: 20px; padding: 2.5rem 2rem;
+      background: var(--rg-panel, #fff); border-radius: 20px; padding: 2.5rem 2rem;
       max-width: 420px; width: 100%; text-align: center;
       box-shadow: 0 24px 64px rgba(0,0,0,0.2);
       display: flex; flex-direction: column; align-items: center; gap: 1rem;
@@ -2072,30 +2094,30 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       background: #fef3c7; color: #d97706;
       display: flex; align-items: center; justify-content: center;
     }
-    .limit-title { font-size: 1.3rem; font-weight: 800; color: #18181b; margin: 0; letter-spacing: -0.02em; }
-    .limit-sub { font-size: 0.9rem; color: #71717a; line-height: 1.65; margin: 0; }
+    .limit-title { font-size: 1.3rem; font-weight: 800; color: var(--rg-ink, #18181b); margin: 0; letter-spacing: -0.02em; }
+    .limit-sub { font-size: 0.9rem; color: var(--rg-muted, #71717A); line-height: 1.65; margin: 0; }
     .limit-btns { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem; }
     .limit-btn-primary {
       display: flex; align-items: center; justify-content: center;
-      background: #18181b; color: #fff; text-decoration: none;
+      background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff); text-decoration: none;
       font-size: 0.9rem; font-weight: 600; padding: 0.8rem 1.5rem;
       border-radius: 99px; transition: background 0.2s;
     }
-    .limit-btn-primary:hover { background: #3f3f46; }
+    .limit-btn-primary:hover { background: var(--rg-ink, #3F3F46); }
     .limit-btn-secondary {
       display: flex; align-items: center; justify-content: center;
-      color: #71717a; text-decoration: none;
+      color: var(--rg-muted, #71717A); text-decoration: none;
       font-size: 0.875rem; font-weight: 500; padding: 0.6rem;
       border-radius: 99px; transition: color 0.2s;
     }
-    .limit-btn-secondary:hover { color: #18181b; }
+    .limit-btn-secondary:hover { color: var(--rg-ink, #18181b); }
 
     .err-toast {
       position: fixed;
       bottom: 1.25rem;
       left: 50%;
       transform: translateX(-50%);
-      background: #fff;
+      background: var(--rg-panel, #fff);
       border: 1px solid #ffd2d0;
       color: #c0392b;
       padding: 0.7rem 1.25rem;
@@ -2112,12 +2134,87 @@ interface NominatimResult { display_name: string; lat: string; lon: string; addr
       background: none;
       border: none;
       cursor: pointer;
-      color: #aeaeb2;
+      color: var(--rg-sub, var(--rg-sub, #AEAEB2));
       font-size: 0.9rem;
       padding: 0;
       font-family: inherit;
     }
-    .err-close:hover { color: #1d1d1f; }
+    .err-close:hover { color: var(--rg-ink, var(--rg-ink, #1D1D1F)); }
+
+    /* Confirm-request modal */
+    .cm-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(10,10,10,0.45);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      animation: cm-fade 160ms ease-out both;
+    }
+    @keyframes cm-fade { from { opacity: 0; } to { opacity: 1; } }
+    .cm-card {
+      background: var(--rg-panel, #FFFFFF);
+      border: 1px solid var(--rg-rule, #E8E8E5);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 440px;
+      padding: 26px 28px 22px;
+      box-shadow: 0 30px 80px rgba(10,10,10,0.18), 0 8px 22px rgba(10,10,10,0.08);
+      color: var(--rg-ink, #0A0A0A);
+      font-family: 'Geist', 'Inter', system-ui, sans-serif;
+      animation: cm-rise 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    }
+    @keyframes cm-rise {
+      from { opacity: 0; transform: translateY(14px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .cm-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: var(--rg-accent-bg, #F0FAE0);
+      border: 1px solid var(--rg-accent-br, #D6EAA0);
+      color: var(--rg-accent-text, #4D7C0F);
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+    }
+    .cm-title {
+      font-size: 19px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--rg-ink, #0A0A0A);
+      margin: 0 0 8px;
+    }
+    .cm-body {
+      font-size: 13.5px;
+      color: var(--rg-muted, #525252);
+      line-height: 1.55;
+      margin: 0 0 22px;
+    }
+    .cm-body strong { color: var(--rg-ink, #0A0A0A); font-weight: 600; }
+    .cm-actions {
+      display: flex; gap: 8px; justify-content: flex-end;
+    }
+    .cm-btn {
+      padding: 11px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex; align-items: center; gap: 7px;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .cm-btn--ghost {
+      background: var(--rg-panel, #FFFFFF);
+      border: 1px solid var(--rg-rule, #E8E8E5);
+      color: var(--rg-ink, #0A0A0A);
+    }
+    .cm-btn--ghost:hover { background: var(--rg-soft, #F5F5F3); }
+    .cm-btn--primary {
+      background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff);
+      border: none;
+    }
+    .cm-btn--primary:hover { background: var(--rg-invert-hover, #1f1f1f); }
   `]
 })
 export class JobWizardComponent implements OnInit {
@@ -2251,6 +2348,7 @@ export class JobWizardComponent implements OnInit {
   private locationTimer: ReturnType<typeof setTimeout> | null = null;
 
   directAssignedWorker = signal<{ id: string; firstName: string } | null>(null);
+  pendingRequest = signal<{ id: string; firstName: string } | null>(null);
   selectedWorkerId = signal<string | null>(null);
 
   editablePreview = signal<{
@@ -2356,7 +2454,14 @@ export class JobWizardComponent implements OnInit {
         this.initDescResize();
       },
       error: (err) => {
-        this.error.set(err?.error?.message ?? 'Something went wrong. Please try again.');
+        const apiMsg = err?.error?.message ?? '';
+        const isOverloaded = err?.status === 503 || apiMsg === 'AI_OVERLOADED' || /overload/i.test(JSON.stringify(err?.error ?? ''));
+        const isServerErr = (err?.status ?? 0) >= 500;
+        this.error.set(
+          isOverloaded ? 'Our AI assistant is busy right now — give it a minute and try again.' :
+          isServerErr ? 'We hit a snag analyzing that. Try again in a moment.' :
+          apiMsg || 'Something went wrong. Please try again.',
+        );
         this.step.set('input');
       },
     });
@@ -2377,6 +2482,19 @@ export class JobWizardComponent implements OnInit {
       const el = document.querySelector('.inline-desc') as HTMLTextAreaElement | null;
       if (el) this.autoResize(el);
     }, 0);
+  }
+
+  requestWorker(workerId: string, workerName: string) {
+    this.pendingRequest.set({ id: workerId, firstName: workerName });
+  }
+
+  cancelRequest() { this.pendingRequest.set(null); }
+
+  confirmRequest() {
+    const p = this.pendingRequest();
+    if (!p) return;
+    this.pendingRequest.set(null);
+    this.confirmJob(p.id, p.firstName);
   }
 
   confirmJob(directWorkerId?: string, directWorkerName?: string) {

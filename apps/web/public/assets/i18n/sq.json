@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "browseJobs": "Shfleto punët",
+    "saved": "Të ruajtura",
+    "applications": "Aplikimet",
+    "postJob": "Posto një punë",
+    "myJobs": "Punët e mia",
+    "drafts": "Draftet",
+    "pricing": "Çmimet",
+    "howItWorks": "Si funksionon",
+    "terms": "Kushtet",
+    "signIn": "Hyr",
+    "getStarted": "Fillo",
+    "profile": "Profili & cilësimet",
+    "plans": "Planet & çmimet",
+    "signOut": "Dil",
+    "settings": "Cilësimet",
+    "online": "Online"
+  },
+  "settings": {
+    "eyebrow": "Preferencat",
+    "title": "Cilësimet",
+    "subtitle": "Përshtate pamjen dhe ndjesinë e RobosGig sipas dëshirës.",
+    "tabs": {
+      "appearance": "Pamja",
+      "language": "Gjuha",
+      "account": "Llogaria"
+    },
+    "appearance": {
+      "theme": {
+        "eyebrow": "Tema",
+        "title": "Zgjidh temën tënde",
+        "sub": "Tre stile — E ndritshme, E errët, ose Glossier e frymëzuar nga Apple Liquid Glass.",
+        "light": "E ndritshme",
+        "dark": "E errët",
+        "glossier": "Glossier"
+      },
+      "accent": {
+        "eyebrow": "Ngjyra teksti",
+        "title": "Zgjidh një ngjyrë theksuese",
+        "sub": "Ngjyra theksuese përdoret për butona, etiketa dhe pika online.",
+        "current": "Aktuale"
+      }
+    },
+    "language": {
+      "eyebrow": "Gjuha",
+      "title": "Zgjidh gjuhën tënde",
+      "sub": "Përdoret për ndërfaqen, njoftimet me email dhe asistentët AI."
+    },
+    "account": {
+      "eyebrow": "Llogaria",
+      "title": "Profili, identiteti, pagesat",
+      "sub": "Menaxho profilin, verifikimin e identitetit dhe metodat e pagesës.",
+      "openProfile": "Hap profilin tim"
+    }
+  }
+}

@@ -68,7 +68,7 @@ interface Draft {
                     </span>
                   } @else {
                     <span class="card-cat card-cat--draft">
-                      <span class="card-cat-dot" style="background:#A3A3A3"></span>
+                      <span class="card-cat-dot" style="background:var(--rg-sub, #A3A3A3)"></span>
                       Draft
                     </span>
                   }
@@ -132,16 +132,16 @@ interface Draft {
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA;
-      --panel: #FFFFFF;
-      --ink: #0A0A0A;
-      --muted: #737373;
-      --sub: #A3A3A3;
-      --rule: #E8E8E5;
-      --accent: #84CC16;
-      --accent-ink: #0A0A0A;
-      --accent-text: #4D7C0F;
-      --soft: #F5F5F3;
+      --bg: var(--rg-bg, #fafafa);
+      --panel: var(--rg-panel, #FFFFFF);
+      --ink: var(--rg-ink, #0A0A0A);
+      --muted: var(--rg-muted, #737373);
+      --sub: var(--rg-sub, #A3A3A3);
+      --rule: var(--rg-rule, #E8E8E5);
+      --accent: var(--rg-accent, #84CC16);
+      --accent-ink: var(--rg-ink, #0A0A0A);
+      --accent-text: var(--rg-accent-text, #4D7C0F);
+      --soft: var(--rg-soft, #F5F5F3);
       --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
       display: block;
@@ -197,15 +197,15 @@ interface Draft {
       gap: 6px;
       padding: 9px 16px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-size: 13px;
       font-weight: 500;
       text-decoration: none;
       flex-shrink: 0;
       transition: background 0.15s;
     }
-    .hdr-cta:hover { background: #262626; }
+    .hdr-cta:hover { background: var(--rg-invert-hover, #262626); }
 
     /* States */
     .state {
@@ -250,8 +250,8 @@ interface Draft {
       gap: 6px;
       padding: 9px 18px;
       border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
@@ -271,8 +271,8 @@ interface Draft {
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     .card:hover {
-      border-color: #D4D4D1;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+      border-color: var(--rg-rule, #D4D4D1);
+      box-shadow: 0 4px 16px var(--rg-hover, rgba(0,0,0,0.04));
     }
     .card-top {
       display: flex;
@@ -376,11 +376,11 @@ interface Draft {
     }
     .btn-edit:hover { border-color: var(--sub); }
     .btn-publish {
-      background: var(--ink);
+      background: var(--rg-invert-bg, #0A0A0A);
       border: none;
-      color: #fff;
+      color: var(--rg-invert-fg, #fff);
     }
-    .btn-publish:hover:not(:disabled) { background: #262626; }
+    .btn-publish:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .btn-publish:disabled {
       background: var(--soft);
       color: var(--muted);
@@ -478,8 +478,8 @@ export class ClientDraftsComponent implements OnInit {
       'Cleaning': '#10B981', 'Plumbing': '#3B82F6', 'Electrical': '#EAB308',
       'Moving': '#8B5CF6', 'Gardening': '#16A34A', 'Painting': '#EC4899',
       'Assembly': '#F59E0B', 'Mounting': '#10B981', 'Carpentry': '#A16207',
-      'HVAC': '#0EA5E9', 'Handyman': '#737373', 'Mechanical': '#475569',
+      'HVAC': '#0EA5E9', 'Handyman': 'var(--rg-muted, #737373)', 'Mechanical': '#475569',
     };
-    return map[category ?? ''] ?? '#737373';
+    return map[category ?? ''] ?? 'var(--rg-muted, #737373)';
   }
 }

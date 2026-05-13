@@ -60,7 +60,7 @@ import { ApiService } from '../../core/services/api.service';
   `,
   styles: [`
     .page {
-      min-height: 100vh; background: #f8f8f8;
+      min-height: 100vh; background: var(--rg-bg, #f8f8f8);
       display: flex; align-items: center; justify-content: center;
       padding: 2rem;
     }

@@ -22,15 +22,28 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+html, body {
+  background: var(--rg-bg, #f5f5f7) !important;
+}
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
-  background: #f5f5f7;
-  color: #1d1d1f;
+  color: var(--rg-ink, #1d1d1f);
   line-height: 1.5;
   min-height: 100vh;
   font-size: 15px;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* The app root + router-outlet's parent need to also be themed in case any wrapper bleeds. */
+app-root {
+  display: block;
+  min-height: 100vh;
+  background: var(--rg-bg, #f5f5f7);
 }
 
 a { color: inherit; text-decoration: none; }
@@ -45,6 +58,7 @@ img { max-width: 100%; display: block; }
 
 /* ── Design tokens ──────────────────────── */
 :root {
+  /* legacy Tailwind-bound tokens (kept for shared button/badge styles below) */
   --bg:        #f5f5f7;
   --surface:   #ffffff;
   --text:      #1d1d1f;
@@ -57,6 +71,403 @@ img { max-width: 100%; display: block; }
   --green:     #14b8a6;
   --red:       #ff3b30;
   --orange:    #ff9f0a;
+
+  /* ── RobosGig design tokens (themable) ──
+     Components opt in via   var(--rg-accent, #84CC16)   etc. */
+  --rg-bg:          #FAFAFA;
+  --rg-panel:       #FFFFFF;
+  --rg-ink:         #0A0A0A;
+  --rg-muted:       #737373;
+  --rg-sub:         #A3A3A3;
+  --rg-rule:        #E8E8E5;
+  --rg-soft:        #F5F5F3;
+  --rg-positive:    #15803D;
+
+  /* Accent colors — themed by user choice via Settings. Defaults: lime */
+  --rg-accent:      #84CC16;
+  --rg-accent-text: #4D7C0F;
+  --rg-accent-bg:   #F0FAE0;
+  --rg-accent-br:   #D6EAA0;  /* slightly darker than -bg for pill borders */
+  --rg-accent-glow: rgba(132, 204, 22, 0.5);
+
+  /* Hover tokens — gentle hover-state surfaces */
+  --rg-hover:        rgba(10, 10, 10, 0.05);   /* subtle darkening on light surfaces */
+  --rg-ink-hover:    #262626;                  /* hover for ink-colored buttons */
+  --rg-accent-hover: color-mix(in srgb, var(--rg-accent) 85%, white);
+
+  /* Inverted UI (primary buttons, avatars) — flip across themes so high-contrast
+     CTAs stay readable. Always paired: -bg + -fg. */
+  --rg-invert-bg:    #0A0A0A;
+  --rg-invert-fg:    #FFFFFF;
+  --rg-invert-hover: #262626;
+
+  /* Featured surface (large dark cards: pricing-plan-popular, CTA bands).
+     Different from --rg-invert-* because flipping a whole card to bright
+     white in dark mode is overwhelming — instead, give a subtle elevation. */
+  --rg-feature-bg:    #0A0A0A;
+  --rg-feature-fg:    #FFFFFF;
+  --rg-feature-muted: rgba(255, 255, 255, 0.62);
+  --rg-feature-rule:  #262626;
+
+  /* Danger surface — soft red tint that scales between themes */
+  --rg-danger-bg:   #FEF2F2;
+  --rg-danger-rule: #FECACA;
+
+  /* Loader scrim — frosted overlay shown during route transitions */
+  --rg-loader-scrim: rgba(255, 255, 255, 0.92);
+}
+
+/* ── Dark theme ─────────────────────────────────────── */
+[data-rg-theme="dark"] {
+  --rg-bg:          #0B0B0E;
+  --rg-panel:       #16161B;
+  --rg-ink:         #F5F5F4;
+  --rg-muted:       #A1A1A6;
+  --rg-sub:         #6E6E78;
+  --rg-rule:        #2A2A30;
+  --rg-soft:        #1E1E25;
+  --rg-positive:    #4ADE80;
+
+  /* keep accent vibrant on dark surfaces */
+  --rg-accent-text: var(--rg-accent);
+  --rg-accent-bg:   color-mix(in srgb, var(--rg-accent) 14%, transparent);
+  --rg-accent-br:   color-mix(in srgb, var(--rg-accent) 35%, transparent);
+
+  /* Hovers: lighten subtly instead of darken */
+  --rg-hover:        rgba(255, 255, 255, 0.07);
+  --rg-ink-hover:    #E8E8E5;     /* hovered light-on-dark ink button */
+  --rg-accent-hover: color-mix(in srgb, var(--rg-accent) 80%, white);
+
+  /* Inverted UI — subtle elevated surface in dark mode (not a stark white flip).
+     Keeps CTAs visually distinct without bleaching the eye. */
+  --rg-invert-bg:    #28282E;
+  --rg-invert-fg:    #F5F5F4;
+  --rg-invert-hover: #34343C;
+
+  /* Featured cards: same subtle elevation */
+  --rg-feature-bg:    #1F1F26;
+  --rg-feature-fg:    #F5F5F4;
+  --rg-feature-muted: rgba(245, 245, 244, 0.62);
+  --rg-feature-rule:  #2E2E36;
+
+  /* Danger: red-tinted dark surface, not eye-burning cream */
+  --rg-danger-bg:   rgba(220, 38, 38, 0.10);
+  --rg-danger-rule: rgba(220, 38, 38, 0.30);
+
+  /* Loader scrim — dark frosted overlay */
+  --rg-loader-scrim: rgba(11, 11, 14, 0.92);
+}
+
+/* ── Glossier (Apple-inspired liquid-glass) ─────────── */
+[data-rg-theme="glossier"] {
+  --rg-bg:          #E9ECF1;
+  --rg-panel:       rgba(255, 255, 255, 0.72);
+  --rg-ink:         #0A0A0A;
+  --rg-muted:       #5F5F66;
+  --rg-sub:         #8A8A92;
+  --rg-rule:        rgba(10, 10, 10, 0.08);
+  --rg-soft:        rgba(255, 255, 255, 0.55);
+}
+
+/* Glossier panels get the frosted-glass effect via backdrop-filter.
+   Subtle warm gradient mesh — gives the glass something to refract without
+   overwhelming the UI. Matches the GlossyBrowseJobs.jsx reference design. */
+[data-rg-theme="glossier"] body {
+  background:
+    radial-gradient(ellipse 70% 50% at 10% 0%,   rgba(132, 204, 22, 0.10), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 30%, rgba(90, 86, 224, 0.10),  transparent 60%),
+    radial-gradient(ellipse 60% 60% at 50% 100%, rgba(236, 72, 153, 0.06), transparent 60%),
+    #F4F4F1;
+  background-attachment: fixed;
+}
+[data-rg-theme="glossier"] {
+  --rg-bg: #F4F4F1;
+}
+[data-rg-theme="glossier"] {
+  --rg-glass-blur: 22px;
+  --rg-glass-bg:   rgba(255, 255, 255, 0.55);
+}
+[data-rg-theme="glossier"] .rg-glass {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: saturate(180%) blur(22px);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+}
+
+/* ── Dark-mode universal patches ─────────────────────
+   Catch the hard-to-migrate things: gradient page backgrounds, white
+   inputs, harsh light shadows, etc. Scoped tightly to [data-rg-theme="dark"]. */
+[data-rg-theme="dark"] {
+  /* Inputs: text + caret on dark surfaces */
+  input, textarea, select {
+    color-scheme: dark;
+  }
+  /* Soften default white panel backgrounds applied with rgba */
+  *[style*="background: #fff"],
+  *[style*="background:#fff"] {
+    background: var(--rg-panel) !important;
+  }
+  /* Scrollbar */
+  ::-webkit-scrollbar-thumb { background: #3A3A40; }
+  ::-webkit-scrollbar-thumb:hover { background: #54545C; }
+
+  /* Light shadow rgbas turned subtle / inverted */
+  .navbar,
+  [class*="-pop"],
+  [class*="-modal"] {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25);
+  }
+
+  /* ── Inverted UI flip ──
+     Elements that were originally background: #0A0A0A; color: #fff (avatars,
+     primary CTAs) get an ink → light flip so they still read as "high
+     contrast vs page" in dark mode. Bulk-pattern: light surface, dark text. */
+  .user-avatar,
+  .user-menu-avatar,
+  .auth-cta,
+  .btn-submit,
+  .btn-primary-pill,
+  .pj-cta,
+  .pj-submit,
+  .post-cta,
+  .cta,
+  .cm-btn--primary,
+  .verify-btn,
+  .bj-apply-btn:not(:disabled):not(.bj-apply-btn--locked),
+  .saved-cta,
+  .action-pill--primary,
+  .btn-accept,
+  .hdr-btn--primary,
+  .cp-pm-add-btn:not(:disabled):not(.cp-pm-add-btn--ghost),
+  .we-btn--primary,
+  .cw-btn--primary,
+  .card-btn--approve,
+  .wpm-btn-primary,
+  .nav-logout {
+    background: var(--rg-invert-bg) !important;
+    color: var(--rg-invert-fg) !important;
+    border-color: var(--rg-invert-bg) !important;
+  }
+  .user-avatar:hover,
+  .auth-cta:hover:not(:disabled),
+  .btn-submit:hover:not(:disabled),
+  .btn-primary-pill:hover:not(:disabled),
+  .verify-btn:hover:not(:disabled),
+  .bj-apply-btn:hover:not(:disabled):not(.bj-apply-btn--locked),
+  .saved-cta:hover:not(:disabled),
+  .action-pill--primary:hover,
+  .btn-accept:hover:not(:disabled),
+  .hdr-btn--primary:hover:not(:disabled),
+  .cp-pm-add-btn:hover:not(:disabled):not(.cp-pm-add-btn--ghost),
+  .cm-btn--primary:hover,
+  .wpm-btn-primary:hover {
+    background: var(--rg-invert-hover) !important;
+  }
+}
+
+html[data-rg-theme="glossier"] {
+  /* Floating pill navbar — detaches from the top edge and floats as a glass
+     pill. Matches the GlossyBrowseJobs reference. */
+  .navbar {
+    position: sticky !important;
+    top: 12px !important;
+    width: calc(100% - 32px) !important;
+    max-width: 1280px !important;
+    margin: 12px auto !important;
+    border-radius: 999px !important;
+    padding: 10px 18px !important;
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: saturate(160%) blur(24px);
+    -webkit-backdrop-filter: saturate(160%) blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.70) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      inset 0 -1px 0 rgba(10, 10, 10, 0.04),
+      0 10px 30px -10px rgba(10, 10, 10, 0.18) !important;
+  }
+
+  /* ── Liquid-glass universal patch ──
+     Apple-inspired frosted glass matching the GlossyBrowseJobs.jsx reference.
+     The vertical gradient background (top brighter than bottom) is what
+     creates the "lit from above" specular look — combined with the inset
+     top highlight and saturate+blur, it produces real liquid glass without
+     needing a pseudo-element overlay. Targets common card/panel suffixes
+     plus a few specific known-card classes. !important wins against
+     Angular's view encapsulation specificity. */
+  [class$="-card"],
+  [class~="card"],
+  [class$="-panel"],
+  [class~="panel"],
+  [class$="-modal"],
+  [class~="modal"],
+  [class$="-pop"],
+  [class$="-tile"],
+  [class$="-sheet"],
+  [class$="-menu-pop"],
+  .job-card,
+  .bj-card,
+  .notif-pop,
+  .user-menu-pop,
+  .hero-card,
+  .verify-section {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.70), rgba(255, 255, 255, 0.40)) !important;
+    backdrop-filter: saturate(160%) blur(16px) !important;
+    -webkit-backdrop-filter: saturate(160%) blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.65) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.90),
+      inset 0 -1px 0 rgba(10, 10, 10, 0.04),
+      0 20px 40px -22px rgba(10, 10, 10, 0.22),
+      0 6px 12px -6px rgba(10, 10, 10, 0.08) !important;
+  }
+
+  /* Inputs get a lighter frosted treatment so they don't look like solid
+     white tiles against the translucent cards. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    background: rgba(255, 255, 255, 0.50) !important;
+    border-color: rgba(10, 10, 10, 0.08) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  /* Glass pills/chips — filter chips, status pills, category pills. The active
+     state flips to ink-on-white via the existing invert tokens for consistency
+     with the rest of the dark-mode/glossier UI patches. */
+  .bj-chip,
+  .saved-pill,
+  .saved-chip,
+  .verified-pill,
+  .action-pill,
+  .apps-chip,
+  .wp-chip,
+  .we-pill,
+  .cw-pill,
+  .stat-tab,
+  .filter-chip,
+  .cat-chip {
+    background: rgba(255, 255, 255, 0.60) !important;
+    border: 1px solid rgba(255, 255, 255, 0.70) !important;
+    backdrop-filter: saturate(140%) blur(10px) !important;
+    -webkit-backdrop-filter: saturate(140%) blur(10px) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.80) !important;
+  }
+
+  /* Active/selected chip → solid ink pill */
+  .bj-chip.bj-chip--active,
+  .stat-tab.stat-tab--active,
+  .saved-chip.saved-chip--active,
+  .filter-chip.filter-chip--active,
+  .cat-chip.cat-chip--active,
+  .wp-chip.wp-chip--active,
+  .we-pill.we-pill--active,
+  .cw-pill.cw-pill--active {
+    background: rgba(10, 10, 10, 0.92) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 4px 12px rgba(10, 10, 10, 0.18) !important;
+  }
+
+  /* Dark featured cards — Try Pro upsell, "Most popular" pricing plan, the
+     job-detail Client's-offer card, etc. These intentionally invert the
+     glass treatment: solid dark gradient bg with a lime accent glow so the
+     white text inside stays readable. Must reassert against the universal
+     [class$="-card"] / [class~="card"] glass override above. */
+  .cta-card,
+  .card.card-dark,
+  .pay-card {
+    background: linear-gradient(160deg, #0F0F12 0%, #0A0A0A 100%) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.10),
+      0 20px 50px -22px rgba(10, 10, 10, 0.55),
+      0 0 60px -10px rgba(132, 204, 22, 0.25) !important;
+  }
+
+  /* Ghost-style modal buttons (Close, Withdraw, Decline) — these use
+     `background: transparent + color: var(--muted)` which goes invisible
+     against the translucent glass modal. Boost contrast with a frosted
+     white pill background, full-ink text, and a stronger border. */
+  .modal-dismiss,
+  .modal-withdraw,
+  .modal-decline,
+  .modal-close {
+    background: rgba(255, 255, 255, 0.65) !important;
+    color: var(--rg-ink, #0A0A0A) !important;
+    border: 1px solid rgba(10, 10, 10, 0.12) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+  .modal-dismiss:hover,
+  .modal-withdraw:hover,
+  .modal-close:hover {
+    background: rgba(255, 255, 255, 0.85) !important;
+  }
+  .modal-decline {
+    color: #dc2626 !important;
+    border-color: rgba(220, 38, 38, 0.35) !important;
+  }
+  .modal-decline:hover {
+    background: rgba(239, 68, 68, 0.10) !important;
+  }
+  .modal-withdraw:hover {
+    border-color: rgba(220, 38, 38, 0.5) !important;
+    color: #dc2626 !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+  }
+
+  /* Worker job-map page has its own self-contained dark theme — its panel,
+     ai section, and list cards rely on local --bg / --surface / --t1 vars
+     for contrast. Skip the universal glass override entirely and restore
+     the component's intended dark sidebar look. */
+  .map-page .panel {
+    background: var(--bg) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    border-right: 1px solid var(--bd) !important;
+    box-shadow: none !important;
+  }
+  .map-page .ai-section {
+    background: var(--ai-grad) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    border-bottom: 1px solid var(--bd) !important;
+    box-shadow: none !important;
+  }
+  .map-page .ai-input {
+    background: var(--inp-bg) !important;
+    color: var(--t1) !important;
+    border-color: var(--bd) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  .map-page .list-card {
+    background: var(--surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid var(--bd) !important;
+    box-shadow: none !important;
+  }
+  .map-page .list-card:hover {
+    background: var(--surface2) !important;
+    border-color: var(--bd2) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10) !important;
+  }
+  .map-page .list-card.list-card--selected {
+    background: rgba(var(--a-rgb), 0.05) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 1px rgba(var(--a-rgb), 0.2) !important;
+  }
 }
 
 @layer components {

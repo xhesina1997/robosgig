@@ -289,8 +289,8 @@ interface NearbyJob {
         </div>
       }
 
-      <!-- Header (when pool selected) -->
-      @if (pool() !== null) {
+      <!-- Header (when pool selected and we're not on the saved tab) -->
+      @if (pool() !== null && tab() !== 'saved') {
       <div class="bj-hero">
         <div class="bj-hero-inner">
           <div class="bj-hero-left">
@@ -338,6 +338,41 @@ interface NearbyJob {
       @if (!loading()) {
         <div class="bj-rail">
           <div class="bj-rail-inner">
+            <div class="bj-quick-chips">
+              <button
+                class="bj-qchip"
+                [class.bj-qchip--on]="quickFast()"
+                (click)="quickFast.set(!quickFast())"
+                type="button"
+                title="Urgent · quick turnaround"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
+                Quick
+              </button>
+              <button
+                class="bj-qchip"
+                [class.bj-qchip--on]="quickHighPay()"
+                (click)="quickHighPay.set(!quickHighPay())"
+                type="button"
+                title="Pays €50 or more"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                High paying
+              </button>
+              <button
+                class="bj-qchip"
+                [class.bj-qchip--on]="quickNearMe()"
+                (click)="quickNearMe.set(!quickNearMe())"
+                type="button"
+                title="Within 5 km"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.58 7-13a7 7 0 0 0-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                Near me
+              </button>
+              @if (quickFast() || quickHighPay() || quickNearMe()) {
+                <button class="bj-qchip bj-qchip--clear" (click)="clearQuickFilters()" type="button">Clear</button>
+              }
+            </div>
             <div class="bj-chips">
               <button
                 class="bj-chip"
@@ -556,12 +591,12 @@ interface NearbyJob {
   `,
   styles: [`
     * { box-sizing: border-box; }
-    .page { min-height: 100vh; background: #f8f8f8; }
+    .page { min-height: 100vh; background: var(--rg-bg, #f8f8f8); }
     .inner { max-width: 1100px; margin: 0 auto; padding: 0 1.25rem; }
 
     /* ── Header ───────────────────────────── */
     .page-header {
-      background: #fff;
+      background: var(--rg-panel, #fff);
       padding: 1.1rem 0 0;
       border-bottom: 1px solid #f0f0f0;
     }
@@ -620,13 +655,13 @@ interface NearbyJob {
       align-items: center;
       gap: 1rem;
       padding: 6rem 2rem;
-      color: #a1a1aa;
+      color: var(--rg-sub, var(--rg-sub, #a1a1aa));
       font-size: 0.875rem;
     }
     .load-ring {
       width: 30px; height: 30px;
-      border: 2.5px solid #e4e4e7;
-      border-top-color: #18181b;
+      border: 2.5px solid var(--rg-rule, #e4e4e7);
+      border-top-color: var(--rg-ink, #18181b);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -636,36 +671,36 @@ interface NearbyJob {
     .empty-state {
       text-align: center;
       padding: 4rem 2rem;
-      background: #fff;
-      border: 1.5px dashed #e4e4e7;
+      background: var(--rg-panel, #fff);
+      border: 1.5px dashed var(--rg-rule, #e4e4e7);
       border-radius: 16px;
     }
     .empty-icon {
       width: 48px; height: 48px;
       border-radius: 12px;
-      background: #f4f4f5;
-      color: #a1a1aa;
+      background: var(--rg-soft, #F4F4F5);
+      color: var(--rg-sub, var(--rg-sub, #a1a1aa));
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 1rem;
     }
-    .empty-title { font-size: 0.95rem; font-weight: 600; color: #18181b; margin: 0 0 0.3rem; }
-    .empty-sub { font-size: 0.84rem; color: #71717a; margin: 0; }
+    .empty-title { font-size: 0.95rem; font-weight: 600; color: var(--rg-ink, #18181b); margin: 0 0 0.3rem; }
+    .empty-sub { font-size: 0.84rem; color: var(--rg-muted, #71717A); margin: 0; }
 
     /* ── Job list ─────────────────────────── */
     .jobs-list { display: flex; flex-direction: column; gap: 0.75rem; }
 
     .job-card {
-      background: #fff;
+      background: var(--rg-panel, #fff);
       border-radius: 20px;
       padding: 1.125rem 1.125rem 1rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 6px 24px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px var(--rg-hover, rgba(0,0,0,0.06)), 0 6px 24px var(--rg-hover, rgba(0,0,0,0.05));
       cursor: pointer;
       transition: box-shadow 0.2s, transform 0.15s;
     }
     .job-card:hover:not(.job-applied) {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 16px 40px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 12px var(--rg-hover, rgba(0,0,0,0.08)), 0 16px 40px var(--rg-hover, rgba(0,0,0,0.08));
       transform: translateY(-2px);
     }
     .job-card.job-applied { opacity: 0.55; }
@@ -683,7 +718,7 @@ interface NearbyJob {
     }
     .jc-cat-dot {
       width: 7px; height: 7px; border-radius: 50%;
-      background: var(--dot, #a1a1aa); flex-shrink: 0;
+      background: var(--dot, var(--rg-sub, var(--rg-sub, #a1a1aa))); flex-shrink: 0;
     }
     .jc-sep { font-size: 0.7rem; color: #d1d5db; }
     .jc-date { font-size: 0.7rem; color: #9ca3af; }
@@ -836,7 +871,7 @@ interface NearbyJob {
       padding: 1rem;
     }
     .modal {
-      background: #fff;
+      background: var(--rg-panel, #fff);
       border-radius: 20px;
       width: 100%;
       max-width: 480px;
@@ -849,7 +884,7 @@ interface NearbyJob {
       align-items: flex-start;
       gap: 0.875rem;
       padding: 1.375rem 1.375rem 1.125rem;
-      border-bottom: 1px solid #f4f4f5;
+      border-bottom: 1px solid var(--rg-soft, #F4F4F5);
     }
     .modal-cat-dot {
       width: 12px; height: 12px;
@@ -858,44 +893,44 @@ interface NearbyJob {
       flex-shrink: 0;
     }
     .modal-head-text { flex: 1; }
-    .modal-title { font-size: 0.975rem; font-weight: 700; color: #18181b; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
-    .modal-sub { font-size: 0.78rem; color: #a1a1aa; margin: 0; }
+    .modal-title { font-size: 0.975rem; font-weight: 700; color: var(--rg-ink, #18181b); margin: 0 0 0.25rem; letter-spacing: -0.01em; }
+    .modal-sub { font-size: 0.78rem; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); margin: 0; }
 
     .modal-close {
       width: 28px; height: 28px;
       border-radius: 50%;
-      background: #f4f4f5;
+      background: var(--rg-soft, #F4F4F5);
       border: none;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      color: #71717a;
+      color: var(--rg-muted, #71717A);
       flex-shrink: 0;
       transition: background 0.12s, color 0.12s;
     }
-    .modal-close:hover { background: #e4e4e7; color: #18181b; }
+    .modal-close:hover { background: var(--rg-rule, #e4e4e7); color: var(--rg-ink, #18181b); }
 
     .modal-body { padding: 1.125rem 1.375rem; }
 
     .field { margin-bottom: 0.875rem; }
-    label { display: block; font-size: 0.78rem; font-weight: 600; color: #18181b; margin-bottom: 0.3rem; }
-    .opt { font-weight: 400; color: #a1a1aa; font-size: 0.74rem; }
+    label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--rg-ink, #18181b); margin-bottom: 0.3rem; }
+    .opt { font-weight: 400; color: var(--rg-sub, var(--rg-sub, #a1a1aa)); font-size: 0.74rem; }
 
     .field-input {
       width: 100%;
       padding: 0.65rem 0.875rem;
-      border: 1.5px solid #e4e4e7;
+      border: 1.5px solid var(--rg-rule, #e4e4e7);
       border-radius: 10px;
       font-size: 0.875rem;
       outline: none;
       font-family: inherit;
-      color: #18181b;
-      background: #fff;
+      color: var(--rg-ink, #18181b);
+      background: var(--rg-panel, #fff);
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     .field-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-    .field-input::placeholder { color: #a1a1aa; }
+    .field-input::placeholder { color: var(--rg-sub, var(--rg-sub, #a1a1aa)); }
     textarea.field-input { resize: vertical; }
 
     .modal-err {
@@ -913,12 +948,12 @@ interface NearbyJob {
       gap: 0.5rem;
       justify-content: flex-end;
       padding: 0.875rem 1.375rem 1.375rem;
-      border-top: 1px solid #f4f4f5;
+      border-top: 1px solid var(--rg-soft, #F4F4F5);
     }
     .btn-cancel {
       background: transparent;
-      color: #71717a;
-      border: 1.5px solid #e4e4e7;
+      color: var(--rg-muted, #71717A);
+      border: 1.5px solid var(--rg-rule, #e4e4e7);
       padding: 0.6rem 1.125rem;
       border-radius: 99px;
       font-size: 0.875rem;
@@ -927,7 +962,7 @@ interface NearbyJob {
       transition: background 0.15s;
       font-family: inherit;
     }
-    .btn-cancel:hover { background: rgba(0,0,0,0.03); }
+    .btn-cancel:hover { background: var(--rg-hover, rgba(0,0,0,0.03)); }
     .btn-submit {
       display: inline-flex;
       align-items: center;
@@ -958,10 +993,10 @@ interface NearbyJob {
     .pool-pick {
       min-height: calc(100vh - 60px);
       display: flex; align-items: center; justify-content: center;
-      background: #FAFAFA;
+      background: var(--rg-bg, #fafafa);
       padding: 24px 32px;
       font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
     }
     .pool-pick-inner { max-width: 920px; width: 100%; }
 
@@ -969,24 +1004,24 @@ interface NearbyJob {
       display: flex; align-items: center; gap: 10px;
       justify-content: center; margin-bottom: 18px;
     }
-    .pool-eyebrow-line { width: 24px; height: 1px; background: #E8E8E5; }
+    .pool-eyebrow-line { width: 24px; height: 1px; background: var(--rg-rule, #E8E8E5); }
     .pool-eyebrow-text {
-      font-size: 11px; color: #737373; letter-spacing: 0.22em;
+      font-size: 11px; color: var(--rg-muted, #737373); letter-spacing: 0.22em;
       text-transform: uppercase; font-weight: 500;
     }
 
     .pool-pick-title {
       font-size: clamp(2.25rem, 5vw, 56px); font-weight: 500;
       letter-spacing: -0.035em; line-height: 1.05; margin: 0;
-      color: #0A0A0A; text-align: center;
+      color: var(--rg-ink, #0A0A0A); text-align: center;
     }
-    .pool-title-q { color: #4D7C0F; }
+    .pool-title-q { color: var(--rg-accent-text, #4D7C0F); }
 
     .pool-pick-sub {
-      font-size: 15px; color: #737373; margin: 14px 0 0;
+      font-size: 15px; color: var(--rg-muted, #737373); margin: 14px 0 0;
       text-align: center; line-height: 1.5;
     }
-    .pool-sub-strong { color: #0A0A0A; font-weight: 500; }
+    .pool-sub-strong { color: var(--rg-ink, #0A0A0A); font-weight: 500; }
 
     .pool-pick-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
@@ -994,7 +1029,7 @@ interface NearbyJob {
     }
 
     .pool-card {
-      background: #FFFFFF; border: 1px solid #E8E8E5; border-radius: 18px;
+      background: var(--rg-panel, #FFFFFF); border: 1px solid var(--rg-rule, #E8E8E5); border-radius: 18px;
       padding: 32px 32px 28px;
       cursor: pointer; display: flex; flex-direction: column;
       gap: 24px; position: relative; overflow: hidden;
@@ -1003,9 +1038,9 @@ interface NearbyJob {
     }
     .pool-card--hover,
     .pool-card:hover {
-      border-color: #0A0A0A;
+      border-color: var(--rg-ink, #0A0A0A);
       transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+      box-shadow: 0 12px 32px var(--rg-hover, rgba(0,0,0,0.06));
     }
 
     .pool-card-top {
@@ -1017,33 +1052,33 @@ interface NearbyJob {
       flex-shrink: 0;
     }
     .pool-card-icon--blue { background: #EBF2FE; color: #1D4ED8; }
-    .pool-card-icon--lime { background: #F0FAE0; color: #4D7C0F; }
+    .pool-card-icon--lime { background: var(--rg-accent-bg, #F0FAE0); color: var(--rg-accent-text, #4D7C0F); }
     .pool-card-count-block { text-align: right; }
     .pool-card-count-num {
       font-size: 32px; font-weight: 500; line-height: 1;
-      letter-spacing: -0.025em; color: #0A0A0A;
+      letter-spacing: -0.025em; color: var(--rg-ink, #0A0A0A);
       font-variant-numeric: tabular-nums;
     }
     .pool-card-count-label {
-      font-size: 11px; color: #737373; margin-top: 4px;
+      font-size: 11px; color: var(--rg-muted, #737373); margin-top: 4px;
       letter-spacing: 0.06em; text-transform: uppercase;
     }
 
     .pool-card-head { margin: 0; }
     .pool-card-title {
       font-size: 28px; font-weight: 500; letter-spacing: -0.022em;
-      line-height: 1.1; margin: 0; color: #0A0A0A;
+      line-height: 1.1; margin: 0; color: var(--rg-ink, #0A0A0A);
     }
     .pool-card-desc {
-      font-size: 14px; color: #737373; margin: 8px 0 0; line-height: 1.5;
+      font-size: 14px; color: var(--rg-muted, #737373); margin: 8px 0 0; line-height: 1.5;
     }
 
     .pool-card-subs {
       display: flex; gap: 6px; flex-wrap: wrap;
     }
     .pool-sub-pill {
-      padding: 5px 10px; border-radius: 999px; border: 1px solid #E8E8E5;
-      font-size: 11.5px; color: #737373;
+      padding: 5px 10px; border-radius: 999px; border: 1px solid var(--rg-rule, #E8E8E5);
+      font-size: 11.5px; color: var(--rg-muted, #737373);
       display: inline-flex; align-items: center; gap: 5px;
     }
     .pool-sub-dot {
@@ -1052,18 +1087,18 @@ interface NearbyJob {
 
     .pool-card-foot {
       margin-top: auto; padding-top: 20px;
-      border-top: 1px solid #E8E8E5;
+      border-top: 1px solid var(--rg-rule, #E8E8E5);
       display: flex; justify-content: space-between; align-items: center;
     }
     .pool-card-stats {
       display: flex; gap: 18px;
     }
     .pool-stat-label {
-      font-size: 10.5px; color: #A3A3A3; letter-spacing: 0.1em;
+      font-size: 10.5px; color: var(--rg-sub, #A3A3A3); letter-spacing: 0.1em;
       text-transform: uppercase;
     }
     .pool-stat-val {
-      font-size: 14px; font-weight: 500; color: #0A0A0A;
+      font-size: 14px; font-weight: 500; color: var(--rg-ink, #0A0A0A);
       margin-top: 2px; font-variant-numeric: tabular-nums;
     }
     .pool-stat-urgent { color: #DC2626; }
@@ -1071,14 +1106,14 @@ interface NearbyJob {
     .pool-browse {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 8px 14px; border-radius: 999px;
-      background: transparent; color: #0A0A0A;
-      border: 1px solid #E8E8E5;
+      background: transparent; color: var(--rg-ink, #0A0A0A);
+      border: 1px solid var(--rg-rule, #E8E8E5);
       font-size: 12.5px; font-weight: 500;
       transition: all 0.15s;
     }
     .pool-card--hover .pool-browse,
     .pool-card:hover .pool-browse {
-      background: #0A0A0A; color: #fff; border-color: #0A0A0A;
+      background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff); border-color: var(--rg-invert-bg, #0A0A0A);
     }
 
     .pool-foot {
@@ -1088,20 +1123,20 @@ interface NearbyJob {
     .pool-foot-btn {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 10px 18px; border-radius: 999px;
-      background: #FFFFFF; border: 1px solid #E8E8E5;
-      font-size: 13px; color: #0A0A0A; font-weight: 500;
+      background: var(--rg-panel, #FFFFFF); border: 1px solid var(--rg-rule, #E8E8E5);
+      font-size: 13px; color: var(--rg-ink, #0A0A0A); font-weight: 500;
       font-family: inherit; cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
     }
-    .pool-foot-btn:hover { border-color: #A3A3A3; }
+    .pool-foot-btn:hover { border-color: var(--rg-sub, #A3A3A3); }
     .pool-foot-count {
-      font-size: 11px; color: #737373; margin-left: 4px;
+      font-size: 11px; color: var(--rg-muted, #737373); margin-left: 4px;
     }
     .pool-foot-btn--lime {
-      background: #84CC16; border-color: #84CC16; color: #0A0A0A; font-weight: 600;
+      background: var(--rg-accent, #84CC16); border-color: var(--rg-accent, #84CC16); color: var(--rg-ink, #0A0A0A); font-weight: 600;
     }
-    .pool-foot-btn--lime:hover { background: #a3e635; border-color: #a3e635; }
-    .pool-foot-btn--lime .pool-foot-count { color: #0A0A0A; }
+    .pool-foot-btn--lime:hover { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); border-color: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
+    .pool-foot-btn--lime .pool-foot-count { color: var(--rg-ink, #0A0A0A); }
 
     @media (max-width: 720px) {
       .pool-pick-grid { grid-template-columns: 1fr; }
@@ -1135,10 +1170,10 @@ interface NearbyJob {
       position: absolute;
       top: calc(100% + 5px);
       left: 0;
-      background: #fff;
-      border: 1px solid #e4e4e7;
+      background: var(--rg-panel, #fff);
+      border: 1px solid var(--rg-rule, #e4e4e7);
       border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 1px 4px var(--rg-hover, rgba(0,0,0,0.05));
       min-width: 160px;
       z-index: 300;
       overflow: hidden;
@@ -1158,14 +1193,14 @@ interface NearbyJob {
       padding: 0.55rem 0.875rem;
       font-size: 0.8rem;
       font-weight: 400;
-      color: #3f3f46;
+      color: var(--rg-ink, #3F3F46);
       cursor: pointer;
       text-align: left;
       font-family: inherit;
       transition: background 0.1s;
     }
-    .fd-opt:hover { background: #f4f4f5; color: #18181b; }
-    .fd-opt--on { font-weight: 600; color: #18181b; }
+    .fd-opt:hover { background: var(--rg-soft, #F4F4F5); color: var(--rg-ink, #18181b); }
+    .fd-opt--on { font-weight: 600; color: var(--rg-ink, #18181b); }
     .fd-opt--high     { color: #b45309; }
     .fd-opt--emergency { color: #dc2626; }
 
@@ -1204,9 +1239,9 @@ interface NearbyJob {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      background: #fff;
-      color: #18181b;
-      border: 1.5px solid #e4e4e7;
+      background: var(--rg-panel, #fff);
+      color: var(--rg-ink, #18181b);
+      border: 1.5px solid var(--rg-rule, #e4e4e7);
       padding: 0.6rem 1.375rem;
       border-radius: 99px;
       font-size: 0.84rem;
@@ -1215,17 +1250,17 @@ interface NearbyJob {
       transition: border-color 0.15s, background 0.15s;
       font-family: inherit;
     }
-    .load-more-btn:hover:not(:disabled) { border-color: #18181b; background: #f4f4f5; }
+    .load-more-btn:hover:not(:disabled) { border-color: var(--rg-ink, #18181b); background: var(--rg-soft, #F4F4F5); }
     .load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .load-more-count {
       font-size: 0.75rem;
-      color: #a1a1aa;
+      color: var(--rg-sub, var(--rg-sub, #a1a1aa));
       white-space: nowrap;
     }
     .map-btn {
       display: inline-flex; align-items: center; gap: 0.25rem;
-      background: #f4f4f5; color: #52525b;
-      border: 1.5px solid #e4e4e7; border-radius: 99px;
+      background: var(--rg-soft, #F4F4F5); color: var(--rg-muted, #52525B);
+      border: 1.5px solid var(--rg-rule, #e4e4e7); border-radius: 99px;
       padding: 0.3rem 0.65rem; font-size: 0.7rem; font-weight: 600;
       cursor: pointer; font-family: inherit;
       transition: border-color 0.15s, color 0.15s;
@@ -1235,8 +1270,8 @@ interface NearbyJob {
 
     .load-ring-sm {
       width: 12px; height: 12px;
-      border: 2px solid #d4d4d8;
-      border-top-color: #18181b;
+      border: 2px solid var(--rg-rule, #D4D4D8);
+      border-top-color: var(--rg-ink, #18181b);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       display: inline-block;
@@ -1251,10 +1286,10 @@ interface NearbyJob {
 
     /* ── Browse-jobs redesigned (pool selected) ─────────── */
     .bj-hero {
-      background: #FAFAFA;
-      padding: 32px 32px 22px;
+      background: var(--rg-bg, #fafafa);
+      padding: 32px 24px 22px;
       font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
     }
     .bj-hero-inner {
       display: flex;
@@ -1272,19 +1307,19 @@ interface NearbyJob {
     .bj-back {
       width: 28px; height: 28px;
       border-radius: 999px;
-      border: 1px solid #E8E8E5;
-      background: #FFFFFF;
-      color: #737373;
+      border: 1px solid var(--rg-rule, #E8E8E5);
+      background: var(--rg-panel, #FFFFFF);
+      color: var(--rg-muted, #737373);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       transition: border-color 0.15s, color 0.15s;
     }
-    .bj-back:hover { border-color: #A3A3A3; color: #0A0A0A; }
+    .bj-back:hover { border-color: var(--rg-sub, #A3A3A3); color: var(--rg-ink, #0A0A0A); }
     .bj-eyebrow {
       font-size: 11.5px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       letter-spacing: 0.14em;
       text-transform: uppercase;
       font-weight: 500;
@@ -1295,34 +1330,34 @@ interface NearbyJob {
       letter-spacing: -0.03em;
       line-height: 1;
       margin: 0;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
     }
-    .bj-title-accent { color: #4D7C0F; }
+    .bj-title-accent { color: var(--rg-accent-text, #4D7C0F); }
 
     .bj-stats {
       display: flex;
       align-items: center;
-      border: 1px solid #E8E8E5;
+      border: 1px solid var(--rg-rule, #E8E8E5);
       border-radius: 12px;
-      background: #FFFFFF;
+      background: var(--rg-panel, #FFFFFF);
       overflow: hidden;
     }
     .bj-stat {
       padding: 14px 18px;
-      border-right: 1px solid #E8E8E5;
+      border-right: 1px solid var(--rg-rule, #E8E8E5);
       min-width: 120px;
     }
     .bj-stat--last { border-right: none; }
     .bj-stat-label {
       font-size: 10.5px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       letter-spacing: 0.1em;
       text-transform: uppercase;
     }
     .bj-stat-val {
       font-size: 22px;
       font-weight: 500;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
       margin-top: 4px;
       letter-spacing: -0.015em;
       font-variant-numeric: tabular-nums;
@@ -1332,18 +1367,18 @@ interface NearbyJob {
     }
     .bj-stat-sub {
       font-size: 11px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       margin-top: 2px;
     }
 
     .bj-rail {
-      background: #FFFFFF;
-      border-top: 1px solid #E8E8E5;
-      border-bottom: 1px solid #E8E8E5;
+      background: var(--rg-panel, #FFFFFF);
+      border-top: 1px solid var(--rg-rule, #E8E8E5);
+      border-bottom: 1px solid var(--rg-rule, #E8E8E5);
       font-family: 'Geist', 'Inter', -apple-system, system-ui, sans-serif;
     }
     .bj-rail-inner {
-      padding: 12px 32px;
+      padding: 12px 24px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -1357,13 +1392,28 @@ interface NearbyJob {
       flex: 1;
       min-width: 0;
     }
-    .bj-chip {
+    .bj-quick-chips {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-right: 4px;
+      padding-right: 10px;
+      border-right: 1px solid var(--rg-rule, #E8E8E5);
+    }
+    @media (max-width: 700px) {
+      .bj-quick-chips { border-right: none; padding-right: 0; }
+    }
+    .bj-qchip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       height: 28px;
-      padding: 0 12px;
+      padding: 0 11px;
       border-radius: 8px;
-      border: 1px solid #E8E8E5;
-      background: transparent;
-      color: #0A0A0A;
+      border: 1px solid var(--rg-rule, #E8E8E5);
+      background: var(--rg-panel, #fff);
+      color: var(--rg-muted, #525252);
       font-size: 12px;
       font-family: inherit;
       font-weight: 500;
@@ -1371,11 +1421,37 @@ interface NearbyJob {
       white-space: nowrap;
       transition: all 0.12s;
     }
-    .bj-chip:hover { border-color: #A3A3A3; }
+    .bj-qchip:hover { border-color: var(--rg-sub, #A3A3A3); color: var(--rg-ink, #0A0A0A); }
+    .bj-qchip--on {
+      background: var(--rg-accent-bg, #F0FAE0);
+      border-color: var(--rg-accent-br, #D6EAA0);
+      color: var(--rg-accent-text, #4D7C0F);
+    }
+    .bj-qchip--on:hover { border-color: var(--rg-accent, #84CC16); color: var(--rg-accent-text, #4D7C0F); }
+    .bj-qchip--clear {
+      color: var(--rg-sub, #A3A3A3);
+      border-style: dashed;
+    }
+    .bj-qchip--clear:hover { color: #DC2626; border-color: #FCA5A5; }
+    .bj-chip {
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 1px solid var(--rg-rule, #E8E8E5);
+      background: transparent;
+      color: var(--rg-ink, #0A0A0A);
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.12s;
+    }
+    .bj-chip:hover { border-color: var(--rg-sub, #A3A3A3); }
     .bj-chip--active {
-      background: #84CC16;
-      border-color: #84CC16;
-      color: #0A0A0A;
+      background: var(--rg-accent, #84CC16);
+      border-color: var(--rg-accent, #84CC16);
+      color: var(--rg-ink, #0A0A0A);
     }
 
     .bj-sort {
@@ -1386,7 +1462,7 @@ interface NearbyJob {
     }
     .bj-sort-label {
       font-size: 11.5px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       margin-right: 4px;
     }
     .bj-sort-btn {
@@ -1395,16 +1471,16 @@ interface NearbyJob {
       border-radius: 6px;
       border: none;
       background: transparent;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       font-size: 12px;
       font-family: inherit;
       cursor: pointer;
       transition: all 0.12s;
     }
-    .bj-sort-btn:hover { color: #0A0A0A; }
+    .bj-sort-btn:hover { color: var(--rg-ink, #0A0A0A); }
     .bj-sort-btn--active {
-      background: #E8E8E5;
-      color: #0A0A0A;
+      background: var(--rg-rule, #E8E8E5);
+      color: var(--rg-ink, #0A0A0A);
     }
     .bj-map-link {
       display: inline-flex;
@@ -1413,30 +1489,38 @@ interface NearbyJob {
       height: 28px;
       padding: 0 12px;
       border-radius: 999px;
-      border: 1px solid #E8E8E5;
-      background: #FFFFFF;
-      color: #0A0A0A;
+      border: 1px solid var(--rg-rule, #E8E8E5);
+      background: var(--rg-panel, #FFFFFF);
+      color: var(--rg-ink, #0A0A0A);
       font-size: 12px;
       font-family: inherit;
       font-weight: 500;
       text-decoration: none;
       margin-left: 6px;
     }
-    .bj-map-link:hover { border-color: #A3A3A3; }
+    .bj-map-link:hover { border-color: var(--rg-sub, #A3A3A3); }
+
+    /* Let the BrowseJobs body span the full viewport (the global .inner cap of 1100px makes cards look tiny on wide screens) */
+    .page-body { padding: 0; }
+    .page-body > .inner {
+      max-width: none;
+      padding: 0;
+    }
 
     .bj-grid {
-      padding: 20px 32px 32px;
+      padding: 28px 24px 48px;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-      background: #FAFAFA;
+      gap: 24px;
+      background: var(--rg-bg, #fafafa);
     }
 
     .bj-card {
-      background: #FFFFFF;
-      border: 1px solid #E8E8E5;
-      border-radius: 16px;
-      padding: 28px 28px 24px;
+      background: var(--rg-panel, #FFFFFF);
+      border: 1px solid var(--rg-rule, #E8E8E5);
+      border-radius: 20px;
+      padding: 36px 36px 32px;
+      min-height: 320px;
       cursor: pointer;
       display: flex;
       flex-direction: column;
@@ -1445,8 +1529,8 @@ interface NearbyJob {
       font-family: 'Geist', 'Inter', -apple-system, system-ui, sans-serif;
     }
     .bj-card:hover {
-      border-color: #D4D4D1;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+      border-color: var(--rg-rule, #D4D4D1);
+      box-shadow: 0 6px 18px var(--rg-hover, rgba(0,0,0,0.04));
     }
     .bj-card--applied { opacity: 0.6; }
 
@@ -1461,7 +1545,7 @@ interface NearbyJob {
       align-items: center;
       gap: 6px;
       font-size: 11px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       font-weight: 500;
     }
     .bj-card-cat-dot {
@@ -1482,12 +1566,12 @@ interface NearbyJob {
       font-weight: 500;
       line-height: 1.3;
       letter-spacing: -0.012em;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
       margin: 0;
     }
     .bj-card-desc {
       font-size: 13.5px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       line-height: 1.55;
       margin: 8px 0 0;
       display: -webkit-box;
@@ -1500,7 +1584,7 @@ interface NearbyJob {
     .bj-card-pay {
       margin-top: 22px;
       padding-top: 18px;
-      border-top: 1px solid #E8E8E5;
+      border-top: 1px solid var(--rg-rule, #E8E8E5);
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
@@ -1508,27 +1592,27 @@ interface NearbyJob {
     }
     .bj-card-pay-cur {
       font-size: 10px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
       letter-spacing: 0.1em;
     }
     .bj-card-pay-val {
       font-size: 28px;
       font-weight: 500;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
       letter-spacing: -0.022em;
       line-height: 1;
       font-variant-numeric: tabular-nums;
     }
     .bj-card-pay-val--neg {
       font-size: 16px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       font-weight: 500;
       letter-spacing: 0;
     }
     .bj-card-pay-meta {
       font-size: 11px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       margin-top: 6px;
     }
 
@@ -1541,30 +1625,30 @@ interface NearbyJob {
       width: 30px;
       height: 30px;
       border-radius: 8px;
-      border: 1px solid #E8E8E5;
+      border: 1px solid var(--rg-rule, #E8E8E5);
       background: transparent;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       transition: all 0.12s;
     }
-    .bj-icon-btn:hover { border-color: #A3A3A3; color: #0A0A0A; }
+    .bj-icon-btn:hover { border-color: var(--rg-sub, #A3A3A3); color: var(--rg-ink, #0A0A0A); }
     .bj-icon-btn--saved {
-      background: #84CC16;
-      border-color: #84CC16;
-      color: #0A0A0A;
+      background: var(--rg-accent, #84CC16);
+      border-color: var(--rg-accent, #84CC16);
+      color: var(--rg-ink, #0A0A0A);
     }
-    .bj-icon-btn--saved:hover { background: #a3e635; border-color: #a3e635; }
+    .bj-icon-btn--saved:hover { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); border-color: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
 
     .bj-apply-btn {
       height: 30px;
       padding: 0 12px;
       border-radius: 8px;
       border: none;
-      background: #84CC16;
-      color: #0A0A0A;
+      background: var(--rg-accent, #84CC16);
+      color: var(--rg-ink, #0A0A0A);
       font-size: 12px;
       font-weight: 600;
       font-family: inherit;
@@ -1574,10 +1658,10 @@ interface NearbyJob {
       gap: 4px;
       transition: background 0.12s;
     }
-    .bj-apply-btn:hover { background: #a3e635; }
+    .bj-apply-btn:hover { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
     .bj-apply-btn--locked {
-      background: #F5F5F3;
-      color: #737373;
+      background: var(--rg-soft, #F5F5F3);
+      color: var(--rg-muted, #737373);
       cursor: not-allowed;
     }
     .bj-applied {
@@ -1608,9 +1692,9 @@ interface NearbyJob {
     /* ── Saved view (redesigned) ────────────────────────── */
     .saved-page {
       min-height: calc(100vh - 56px);
-      background: #FAFAFA;
+      background: var(--rg-bg, #fafafa);
       font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
     }
     .saved-inner {
       max-width: 1080px;
@@ -1628,7 +1712,7 @@ interface NearbyJob {
     }
     .saved-eyebrow {
       font-size: 11px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       letter-spacing: 0.18em;
       text-transform: uppercase;
       margin: 0 0 10px;
@@ -1640,12 +1724,12 @@ interface NearbyJob {
       letter-spacing: -0.035em;
       margin: 0;
       line-height: 1.02;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
     }
-    .saved-title-accent { color: #4D7C0F; }
+    .saved-title-accent { color: var(--rg-accent-text, #4D7C0F); }
     .saved-sub {
       font-size: 14px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       margin: 12px 0 0;
       max-width: 540px;
       line-height: 1.55;
@@ -1653,8 +1737,8 @@ interface NearbyJob {
 
     .saved-stats {
       display: flex;
-      background: #FFFFFF;
-      border: 1px solid #E8E8E5;
+      background: var(--rg-panel, #FFFFFF);
+      border: 1px solid var(--rg-rule, #E8E8E5);
       border-radius: 14px;
       padding: 12px 0;
       flex-shrink: 0;
@@ -1662,20 +1746,20 @@ interface NearbyJob {
     .saved-stat {
       padding: 0 22px;
       text-align: center;
-      border-right: 1px solid #E8E8E5;
+      border-right: 1px solid var(--rg-rule, #E8E8E5);
     }
     .saved-stat:last-child { border-right: none; }
     .saved-stat-val {
       font-size: 22px;
       font-weight: 500;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
       letter-spacing: -0.02em;
       font-variant-numeric: tabular-nums;
     }
     .saved-stat-val--danger { color: #DC2626; }
     .saved-stat-label {
       font-size: 10px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       letter-spacing: 0.1em;
       text-transform: uppercase;
       margin-top: 3px;
@@ -1700,20 +1784,20 @@ interface NearbyJob {
       gap: 6px;
       padding: 7px 13px;
       border-radius: 999px;
-      border: 1px solid #E8E8E5;
-      background: #FFFFFF;
-      color: #0A0A0A;
+      border: 1px solid var(--rg-rule, #E8E8E5);
+      background: var(--rg-panel, #FFFFFF);
+      color: var(--rg-ink, #0A0A0A);
       font-size: 12px;
       font-family: inherit;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .saved-chip:hover { border-color: #A3A3A3; }
+    .saved-chip:hover { border-color: var(--rg-sub, #A3A3A3); }
     .saved-chip--active {
-      background: #0A0A0A;
-      border-color: #0A0A0A;
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      border-color: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
     }
     .saved-chip-dot {
       width: 6px;
@@ -1723,7 +1807,7 @@ interface NearbyJob {
     }
     .saved-chip-count {
       font-size: 10.5px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       margin-left: 2px;
       font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
       font-variant-numeric: tabular-nums;
@@ -1735,10 +1819,10 @@ interface NearbyJob {
       align-items: center;
       gap: 8px;
       padding: 5px 10px 5px 12px;
-      border: 1px solid #E8E8E5;
+      border: 1px solid var(--rg-rule, #E8E8E5);
       border-radius: 999px;
-      background: #FFFFFF;
-      color: #737373;
+      background: var(--rg-panel, #FFFFFF);
+      color: var(--rg-muted, #737373);
     }
     .saved-sort-label {
       font-size: 11px;
@@ -1751,7 +1835,7 @@ interface NearbyJob {
       background: transparent;
       font-family: inherit;
       font-size: 12.5px;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
       font-weight: 500;
       cursor: pointer;
       outline: none;
@@ -1764,8 +1848,8 @@ interface NearbyJob {
       gap: 10px;
     }
     .saved-card {
-      background: #FFFFFF;
-      border: 1px solid #E8E8E5;
+      background: var(--rg-panel, #FFFFFF);
+      border: 1px solid var(--rg-rule, #E8E8E5);
       border-radius: 14px;
       padding: 18px 20px;
       display: grid;
@@ -1776,8 +1860,8 @@ interface NearbyJob {
       transition: all 0.15s;
     }
     .saved-card:hover {
-      border-color: #D4D4D1;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+      border-color: var(--rg-rule, #D4D4D1);
+      box-shadow: 0 6px 20px var(--rg-hover, rgba(0,0,0,0.05));
     }
 
     .saved-avatar {
@@ -1808,9 +1892,9 @@ interface NearbyJob {
       gap: 5px;
       padding: 2px 8px;
       border-radius: 999px;
-      background: #F5F5F3;
+      background: var(--rg-soft, #F5F5F3);
       font-size: 10.5px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -1830,7 +1914,7 @@ interface NearbyJob {
     .saved-job-title {
       font-size: 15px;
       font-weight: 500;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
       letter-spacing: -0.012em;
       line-height: 1.3;
       margin: 0 0 4px;
@@ -1843,12 +1927,12 @@ interface NearbyJob {
       align-items: center;
       gap: 6px;
       font-size: 12px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
       font-variant-numeric: tabular-nums;
       flex-wrap: wrap;
     }
-    .saved-meta-sep { color: #E8E8E5; }
+    .saved-meta-sep { color: var(--rg-rule, #E8E8E5); }
 
     .saved-pay {
       text-align: right;
@@ -1857,13 +1941,13 @@ interface NearbyJob {
     .saved-pay-range {
       font-size: 18px;
       font-weight: 500;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
       letter-spacing: -0.02em;
       font-variant-numeric: tabular-nums;
     }
     .saved-pay-sub {
       font-size: 10.5px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -1879,16 +1963,16 @@ interface NearbyJob {
       width: 36px;
       height: 36px;
       border-radius: 10px;
-      border: 1px solid #E8E8E5;
-      background: #FFFFFF;
-      color: #4D7C0F;
+      border: 1px solid var(--rg-rule, #E8E8E5);
+      background: var(--rg-panel, #FFFFFF);
+      color: var(--rg-accent-text, #4D7C0F);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       transition: all 0.12s;
     }
-    .saved-icon-btn:hover { border-color: #A3A3A3; }
+    .saved-icon-btn:hover { border-color: var(--rg-sub, #A3A3A3); }
     .saved-apply-btn {
       display: inline-flex;
       align-items: center;
@@ -1896,8 +1980,7 @@ interface NearbyJob {
       padding: 0 16px;
       height: 36px;
       border-radius: 10px;
-      background: #0A0A0A;
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff);
       border: none;
       font-size: 12.5px;
       font-weight: 500;
@@ -1906,11 +1989,11 @@ interface NearbyJob {
       letter-spacing: -0.005em;
       transition: background 0.15s;
     }
-    .saved-apply-btn:hover { background: #262626; }
+    .saved-apply-btn:hover { background: var(--rg-invert-hover, #262626); }
 
     .saved-empty {
-      background: #FFFFFF;
-      border: 1px dashed #E8E8E5;
+      background: var(--rg-panel, #FFFFFF);
+      border: 1px dashed var(--rg-rule, #E8E8E5);
       border-radius: 14px;
       padding: 56px 32px;
       text-align: center;
@@ -1920,8 +2003,8 @@ interface NearbyJob {
       width: 56px;
       height: 56px;
       border-radius: 16px;
-      background: #F5F5F3;
-      color: #737373;
+      background: var(--rg-soft, #F5F5F3);
+      color: var(--rg-muted, #737373);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -1930,13 +2013,13 @@ interface NearbyJob {
     .saved-empty-title {
       font-size: 18px;
       font-weight: 500;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
       letter-spacing: -0.015em;
       margin: 0 0 6px;
     }
     .saved-empty-sub {
       font-size: 13px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       max-width: 380px;
       margin: 0 auto 18px;
       line-height: 1.5;
@@ -1947,28 +2030,28 @@ interface NearbyJob {
       gap: 8px;
       padding: 10px 18px;
       border-radius: 999px;
-      background: #84CC16;
+      background: var(--rg-accent, #84CC16);
       border: none;
       font-size: 13px;
-      color: #0A0A0A;
+      color: var(--rg-ink, #0A0A0A);
       font-family: inherit;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s;
     }
-    .saved-empty-cta:hover { background: #a3e635; }
+    .saved-empty-cta:hover { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
 
     .saved-tip {
       margin-top: 24px;
       padding: 14px 18px;
       border-radius: 12px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       border: 1px solid rgba(132,204,22,0.3);
       display: flex;
       align-items: center;
       gap: 12px;
       font-size: 12.5px;
-      color: #4D7C0F;
+      color: var(--rg-accent-text, #4D7C0F);
     }
     .saved-tip-icon { font-size: 16px; }
     .saved-tip-text { flex: 1; line-height: 1.5; }
@@ -2010,6 +2093,9 @@ export class WorkerJobsComponent implements OnInit {
   openDropdown = signal<string | null>(null);
   filterDistance = signal<number | null>(null);
   filterCategory = signal<string | null>(null);
+  quickFast = signal(false);
+  quickHighPay = signal(false);
+  quickNearMe = signal(false);
   filterUrgency = signal<string | null>(null);
   filterMaxPrice = signal<number | null>(null);
 
@@ -2086,7 +2172,7 @@ export class WorkerJobsComponent implements OnInit {
       else seen.set(name, { id: name, label: name, color: this.catColor(name), count: 1 });
     }
     return [
-      { id: 'all', label: 'All saved', color: '#0A0A0A', count: all.length },
+      { id: 'all', label: 'All saved', color: 'var(--rg-ink, #0A0A0A)', count: all.length },
       ...Array.from(seen.values()),
     ];
   });
@@ -2151,7 +2237,7 @@ export class WorkerJobsComponent implements OnInit {
         avgPay: this.avgPay(tasks),
         urgent: this.urgentCount(tasks),
         subs: [
-          { label: 'General',  color: '#737373' },
+          { label: 'General',  color: 'var(--rg-muted, #737373)' },
           { label: 'Assembly', color: '#F59E0B' },
           { label: 'Mounting', color: '#10B981' },
         ],
@@ -2239,6 +2325,10 @@ export class WorkerJobsComponent implements OnInit {
     if (urg)            list = list.filter(j => j.urgency === urg);
     if (price !== null) list = list.filter(j => j.priceMin !== null && j.priceMin <= price);
 
+    if (this.quickFast())     list = list.filter(j => j.urgency === 'HIGH' || j.urgency === 'EMERGENCY');
+    if (this.quickHighPay())  list = list.filter(j => (j.priceMax ?? 0) >= 50);
+    if (this.quickNearMe())   list = list.filter(j => j.distanceKm !== null && j.distanceKm <= 5);
+
     const sort = this.browseSort();
     if (sort === 'pay') {
       list = [...list].sort((a, b) => this.jobMidPay(b) - this.jobMidPay(a));
@@ -2261,6 +2351,12 @@ export class WorkerJobsComponent implements OnInit {
     this.filterCategory.set(null);
     this.filterUrgency.set(null);
     this.filterMaxPrice.set(null);
+  }
+
+  clearQuickFilters() {
+    this.quickFast.set(false);
+    this.quickHighPay.set(false);
+    this.quickNearMe.set(false);
   }
 
   applyingTo = signal<NearbyJob | null>(null);
@@ -2337,7 +2433,7 @@ export class WorkerJobsComponent implements OnInit {
       'Cleaning': '#14b8a6', 'Plumbing': '#2563eb', 'Electrical': '#f59e0b',
       'Moving': '#8b5cf6', 'Gardening': '#16a34a', 'Painting': '#f97316',
     };
-    return map[category ?? ''] ?? '#a1a1aa';
+    return map[category ?? ''] ?? 'var(--rg-sub, var(--rg-sub, #a1a1aa))';
   }
 
   urgencyLabel(urgency: string): string {

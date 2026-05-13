@@ -238,6 +238,11 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${this.baseUrl}/notifications/read-all`, {});
   }
 
+  // ── User preferences ────────────────────────────────────────
+  updateLanguage(language: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.baseUrl}/users/me/language`, { language });
+  }
+
   // ── Payments ──────────────────────────────────────────────────────
   createJobPaymentSession(jobId: string): Observable<{ url: string }> {
     return this.http.post<{ url: string }>(`${this.baseUrl}/payments/jobs/${jobId}/checkout`, {});

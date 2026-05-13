@@ -18,6 +18,7 @@ import { RevolutModule } from '../revolut/revolut.module';
 import { EmailModule } from '../email/email.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     EmailModule,
     CloudinaryModule,
     NotificationsModule,
+    UsersModule,
   ],
 })
 export class AppModule {}

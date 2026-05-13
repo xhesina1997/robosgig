@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "browseJobs": "Sfoglia lavori",
+    "saved": "Salvati",
+    "applications": "Candidature",
+    "postJob": "Pubblica un lavoro",
+    "myJobs": "I miei lavori",
+    "drafts": "Bozze",
+    "pricing": "Prezzi",
+    "howItWorks": "Come funziona",
+    "terms": "Termini",
+    "signIn": "Accedi",
+    "getStarted": "Inizia",
+    "profile": "Profilo e impostazioni",
+    "plans": "Piani e prezzi",
+    "signOut": "Esci",
+    "settings": "Impostazioni",
+    "online": "Online"
+  },
+  "settings": {
+    "eyebrow": "Preferenze",
+    "title": "Impostazioni",
+    "subtitle": "Personalizza l'aspetto e lo stile di RobosGig.",
+    "tabs": {
+      "appearance": "Aspetto",
+      "language": "Lingua",
+      "account": "Account"
+    },
+    "appearance": {
+      "theme": {
+        "eyebrow": "Tema",
+        "title": "Scegli il tuo tema",
+        "sub": "Tre modalità — Chiara, Scura, o Glossier ispirato al Liquid Glass di Apple.",
+        "light": "Chiaro",
+        "dark": "Scuro",
+        "glossier": "Glossier"
+      },
+      "accent": {
+        "eyebrow": "Colore d'accento",
+        "title": "Scegli un colore",
+        "sub": "Il colore d'accento colora pulsanti, badge e altri evidenziatori.",
+        "current": "Attuale"
+      }
+    },
+    "language": {
+      "eyebrow": "Lingua",
+      "title": "Scegli la tua lingua",
+      "sub": "Usata per l'interfaccia, le email di notifica e gli assistenti AI."
+    },
+    "account": {
+      "eyebrow": "Account",
+      "title": "Profilo, identità, pagamenti",
+      "sub": "Gestisci profilo, verifica dell'identità e metodi di pagamento.",
+      "openProfile": "Apri il mio profilo"
+    }
+  }
+}

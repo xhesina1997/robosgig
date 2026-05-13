@@ -6,7 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
   selector: 'app-auth-callback',
   standalone: true,
   template: `
-    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8f8f8;font-family:system-ui">
+    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--rg-bg, #f8f8f8);font-family:system-ui">
       <div style="text-align:center;color:#71717a">
         <div style="width:32px;height:32px;border:3px solid #e4e4e7;border-top-color:#18181b;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 1rem"></div>
         Signing you in…

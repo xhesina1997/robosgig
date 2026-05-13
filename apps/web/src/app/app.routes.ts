@@ -145,6 +145,11 @@ export const appRoutes: Route[] = [
       import('./features/legal/terms.component').then((m) => m.TermsComponent),
   },
   {
+    path: 'settings',
+    loadComponent: () =>
+      import('./features/settings/settings.component').then((m) => m.SettingsComponent),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

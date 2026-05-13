@@ -209,7 +209,7 @@ interface VerificationEntry {
 
     .card { background: #fff; border: 1px solid #e4e4e7; border-radius: 16px; overflow: hidden; }
     .card.verified { border-color: #bbf7d0; }
-    .card.rejected { border-color: #fecaca; }
+    .card.rejected { border-color: var(--rg-danger-rule, #FECACA); }
 
     .card-head { display: flex; align-items: center; gap: 0.875rem; padding: 1.25rem; }
     .avatar {
@@ -311,9 +311,9 @@ interface VerificationEntry {
     }
     .card-btn--approve:hover:not(:disabled) { background: #3f3f46; }
     .card-btn--reject {
-      background: #fff; color: #b91c1c; border-color: #fecaca;
+      background: #fff; color: #b91c1c; border-color: var(--rg-danger-rule, #FECACA);
     }
-    .card-btn--reject:hover:not(:disabled) { background: #fef2f2; }
+    .card-btn--reject:hover:not(:disabled) { background: var(--rg-danger-bg, #FEF2F2); }
     .card-btn--cancel {
       background: #fff; color: #52525b; border-color: #e4e4e7;
     }

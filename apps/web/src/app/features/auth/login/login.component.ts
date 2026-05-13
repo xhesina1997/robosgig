@@ -64,7 +64,7 @@ import { environment } from '../../../../environments/environment';
               <div class="auth-stack">
                 <span class="auth-av" style="background:#3B82F6">H</span>
                 <span class="auth-av" style="background:#10B981">A</span>
-                <span class="auth-av" style="background:#0A0A0A">S</span>
+                <span class="auth-av" style="background:var(--rg-ink, #0A0A0A)">S</span>
                 <span class="auth-av" style="background:#F59E0B">M</span>
               </div>
               <div class="auth-teaser-meta">
@@ -168,7 +168,7 @@ import { environment } from '../../../../environments/environment';
                 </span>
               </button>
               <button type="button" class="auth-demo" (click)="loginAs('stefan@example.com')">
-                <span class="auth-demo-av" style="background:#0A0A0A">S</span>
+                <span class="auth-demo-av" style="background:var(--rg-ink, #0A0A0A)">S</span>
                 <span class="auth-demo-text">
                   <span class="auth-demo-nm">Stefan</span>
                   <span class="auth-demo-rl">electrician</span>
@@ -190,16 +190,16 @@ import { environment } from '../../../../environments/environment';
   `,
   styles: [`
     :host {
-      --auth-bg: #FAFAFA;
+      --auth-bg: var(--rg-bg, #fafafa);
       --auth-panel: #FFFFFF;
-      --auth-ink: #0A0A0A;
-      --auth-muted: #737373;
-      --auth-sub: #A3A3A3;
-      --auth-rule: #E8E8E5;
-      --auth-accent: #84CC16;
-      --auth-accent-text: #4D7C0F;
-      --auth-accent-bg: #F0FAE0;
-      --auth-soft: #F5F5F3;
+      --auth-ink: var(--rg-ink, #0A0A0A);
+      --auth-muted: var(--rg-muted, #737373);
+      --auth-sub: var(--rg-sub, #A3A3A3);
+      --auth-rule: var(--rg-rule, #E8E8E5);
+      --auth-accent: var(--rg-accent, #84CC16);
+      --auth-accent-text: var(--rg-accent-text, #4D7C0F);
+      --auth-accent-bg: var(--rg-accent-bg, #F0FAE0);
+      --auth-soft: var(--rg-soft, #F5F5F3);
       --auth-positive: #15803D;
       --auth-font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --auth-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
@@ -319,7 +319,7 @@ import { environment } from '../../../../environments/environment';
     }
     .auth-tick-ic--lime {
       background: var(--auth-accent-bg);
-      border-color: #D6EAA0;
+      border-color: var(--rg-accent-br, #D6EAA0);
       color: var(--auth-accent-text);
     }
     .auth-tick-t { font-size: 14px; font-weight: 500; color: var(--auth-ink); line-height: 1.3; }
@@ -474,8 +474,8 @@ import { environment } from '../../../../environments/environment';
       display: flex;
       align-items: center;
       gap: 8px;
-      background: #FEF2F2;
-      border: 1px solid #FECACA;
+      background: var(--rg-danger-bg, #FEF2F2);
+      border: 1px solid var(--rg-danger-rule, #FECACA);
       color: #B91C1C;
       padding: 10px 14px;
       border-radius: 10px;
@@ -514,7 +514,7 @@ import { environment } from '../../../../environments/environment';
       overflow: hidden;
       transition: transform 0.12s;
     }
-    .auth-cta:hover:not(:disabled) { background: #1F1F1F; }
+    .auth-cta:hover:not(:disabled) { background: var(--rg-invert-hover, #1f1f1f); }
     .auth-cta:disabled { opacity: 0.5; cursor: not-allowed; }
     .auth-cta-pip {
       position: absolute;

@@ -91,6 +91,8 @@ model User {
   emailVerified           Boolean   @default(false)
   emailVerificationCode   String?
   emailVerificationExpiry DateTime?
+
+  language String @default("en")
 }
 
 // ─── Worker Profile ───────────────────────────────────────────────────────────

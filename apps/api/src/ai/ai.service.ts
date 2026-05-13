@@ -1,6 +1,35 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
+
+/**
+ * Wraps an Anthropic call and retries on transient 529/overloaded errors with
+ * short exponential backoff. After exhausting retries, throws a 503 so the
+ * frontend can show a friendly "AI busy" message.
+ */
+async function callWithRetry<T>(fn: () => Promise<T>, label = 'AI call'): Promise<T> {
+  const delays = [600, 1500, 3000]; // 3 retries: 0.6s, 1.5s, 3s
+  let lastErr: unknown = null;
+  for (let i = 0; i <= delays.length; i++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastErr = err;
+      const status = (err as { status?: number; error?: { type?: string } })?.status;
+      const isOverloaded =
+        status === 529 || (err as { error?: { type?: string } })?.error?.type === 'overloaded_error';
+      const isRetryable = isOverloaded || status === 503 || status === 502;
+      if (!isRetryable || i >= delays.length) break;
+      await new Promise((r) => setTimeout(r, delays[i]));
+    }
+  }
+  const e = lastErr as { status?: number; message?: string; error?: { type?: string } };
+  const isOverloaded = e?.status === 529 || e?.error?.type === 'overloaded_error';
+  if (isOverloaded) {
+    throw new ServiceUnavailableException('AI_OVERLOADED');
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`${label} failed`);
+}
 
 export interface JobAnalysis {
   title: string;
@@ -105,13 +134,7 @@ Respond ONLY with a valid JSON object (no markdown, no explanation):
   "summary": "one friendly sentence confirming what you understood, shown to the client"
 }`;
 
-    const response = await this.anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const text = (response.content[0] as { type: string; text: string }).text;
+    const text = await this.runAnalyzePrompt(prompt);
 
     try {
       const analysis = JSON.parse(text) as JobAnalysis;
@@ -119,6 +142,36 @@ Respond ONLY with a valid JSON object (no markdown, no explanation):
     } catch {
       this.logger.error('Failed to parse AI response', text);
       throw new Error('AI returned invalid response. Please try again.');
+    }
+  }
+
+  /**
+   * Runs the analyze prompt against Sonnet first (best quality). If Sonnet is
+   * persistently overloaded after retries, falls back to Haiku 4.5 on a
+   * separate capacity pool — almost never overloaded, slightly lower quality
+   * but the wizard still works.
+   */
+  private async runAnalyzePrompt(prompt: string): Promise<string> {
+    const call = (model: string) =>
+      callWithRetry(
+        () => this.anthropic.messages.create({
+          model,
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+        `analyzeJob:${model}`,
+      );
+
+    try {
+      const r = await call('claude-sonnet-4-6');
+      return (r.content[0] as { type: string; text: string }).text;
+    } catch (err: unknown) {
+      const msg = (err as { message?: string })?.message ?? '';
+      const isOverload = msg.includes('AI_OVERLOADED');
+      if (!isOverload) throw err;
+      this.logger.warn('Sonnet overloaded after retries — falling back to Haiku 4.5');
+      const r = await call('claude-haiku-4-5-20251001');
+      return (r.content[0] as { type: string; text: string }).text;
     }
   }
 

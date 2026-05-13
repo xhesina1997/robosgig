@@ -66,7 +66,7 @@ type Role = 'CLIENT' | 'WORKER';
               <div class="auth-stack">
                 <span class="auth-av" style="background:#3B82F6">H</span>
                 <span class="auth-av" style="background:#10B981">A</span>
-                <span class="auth-av" style="background:#0A0A0A">S</span>
+                <span class="auth-av" style="background:var(--rg-ink, #0A0A0A)">S</span>
                 <span class="auth-av" style="background:#F59E0B">M</span>
               </div>
               <div class="auth-teaser-meta">
@@ -261,16 +261,16 @@ type Role = 'CLIENT' | 'WORKER';
   `,
   styles: [`
     :host {
-      --auth-bg: #FAFAFA;
+      --auth-bg: var(--rg-bg, #fafafa);
       --auth-panel: #FFFFFF;
-      --auth-ink: #0A0A0A;
-      --auth-muted: #737373;
-      --auth-sub: #A3A3A3;
-      --auth-rule: #E8E8E5;
-      --auth-accent: #84CC16;
-      --auth-accent-text: #4D7C0F;
-      --auth-accent-bg: #F0FAE0;
-      --auth-soft: #F5F5F3;
+      --auth-ink: var(--rg-ink, #0A0A0A);
+      --auth-muted: var(--rg-muted, #737373);
+      --auth-sub: var(--rg-sub, #A3A3A3);
+      --auth-rule: var(--rg-rule, #E8E8E5);
+      --auth-accent: var(--rg-accent, #84CC16);
+      --auth-accent-text: var(--rg-accent-text, #4D7C0F);
+      --auth-accent-bg: var(--rg-accent-bg, #F0FAE0);
+      --auth-soft: var(--rg-soft, #F5F5F3);
       --auth-positive: #15803D;
       --auth-font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --auth-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
@@ -338,7 +338,7 @@ type Role = 'CLIENT' | 'WORKER';
     .auth-ticks { margin-top: 36px; display: flex; flex-direction: column; gap: 18px; }
     .auth-tick { display: flex; gap: 14px; align-items: flex-start; }
     .auth-tick-ic { flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px; background: var(--auth-panel); border: 1px solid var(--auth-rule); display: inline-flex; align-items: center; justify-content: center; color: var(--auth-ink); }
-    .auth-tick-ic--lime { background: var(--auth-accent-bg); border-color: #D6EAA0; color: var(--auth-accent-text); }
+    .auth-tick-ic--lime { background: var(--auth-accent-bg); border-color: var(--rg-accent-br, #D6EAA0); color: var(--auth-accent-text); }
     .auth-tick-t { font-size: 14px; font-weight: 500; color: var(--auth-ink); line-height: 1.3; }
     .auth-tick-s { font-size: 12.5px; color: var(--auth-muted); margin-top: 3px; line-height: 1.4; }
 
@@ -464,7 +464,7 @@ type Role = 'CLIENT' | 'WORKER';
     .auth-err {
       margin-top: 14px;
       display: flex; align-items: center; gap: 8px;
-      background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C;
+      background: var(--rg-danger-bg, #FEF2F2); border: 1px solid var(--rg-danger-rule, #FECACA); color: #B91C1C;
       padding: 10px 14px; border-radius: 10px; font-size: 13px;
     }
     .auth-err-ic {
@@ -489,7 +489,7 @@ type Role = 'CLIENT' | 'WORKER';
       position: relative; overflow: hidden;
       transition: transform 0.12s;
     }
-    .auth-cta:hover:not(:disabled) { background: #1F1F1F; }
+    .auth-cta:hover:not(:disabled) { background: var(--rg-invert-hover, #1f1f1f); }
     .auth-cta:disabled { opacity: 0.5; cursor: not-allowed; }
     .auth-cta-pip {
       position: absolute; left: 14px; top: 50%;
@@ -546,7 +546,7 @@ type Role = 'CLIENT' | 'WORKER';
       padding: 24px;
     }
     .verify-card {
-      background: #fff; border-radius: 20px;
+      background: var(--rg-panel, #fff); border-radius: 20px;
       padding: 32px 32px 28px;
       width: 100%; max-width: 400px;
       box-shadow: 0 24px 64px rgba(10,10,10,0.18);
@@ -560,7 +560,7 @@ type Role = 'CLIENT' | 'WORKER';
     .verify-title { font-size: 19px; font-weight: 600; color: var(--auth-ink); margin: 0; }
     .verify-sub { font-size: 13.5px; color: var(--auth-muted); margin: 0; line-height: 1.5; }
     .verify-error {
-      width: 100%; background: #FEF2F2; border: 1px solid #FECACA;
+      width: 100%; background: var(--rg-danger-bg, #FEF2F2); border: 1px solid var(--rg-danger-rule, #FECACA);
       color: #B91C1C; font-size: 12.5px; font-weight: 500;
       padding: 10px 14px; border-radius: 10px;
     }
@@ -584,7 +584,7 @@ type Role = 'CLIENT' | 'WORKER';
       white-space: nowrap;
       transition: background 0.15s;
     }
-    .btn-verify:hover:not(:disabled) { background: #1F1F1F; }
+    .btn-verify:hover:not(:disabled) { background: var(--rg-invert-hover, #1f1f1f); }
     .btn-verify:disabled { opacity: 0.5; cursor: not-allowed; }
     .resend-btn {
       background: none; border: none;

@@ -11,19 +11,19 @@
     <div class="nav-center">
       @if (auth.isLoggedIn()) {
         @if (auth.isWorker()) {
-          <a routerLink="/worker/jobs" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Browse jobs</a>
-          <a routerLink="/worker/jobs" [queryParams]="{tab:'saved'}" routerLinkActive="active">Saved</a>
-          <a routerLink="/dashboard/worker" routerLinkActive="active">Applications</a>
+          <a routerLink="/worker/jobs" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">{{ 'nav.browseJobs' | translate }}</a>
+          <a routerLink="/worker/jobs" [queryParams]="{tab:'saved'}" routerLinkActive="active">{{ 'nav.saved' | translate }}</a>
+          <a routerLink="/dashboard/worker" routerLinkActive="active">{{ 'nav.applications' | translate }}</a>
         } @else {
-          <a routerLink="/post" routerLinkActive="active">Post a job</a>
-          <a routerLink="/dashboard/client" routerLinkActive="active">My jobs</a>
-          <a routerLink="/drafts" routerLinkActive="active">Drafts</a>
+          <a routerLink="/post" routerLinkActive="active">{{ 'nav.postJob' | translate }}</a>
+          <a routerLink="/dashboard/client" routerLinkActive="active">{{ 'nav.myJobs' | translate }}</a>
+          <a routerLink="/drafts" routerLinkActive="active">{{ 'nav.drafts' | translate }}</a>
         }
-        <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
+        <a routerLink="/pricing" routerLinkActive="active">{{ 'nav.pricing' | translate }}</a>
       } @else {
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">How it works</a>
-        <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
-        <a routerLink="/terms" routerLinkActive="active">Terms</a>
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">{{ 'nav.howItWorks' | translate }}</a>
+        <a routerLink="/pricing" routerLinkActive="active">{{ 'nav.pricing' | translate }}</a>
+        <a routerLink="/terms" routerLinkActive="active">{{ 'nav.terms' | translate }}</a>
       }
     </div>
 
@@ -32,7 +32,7 @@
       @if (auth.isLoggedIn()) {
         <div class="online-pill">
           <span class="online-dot"></span>
-          Online@if (auth.city()) { · {{ auth.city() }} }
+          {{ 'nav.online' | translate }}@if (auth.city()) { · {{ auth.city() }} }
         </div>
 
         <div class="notif-menu">
@@ -121,7 +121,19 @@
                   <circle cx="12" cy="8" r="4"/>
                   <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>
                 </svg>
-                Profile &amp; settings
+                {{ 'nav.profile' | translate }}
+              </a>
+              <a
+                routerLink="/settings"
+                class="user-menu-item"
+                (click)="userMenuOpen.set(false)"
+                role="menuitem"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                {{ 'nav.settings' | translate }}
               </a>
               <a
                 routerLink="/pricing"
@@ -132,7 +144,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="m13 2-9 12h7l-1 8 9-12h-7z"/>
                 </svg>
-                Plans &amp; pricing
+                {{ 'nav.plans' | translate }}
               </a>
               <div class="user-menu-divider"></div>
               <button class="user-menu-item user-menu-item--danger" (click)="signOut()" type="button" role="menuitem">
@@ -141,14 +153,14 @@
                   <polyline points="16 17 21 12 16 7"/>
                   <line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
-                Sign out
+                {{ 'nav.signOut' | translate }}
               </button>
             </div>
           }
         </div>
       } @else {
-        <a routerLink="/login" class="signin-link">Sign in</a>
-        <a routerLink="/register" class="join-btn">Get started</a>
+        <a routerLink="/login" class="signin-link">{{ 'nav.signIn' | translate }}</a>
+        <a routerLink="/register" class="join-btn">{{ 'nav.getStarted' | translate }}</a>
       }
     </div>
 

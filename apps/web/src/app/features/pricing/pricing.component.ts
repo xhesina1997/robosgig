@@ -292,16 +292,16 @@ interface Faq {
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA;
-      --panel: #FFFFFF;
-      --ink: #0A0A0A;
-      --muted: #737373;
-      --sub: #A3A3A3;
-      --rule: #E8E8E5;
-      --accent: #84CC16;
-      --accent-ink: #0A0A0A;
-      --accent-text: #4D7C0F;
-      --soft: #F5F5F3;
+      --bg: var(--rg-bg, #fafafa);
+      --panel: var(--rg-panel, #FFFFFF);
+      --ink: var(--rg-ink, #0A0A0A);
+      --muted: var(--rg-muted, #737373);
+      --sub: var(--rg-sub, #A3A3A3);
+      --rule: var(--rg-rule, #E8E8E5);
+      --accent: var(--rg-accent, #84CC16);
+      --accent-ink: var(--rg-ink, #0A0A0A);
+      --accent-text: var(--rg-accent-text, #4D7C0F);
+      --soft: var(--rg-soft, #F5F5F3);
       --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
       display: block;
@@ -330,7 +330,7 @@ interface Faq {
       font-weight: 500;
       margin: 0 0 10px;
     }
-    .eyebrow-dark { color: #A3A3A3; }
+    .eyebrow-dark { color: var(--rg-sub, #A3A3A3); }
     .arrow { margin-left: 6px; display: inline-block; }
 
     /* ── Hero ──────────────────────────────── */
@@ -389,15 +389,16 @@ interface Faq {
       gap: 6px;
       transition: all 0.15s;
     }
-    .pill-btn.pill-active {
-      background: var(--ink);
-      color: #fff;
+    .pill .pill-btn.pill-active,
+    .pill button.pill-btn.pill-active {
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       font-weight: 500;
     }
     .pill-badge {
       padding: 1px 6px;
       border-radius: 999px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-size: 9.5px;
       font-family: var(--mono);
@@ -439,25 +440,25 @@ interface Faq {
       box-shadow: 0 1px 0 rgba(10,10,10,0.02);
     }
     .card-dark {
-      background: var(--ink);
-      border-color: #262626;
-      color: #fff;
+      background: var(--rg-feature-bg, #0A0A0A);
+      border-color: var(--rg-feature-rule, #262626);
+      color: var(--rg-feature-fg, #fff);
       box-shadow: 0 30px 60px -30px rgba(10,10,10,0.55);
       transform: translateY(-8px);
     }
-    .card-dark .card-divider { background: #262626; }
-    .card-dark .card-tier { color: #A3A3A3; }
+    .card-dark .card-divider { background: var(--rg-feature-rule, #262626); }
+    .card-dark .card-tier { color: var(--rg-feature-muted, rgba(255,255,255,0.62)); }
     .card-dark .price-cur,
-    .card-dark .price-big { color: #fff; }
-    .card-dark .price-dec { color: #A3A3A3; }
-    .card-dark .price-per { color: #A3A3A3; }
-    .card-dark .price-note { color: #A3A3A3; }
+    .card-dark .price-big { color: var(--rg-feature-fg, #fff); }
+    .card-dark .price-dec { color: var(--rg-feature-muted, rgba(255,255,255,0.62)); }
+    .card-dark .price-per { color: var(--rg-feature-muted, rgba(255,255,255,0.62)); }
+    .card-dark .price-note { color: var(--rg-feature-muted, rgba(255,255,255,0.62)); }
     .card-dark .save { color: var(--accent); }
-    .card-dark .card-tagline { color: #fff; }
-    .card-dark .feature { color: #fff; }
+    .card-dark .card-tagline { color: var(--rg-feature-fg, #fff); }
+    .card-dark .feature { color: var(--rg-feature-fg, #fff); }
     .card-dark .feat-tag { color: var(--accent); }
-    .card-dark .feature-muted { color: #A3A3A3; }
-    .card-dark .feature-muted .feat-tag { color: #A3A3A3; }
+    .card-dark .feature-muted { color: var(--rg-feature-muted, rgba(255,255,255,0.55)); }
+    .card-dark .feature-muted .feat-tag { color: var(--rg-feature-muted, rgba(255,255,255,0.55)); }
 
     .popular {
       position: absolute;
@@ -491,7 +492,7 @@ interface Faq {
       align-items: center;
       padding: 3px 9px;
       border-radius: 999px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       font-size: 11px;
       font-weight: 600;
@@ -603,23 +604,23 @@ interface Faq {
       transition: all 0.15s;
     }
     .cta-ink {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
     }
-    .cta-ink:hover:not(:disabled) { background: #262626; }
+    .cta-ink:hover:not(:disabled) { background: var(--rg-invert-hover, #262626); }
     .cta-lime {
       background: var(--accent);
       color: var(--accent-ink);
     }
-    .cta-lime:hover:not(:disabled) { background: #a3e635; }
+    .cta-lime:hover:not(:disabled) { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
     .cta-current {
       background: var(--soft);
       color: var(--muted);
       cursor: default;
     }
     .card-dark .cta-current {
-      background: #262626;
-      color: #A3A3A3;
+      background: var(--rg-ink-hover, #262626);
+      color: var(--rg-sub, #A3A3A3);
     }
     .cta:disabled { cursor: not-allowed; }
 
@@ -729,7 +730,7 @@ interface Faq {
       width: 18px;
       height: 18px;
       border-radius: 999px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
     }
     .cell-check-dim {
@@ -799,8 +800,8 @@ interface Faq {
     }
 
     .cta-card {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-feature-bg, #0A0A0A);
+      color: var(--rg-feature-fg, #fff);
       border-radius: 16px;
       padding: 26px;
       display: flex;
@@ -826,7 +827,7 @@ interface Faq {
     }
     .cta-sub {
       font-size: 12.5px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       line-height: 1.5;
       margin: 0;
     }
@@ -846,12 +847,12 @@ interface Faq {
       justify-content: center;
       gap: 4px;
     }
-    .trial-btn:hover { background: #a3e635; }
+    .trial-btn:hover { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
     .cta-stats {
       display: flex;
       gap: 14px;
       font-size: 11px;
-      color: #737373;
+      color: var(--rg-muted, #737373);
       margin: 4px 0 0;
       font-family: var(--mono);
     }
@@ -862,7 +863,7 @@ interface Faq {
       bottom: 1.5rem;
       left: 50%;
       transform: translateX(-50%);
-      background: #fff;
+      background: var(--rg-panel, #fff);
       color: #b91c1c;
       border: 1px solid rgba(220,38,38,0.25);
       padding: 0.75rem 1.25rem;

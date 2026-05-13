@@ -68,7 +68,7 @@ import { ApiService } from '../core/services/api.service';
     }
     .modal {
       position: relative;
-      background: #fff; border-radius: 20px;
+      background: var(--rg-panel, #fff); border-radius: 20px;
       padding: 2rem; width: 100%; max-width: 500px;
       box-shadow: 0 24px 64px rgba(0,0,0,0.18);
       display: flex; flex-direction: column; gap: 1rem;
@@ -76,38 +76,38 @@ import { ApiService } from '../core/services/api.service';
     .close-btn {
       position: absolute; top: 1.1rem; right: 1.1rem;
       background: none; border: none; cursor: pointer;
-      color: #a1a1aa; padding: 0.25rem; border-radius: 6px;
+      color: var(--rg-sub, var(--rg-sub, #a1a1aa)); padding: 0.25rem; border-radius: 6px;
       display: flex; align-items: center; justify-content: center;
     }
-    .close-btn:hover { color: #18181b; background: #f4f4f5; }
-    .modal-title { font-size: 1.15rem; font-weight: 800; color: #18181b; margin: 0; letter-spacing: -0.02em; }
-    .modal-sub { font-size: 0.85rem; color: #71717a; margin: 0; }
+    .close-btn:hover { color: var(--rg-ink, #18181b); background: var(--rg-soft, #F4F4F5); }
+    .modal-title { font-size: 1.15rem; font-weight: 800; color: var(--rg-ink, #18181b); margin: 0; letter-spacing: -0.02em; }
+    .modal-sub { font-size: 0.85rem; color: var(--rg-muted, #71717A); margin: 0; }
     .field { display: flex; flex-direction: column; gap: 0.4rem; }
-    .label { font-size: 0.8rem; font-weight: 600; color: #3f3f46; }
+    .label { font-size: 0.8rem; font-weight: 600; color: var(--rg-ink, #3F3F46); }
     .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .chip {
       padding: 0.25rem 0.75rem; border-radius: 999px;
-      border: 1.5px solid #e4e4e7; background: #fafafa;
-      font-size: 0.78rem; font-weight: 500; color: #3f3f46;
+      border: 1.5px solid var(--rg-rule, #e4e4e7); background: var(--rg-hover, #fafafa);
+      font-size: 0.78rem; font-weight: 500; color: var(--rg-ink, #3F3F46);
       cursor: pointer; transition: all 0.15s;
     }
-    .chip:hover { border-color: #a1a1aa; }
-    .chip-on { border-color: #18181b; background: #18181b; color: #fff; }
+    .chip:hover { border-color: var(--rg-sub, var(--rg-sub, #a1a1aa)); }
+    .chip-on { border-color: var(--rg-ink, #18181b); background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff); }
     .input, .textarea {
       width: 100%; padding: 0.6rem 0.75rem;
-      border: 1.5px solid #e4e4e7; border-radius: 10px;
-      font-size: 0.875rem; color: #18181b;
-      background: #fafafa; outline: none;
+      border: 1.5px solid var(--rg-rule, #e4e4e7); border-radius: 10px;
+      font-size: 0.875rem; color: var(--rg-ink, #18181b);
+      background: var(--rg-hover, #fafafa); outline: none;
       font-family: inherit; box-sizing: border-box;
       transition: border-color 0.15s;
     }
-    .input:focus, .textarea:focus { border-color: #18181b; background: #fff; }
+    .input:focus, .textarea:focus { border-color: var(--rg-ink, #18181b); background: var(--rg-panel, #fff); }
     .textarea { resize: vertical; min-height: 90px; }
     .error-msg { font-size: 0.8rem; color: #dc2626; }
     .actions { display: flex; gap: 0.75rem; justify-content: flex-end; padding-top: 0.25rem; }
     .btn-primary {
       padding: 0.55rem 1.25rem; border-radius: 10px;
-      background: #18181b; color: #fff; border: none;
+      background: var(--rg-invert-bg, #0A0A0A); color: var(--rg-invert-fg, #fff); border: none;
       font-size: 0.875rem; font-weight: 600; cursor: pointer;
       transition: opacity 0.15s;
     }
@@ -115,11 +115,11 @@ import { ApiService } from '../core/services/api.service';
     .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
     .btn-secondary {
       padding: 0.55rem 1.25rem; border-radius: 10px;
-      background: #f4f4f5; color: #3f3f46; border: 1.5px solid #e4e4e7;
+      background: var(--rg-soft, #F4F4F5); color: var(--rg-ink, #3F3F46); border: 1.5px solid var(--rg-rule, #e4e4e7);
       font-size: 0.875rem; font-weight: 600; cursor: pointer;
       transition: background 0.15s;
     }
-    .btn-secondary:hover { background: #e4e4e7; }
+    .btn-secondary:hover { background: var(--rg-rule, #e4e4e7); }
     .success-state {
       display: flex; flex-direction: column; align-items: center;
       gap: 0.75rem; padding: 1rem 0; text-align: center;
@@ -129,8 +129,8 @@ import { ApiService } from '../core/services/api.service';
       background: #dcfce7; color: #16a34a;
       display: flex; align-items: center; justify-content: center;
     }
-    .success-title { font-size: 1.1rem; font-weight: 800; color: #18181b; margin: 0; }
-    .success-desc { font-size: 0.875rem; color: #71717a; margin: 0; line-height: 1.6; }
+    .success-title { font-size: 1.1rem; font-weight: 800; color: var(--rg-ink, #18181b); margin: 0; }
+    .success-desc { font-size: 0.875rem; color: var(--rg-muted, #71717A); margin: 0; line-height: 1.6; }
   `],
 })
 export class ReportProblemComponent {

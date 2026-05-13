@@ -150,7 +150,7 @@ import { RouterModule } from '@angular/router';
   `,
   styles: [`
     * { box-sizing: border-box; }
-    .page { min-height: 100vh; background: #f8f8f8; padding: 3rem 1.5rem; }
+    .page { min-height: 100vh; background: var(--rg-bg, var(--rg-bg, #F8F8F8)); padding: 3rem 1.5rem; }
     .inner { max-width: 760px; margin: 0 auto; }
 
     .back-row { margin-bottom: 2rem; }
@@ -212,7 +212,7 @@ import { RouterModule } from '@angular/router';
     }
     .fee-row:last-child { border-bottom: none; }
     .fee-row--header {
-      background: #f8f8f8; font-weight: 700; font-size: 0.75rem;
+      background: var(--rg-bg, var(--rg-bg, #F8F8F8)); font-weight: 700; font-size: 0.75rem;
       color: #71717a; text-transform: uppercase; letter-spacing: 0.06em;
     }
     .fee-val { font-weight: 700; color: #18181b; }

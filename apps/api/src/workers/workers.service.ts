@@ -92,10 +92,15 @@ export class WorkersService {
     });
     if (!profile) throw new NotFoundException('Worker profile not found');
 
-    const [completedPayments, escrowedPayments, applications] = await Promise.all([
+    const [completedPayments, escrowedPayments, applications, acceptedUnfunded] = await Promise.all([
       this.prisma.payment.findMany({
         where: { status: 'COMPLETED', job: { applications: { some: { workerId: profile.id, status: 'ACCEPTED' } } } },
-        select: { workerPayout: true },
+        select: {
+          workerPayout: true,
+          payoutSent: true,
+          createdAt: true,
+          job: { select: { category: { select: { name: true } } } },
+        },
       }),
       this.prisma.payment.findMany({
         where: { status: 'ESCROWED' as any, job: { applications: { some: { workerId: profile.id, status: 'ACCEPTED' } } } },
@@ -105,11 +110,81 @@ export class WorkersService {
         where: { workerId: profile.id },
         select: { status: true },
       }),
+      // Accepted applications on jobs that the client hasn't funded escrow yet —
+      // worker-side equivalent of client's "Awaiting funding". They expect this
+      // money once the client pays.
+      this.prisma.jobApplication.findMany({
+        where: {
+          workerId: profile.id,
+          status: 'ACCEPTED',
+          job: {
+            status: { in: ['ASSIGNED', 'IN_PROGRESS'] },
+            OR: [{ payment: { is: null } }, { payment: { is: { status: 'PENDING' } } }],
+          },
+        },
+        select: {
+          proposedPrice: true,
+          job: { select: { priceMin: true, priceMax: true } },
+        },
+      }),
     ]);
 
+    const totalEarned = completedPayments.reduce((s, p) => s + p.workerPayout, 0);
+    const pendingPayout = escrowedPayments.reduce((s, p) => s + p.workerPayout, 0);
+
+    // Awaiting client funding: sum of expected payouts for assigned-but-unfunded jobs.
+    const awaitingPayout = acceptedUnfunded.reduce((s, a) => {
+      const price = a.proposedPrice ?? a.job?.priceMax ?? a.job?.priceMin ?? 0;
+      return s + price;
+    }, 0);
+    const awaitingPayoutCount = acceptedUnfunded.length;
+
+    // This calendar month earned
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonth = completedPayments
+      .filter((p) => new Date(p.createdAt) >= monthStart)
+      .reduce((s, p) => s + p.workerPayout, 0);
+
+    // Last 6 months for sparkline (oldest → newest)
+    const byMonth: Array<{ key: string; label: string; amount: number }> = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const next = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const sum = completedPayments
+        .filter((p) => new Date(p.createdAt) >= d && new Date(p.createdAt) < next)
+        .reduce((s, p) => s + p.workerPayout, 0);
+      byMonth.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        label: d.toLocaleString('en-US', { month: 'short' }),
+        amount: Math.round(sum * 100) / 100,
+      });
+    }
+
+    // Category breakdown (top 3 + Other) for the split bar
+    const catMap = new Map<string, number>();
+    for (const p of completedPayments) {
+      const name = p.job?.category?.name ?? 'Other';
+      catMap.set(name, (catMap.get(name) ?? 0) + p.workerPayout);
+    }
+    const catEntries = Array.from(catMap.entries()).sort((a, b) => b[1] - a[1]);
+    const top = catEntries.slice(0, 3);
+    const otherSum = catEntries.slice(3).reduce((s, [, v]) => s + v, 0);
+    const byCategory = totalEarned > 0
+      ? [
+          ...top.map(([name, amount]) => ({ name, amount, pct: Math.round((amount / totalEarned) * 100) })),
+          ...(otherSum > 0 ? [{ name: 'Other', amount: otherSum, pct: Math.round((otherSum / totalEarned) * 100) }] : []),
+        ]
+      : [];
+
     return {
-      totalEarned: completedPayments.reduce((s, p) => s + p.workerPayout, 0),
-      pendingPayout: escrowedPayments.reduce((s, p) => s + p.workerPayout, 0),
+      totalEarned,
+      pendingPayout,
+      awaitingPayout,
+      awaitingPayoutCount,
+      thisMonth,
+      byMonth,
+      byCategory,
       jobsCompleted: profile.totalJobs,
       rating: profile.rating,
       totalReviews: profile.totalReviews,

@@ -404,16 +404,16 @@ interface JobDetail {
   `,
   styles: [`
     :host {
-      --bg: #FAFAFA;
-      --panel: #FFFFFF;
-      --ink: #0A0A0A;
-      --muted: #737373;
-      --sub: #A3A3A3;
-      --rule: #E8E8E5;
-      --accent: #84CC16;
-      --accent-ink: #0A0A0A;
-      --accent-text: #4D7C0F;
-      --soft: #F5F5F3;
+      --bg: var(--rg-bg, #fafafa);
+      --panel: var(--rg-panel, #FFFFFF);
+      --ink: var(--rg-ink, #0A0A0A);
+      --muted: var(--rg-muted, #737373);
+      --sub: var(--rg-sub, #A3A3A3);
+      --rule: var(--rg-rule, #E8E8E5);
+      --accent: var(--rg-accent, #84CC16);
+      --accent-ink: var(--rg-ink, #0A0A0A);
+      --accent-text: var(--rg-accent-text, #4D7C0F);
+      --soft: var(--rg-soft, #F5F5F3);
       --font: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
       display: block;
@@ -531,7 +531,7 @@ interface JobDetail {
     }
     .chip-soft { background: var(--soft); color: var(--muted); }
     .chip-open { background: #ECFDF5; color: #047857; border-color: #A7F3D0; }
-    .chip-lime { background: #F0FAE0; color: var(--accent-text); border-color: #D9F0A3; }
+    .chip-lime { background: var(--rg-accent-bg, #F0FAE0); color: var(--accent-text); border-color: #D9F0A3; }
     .chip-dot { width: 6px; height: 6px; border-radius: 3px; }
 
     .hero-title {
@@ -693,7 +693,7 @@ interface JobDetail {
       width: 22px;
       height: 22px;
       border-radius: 999px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
       display: inline-flex;
       align-items: center;
@@ -707,8 +707,8 @@ interface JobDetail {
 
     /* Pay card */
     .pay-card {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
       border-radius: 16px;
       padding: 22px 22px 20px;
       position: relative;
@@ -723,7 +723,7 @@ interface JobDetail {
     .pay-card > * { position: relative; }
     .pay-eyebrow {
       font-size: 10.5px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       letter-spacing: 0.18em;
       text-transform: uppercase;
       font-weight: 500;
@@ -739,22 +739,22 @@ interface JobDetail {
     }
     .pay-amount--neg {
       font-size: 28px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
     }
     .pay-sub {
       font-size: 12px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       margin: 6px 0 0;
     }
     .pay-hourly { color: var(--accent); font-family: var(--mono); }
     .pay-fee {
       margin-top: 14px;
       padding-top: 14px;
-      border-top: 1px solid #262626;
+      border-top: 1px solid var(--rg-ink-hover, #262626);
       display: flex;
       justify-content: space-between;
       font-size: 11.5px;
-      color: #A3A3A3;
+      color: var(--rg-sub, #A3A3A3);
       font-family: var(--mono);
     }
     .pay-fee-keep { color: #fff; }
@@ -817,7 +817,7 @@ interface JobDetail {
       cursor: pointer;
       transition: background 0.15s;
     }
-    .rail-cta:hover:not(:disabled) { background: #a3e635; }
+    .rail-cta:hover:not(:disabled) { background: var(--rg-accent-hover, var(--rg-accent-hover, var(--rg-accent-hover, #A3E635))); }
     .rail-cta:disabled { opacity: 0.5; cursor: not-allowed; }
     .rail-cta--ghost {
       background: var(--panel);
@@ -846,7 +846,7 @@ interface JobDetail {
     .rail-notice--accent {
       padding: 10px 12px;
       border-radius: 8px;
-      background: #F0FAE0;
+      background: var(--rg-accent-bg, #F0FAE0);
       color: var(--accent-text);
     }
 
@@ -873,7 +873,7 @@ interface JobDetail {
       width: 14px;
       height: 14px;
       border-radius: 999px;
-      background: rgba(0,0,0,0.06);
+      background: var(--rg-hover, rgba(0,0,0,0.06));
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -881,15 +881,15 @@ interface JobDetail {
       font-family: var(--mono);
     }
     .step--current {
-      background: var(--ink);
-      color: #fff;
+      background: var(--rg-invert-bg, #0A0A0A);
+      color: var(--rg-invert-fg, #fff);
     }
     .step--current .step-num { background: rgba(255,255,255,0.18); }
     .step--done {
       background: var(--accent);
       color: var(--accent-ink);
     }
-    .step--done .step-num { background: rgba(0,0,0,0.06); color: var(--accent-ink); }
+    .step--done .step-num { background: var(--rg-hover, rgba(0,0,0,0.06)); color: var(--accent-ink); }
     .step-line {
       flex: 1;
       height: 1px;
@@ -1018,9 +1018,9 @@ export class WorkerJobDetailComponent implements OnInit {
       'Cleaning': '#10B981', 'Plumbing': '#3B82F6', 'Electrical': '#EAB308',
       'Moving': '#8B5CF6', 'Gardening': '#16A34A', 'Painting': '#EC4899',
       'Assembly': '#F59E0B', 'Mounting': '#10B981', 'Carpentry': '#A16207',
-      'HVAC': '#0EA5E9', 'Handyman': '#737373', 'Mechanical': '#475569',
+      'HVAC': '#0EA5E9', 'Handyman': 'var(--rg-muted, #737373)', 'Mechanical': '#475569',
     };
-    return map[category ?? ''] ?? '#737373';
+    return map[category ?? ''] ?? 'var(--rg-muted, #737373)';
   }
 
   avatarColor(name?: string | null): string {
@@ -1237,7 +1237,7 @@ export class WorkerJobDetailComponent implements OnInit {
       const dot = document.createElement('div');
       dot.style.cssText = [
         'width:22px', 'height:22px', 'border-radius:50%',
-        'background:#2563eb', 'border:3px solid #fff',
+        'background:#2563eb', 'border:3px solid var(--rg-rule, #fff)',
         'box-shadow:0 2px 12px rgba(37,99,235,0.5)',
       ].join(';');
       new ml.Marker({ element: dot, anchor: 'center' })

@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "browseJobs": "Jobs durchsuchen",
+    "saved": "Gespeichert",
+    "applications": "Bewerbungen",
+    "postJob": "Job einstellen",
+    "myJobs": "Meine Jobs",
+    "drafts": "Entwürfe",
+    "pricing": "Preise",
+    "howItWorks": "So funktioniert's",
+    "terms": "AGB",
+    "signIn": "Anmelden",
+    "getStarted": "Loslegen",
+    "profile": "Profil & Einstellungen",
+    "plans": "Tarife & Preise",
+    "signOut": "Abmelden",
+    "settings": "Einstellungen",
+    "online": "Online"
+  },
+  "settings": {
+    "eyebrow": "Einstellungen",
+    "title": "Einstellungen",
+    "subtitle": "Passe an, wie RobosGig aussieht und sich anfühlt.",
+    "tabs": {
+      "appearance": "Darstellung",
+      "language": "Sprache",
+      "account": "Konto"
+    },
+    "appearance": {
+      "theme": {
+        "eyebrow": "Theme",
+        "title": "Wähle dein Theme",
+        "sub": "Drei Modi — Hell, Dunkel oder Glossier, inspiriert von Apples Liquid Glass.",
+        "light": "Hell",
+        "dark": "Dunkel",
+        "glossier": "Glossier"
+      },
+      "accent": {
+        "eyebrow": "Akzentfarbe",
+        "title": "Wähle eine Akzentfarbe",
+        "sub": "Die Akzentfarbe färbt Buttons, Badges und Highlights.",
+        "current": "Aktuell"
+      }
+    },
+    "language": {
+      "eyebrow": "Sprache",
+      "title": "Wähle deine Sprache",
+      "sub": "Verwendet für die Oberfläche, E-Mail-Benachrichtigungen und KI-Assistenten."
+    },
+    "account": {
+      "eyebrow": "Konto",
+      "title": "Profil, Identität, Zahlungen",
+      "sub": "Verwalte dein Profil, die Identitätsprüfung und Zahlungsmethoden.",
+      "openProfile": "Profil öffnen"
+    }
+  }
+}
